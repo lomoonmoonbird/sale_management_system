@@ -5,4 +5,5 @@ install:
 re:
 	@echo '-----------Regex-----------'
 	@isort  -rc demo
+	@isort *.py
 	@flake8 --ignore=E501 *.py
