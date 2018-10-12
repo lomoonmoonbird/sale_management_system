@@ -1,6 +1,7 @@
 import asyncio
-from utils import *
+
 from aiohttp.web import Request
+from utils import *
 
 
 async def index(req: Request):
