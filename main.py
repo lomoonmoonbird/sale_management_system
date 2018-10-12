@@ -24,7 +24,7 @@ async def init_app(app: web.Application):
     """Initiate web application settings after app is instantiated."""
     logger.debug('Init application.')
 
-    setup_routes(APP)
+    setup_routes(app)
 
     await init_db(app)
 

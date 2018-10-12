@@ -36,9 +36,9 @@ if env == 'stable':
                        'dds-uf6fcc4e461ee5a42.mongodb.rds.aliyuncs.com:3717/admin?replicaSet=mgset-7558683'
 
     """Logging configs"""
-    LOG_FILE_PATH = '/data/logs/aio-sigma-tornado/index.log'
-    if not os.path.exists('/data/logs/aio-sigma-tornado'):
-        os.mkdir('/data/logs/aio-sigma-tornado')
+    LOG_FILE_PATH = '/data/logs/Sales-management-system/index.log'
+    if not os.path.exists('/data/logs/Sales-management-system'):
+        os.mkdir('/data/logs/Sales-management-system')
     DEV_LOGGING_LEVEL = ...  # Not used in stable environment.
 
     """Account system URL"""

@@ -37,7 +37,7 @@ LOGGING = {
     },
     'loggers': {
         'aapi': {
-            'handlers': ['default'] if env == 'stable' else ['console', 'default'],
+            'handlers': ['default'] if env == 'stable' else ['console'],
             'level': 'DEBUG' if env == 'stable' else DEV_LOGGING_LEVEL,
             'propagate': False
         }
