@@ -1,0 +1,5 @@
+venv/*
+.idea/*
+logs/*
+.DS_Store
+*.pyc

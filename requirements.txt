@@ -1,0 +1,13 @@
+aiohttp
+aiodns
+aioredis
+aiomysql
+schema
+zmail
+uvloop
+cChardet
+sqlalchemy
+ujson
+motor
+# Used for install aiomysql.
+# mysqlclient
