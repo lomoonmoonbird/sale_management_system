@@ -7,6 +7,7 @@ import asyncio
 
 import uvloop
 
+import aiohttp
 import loggings
 from aiohttp import web
 from basemodel import close_db, init_db
@@ -27,11 +28,13 @@ async def init_app(app: web.Application):
     setup_routes(app)
 
     await init_db(app)
+    app['http_session'] = aiohttp.ClientSession()
 
 
 async def close_app(app: web.Application):
     """Close web application gracefully."""
     await close_db(app)
+    await app['http_session'].close()
 
 
 APP = web.Application(middlewares=[error_handle_middleware], debug=False, logger=None)
