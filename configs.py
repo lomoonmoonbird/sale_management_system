@@ -48,10 +48,16 @@ if env == 'stable':
     CONTENT_BANK_URL = 'http://mark.content.ali.hexin.im/api'
 
     """Celery task"""
-    BROKER_URL = 'redis://redis.ali.hexin.im/19'
+    BROKER_URL = 'redis://redis.ali.hexin.im/20'
 
     """Centauri URL"""
     CENTAURI_URL = 'http://zuoye.ali.hexin.im/api'
+
+    """For permission"""
+    UC_SYSTEM_URL = 'http://uc.ali.hexin.im/api'
+    THEMIS_SYSTEM_URL = 'http://themis.ali.hexin.im/api/open'
+    permissionAppKey = NotImplemented
+    permissionAppSecret = NotImplemented
 
 else:
     DEBUG = True
@@ -70,7 +76,7 @@ else:
     """Redis configs"""
     REDIS_CONFIG = {
         'address': 'redis://redis.hexin.im:6379',
-        'db': 19,
+        'db': 20,
         'minsize': 5,
         'maxsize': 10,
         'encoding': 'utf-8'
@@ -92,7 +98,17 @@ else:
     CONTENT_BANK_URL = 'http://mark.content.hexin.im/api'
 
     """Celery task"""
-    BROKER_URL = 'redis://redis.hexin.im/19'
-    RESULT_BACKEND = 'redis://redis.hexin.im/19'
+
+
+    RESULT_BACKEND = 'redis://redis.hexin.im/20'
+    BROKER_URL = 'redis://redis.hexin.im/20'
+
+
     """Centauri URL"""
     CENTAURI_URL = 'http://zuoye.hexin.im/api'
+
+    """For permission"""
+    UC_SYSTEM_URL = 'http://uc.hexin.im/api'
+    THEMIS_SYSTEM_URL = 'http://themis.hexin.im/api/open'
+    permissionAppKey = 'themis0093b2e00f'
+    permissionAppSecret = '0a1422d7a23e27f6ffb2a6c1dbd7fbf3'

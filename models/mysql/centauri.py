@@ -8,6 +8,8 @@
 from sqlalchemy import Table, Column, Integer, String, MetaData, \
 ForeignKey, Boolean, DateTime, SmallInteger, select
 from sqlalchemy.dialects import mysql
+from enum import Enum 
+
 
 metadata = MetaData()
 
@@ -24,6 +26,7 @@ as_hermes = Table('sigma_pool_as_hermes', metadata,
 
 #school 学校
 ob_school = Table('sigma_account_ob_school', metadata, 
+                Column('id', Integer, primary_key=True), #学校主键id
                 Column('uid', String(128), unique=True), #学校uid
                 Column('full_name', String(64)), #学校全名
                 Column('short_name', String(32)), #学校缩略名
@@ -38,6 +41,7 @@ ob_school = Table('sigma_account_ob_school', metadata,
 
 #group 年级 班级
 ob_group = Table('sigma_account_ob_group', metadata, 
+                Column('id', Integer, primary_key=True), #班级年级主键id
                 Column('uid', String(64), unique=True), #年级uid
                 Column('name', String(64)), #班级
                 Column('grade', String(8)), #入学年份  当前时间与此字段计算几年级
@@ -48,7 +52,7 @@ ob_group = Table('sigma_account_ob_group', metadata,
 
 #groupuser 用户和年级班级关系
 
-ob_groupuser = Table('sigma_account_ob_groupuser', metadata, 
+ob_groupuser = Table('sigma_account_re_groupuser', metadata, 
                 Column('group_id', String), #年级id
                 Column('user_id', String, index=True), #用户id
                 Column('role_id', String), #角色
@@ -76,10 +80,11 @@ ob_wechat = Table('sigma_account_ob_wechat', metadata,
 
 #user 用户表 所有用户
 us_user = Table('sigma_account_us_user', metadata, 
+                Column('id', Integer, primary_key=True), #用户主键id
                 Column('name', String(32)), #名称
-                Column('uid', Integer(128), unique=True, index=True, nullable=True), #用户展示uid
-                Column('openid', Integer(128), nullable=True), #微信openid
-                Column('unionid', Integer(128), unique=True, index=True), #todo 含义
+                Column('uid', Integer, unique=True, index=True, nullable=True), #用户展示uid
+                Column('openid', Integer, nullable=True), #微信openid
+                Column('unionid', Integer, unique=True, index=True), #todo 含义
                 Column('school_id', Integer, default=0, nullable=True), #学校id
                 Column('role_id', SmallInteger, default=0), #角色id
                 Column('available', Boolean, default=1), #是否可用
@@ -107,14 +112,32 @@ ob_order = Table('sigma_pay_ob_order', metadata,
                 Column('time_create', DateTime) #创建时间
                 )
 
-# u = as_hermes.insert().values(uid='mmb', exercise_id='moonmoonbird')
-# f = as_hermes.select().where(as_hermes.c.uid > 1)
-# # print (str(u))
-# print (f.compile().statement.params)
-# # print (f.compile(dialect=mysql.dialect()))
-# # print(repr(as_hermes.c.uid == 'ed'))
 
-
-# s = select([as_hermes]).where(as_hermes.c.uid > 1)
-# s = as_hermes.select().where(as_hermes.c.uid  > 1)
-# print (s.compile(dialect=mysql.dialect(), compile_kwargs={"literal_binds": True}))
+class Roles(Enum):
+    """
+    # 系统角色说明
+    # super - 超管
+    # teacher - 教师
+    # student - 学生
+    # worker - 运营人员
+    # scanner - 扫描仪账号
+    # school - 学校管理员
+    # channel - 渠道
+    # xdf - 1.0系统，可能是XDF的教研平台
+    # agency - （暂时不知道）
+    # beta - （暂时不知道）
+    # edu - 1.0系统，可能是老系统的用户
+    # wechat - 其他-学生微信消息推送
+    """
+    SUPER = 0
+    TEACHER = 1
+    STUDENT = 2
+    WORKER = 3
+    SCANNER = 4
+    SCHOOL = 5
+    CHANNEL = 6
+    XDF = 7
+    AGENCY = 8
+    BETA = 9
+    EDU = 10
+    WECHAT = 11 
