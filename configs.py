@@ -93,6 +93,6 @@ else:
 
     """Celery task"""
     BROKER_URL = 'redis://redis.hexin.im/19'
-
+    RESULT_BACKEND = 'redis://redis.hexin.im/19'
     """Centauri URL"""
     CENTAURI_URL = 'http://zuoye.hexin.im/api'
