@@ -1,5 +1,6 @@
 import asyncio
 from exceptions import LoginError
+from functools import wraps
 
 import schema
 
@@ -27,7 +28,7 @@ def catch_unknown_error(error, error_info):
 
 
 @catch_unknown_error(LoginError, 'Unknown error:')
-async def get_permission(request: aiohttp.web.Request):
+async def get_permission(request: aiohttp.web.Request) -> None:
     """Get permission from UC system."""
 
     async def get_user_base_info(_session, _cookie):
@@ -76,3 +77,22 @@ async def get_permission(request: aiohttp.web.Request):
         request['user_info']['user_id'] = success_uc_resp_as_json['data']['userId']
         request['user_info']['is_login'] = success_uc_resp_as_json['data']['isLogin']
         request['user_info']['permissions'] = success_themis_resp_as_json['data']
+
+
+def assert_permissions(check=True):
+    def outer_wrapper(func):
+        @wraps(func)
+        async def inner_wrapper(*args, **kwargs):
+            request = args[0]  # type: aiohttp.web.Request
+            await get_permission(request)
+
+            request_uri = ' '.join((request.method, request.path))
+
+            if check and request_uri not in request['user_info']['permissions']:
+                raise LoginError('User can not access this API.')
+
+            return await func(*args, **kwargs)
+
+        return inner_wrapper
+
+    return outer_wrapper

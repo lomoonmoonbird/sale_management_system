@@ -6,4 +6,4 @@ re:
 	@echo '-----------Regex-----------'
 	@isort  -rc demo
 	@isort *.py
-	@flake8 --ignore=E501 *.py
+	@flake8 --ignore=E501 *.py demo/*.py
