@@ -9,5 +9,7 @@ cChardet
 sqlalchemy
 ujson
 motor
+celery
+redis
 # Used for install aiomysql.
 # mysqlclient

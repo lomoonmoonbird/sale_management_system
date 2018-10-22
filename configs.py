@@ -98,7 +98,11 @@ else:
     CONTENT_BANK_URL = 'http://mark.content.hexin.im/api'
 
     """Celery task"""
+
+
+    RESULT_BACKEND = 'redis://redis.hexin.im/20'
     BROKER_URL = 'redis://redis.hexin.im/20'
+
 
     """Centauri URL"""
     CENTAURI_URL = 'http://zuoye.hexin.im/api'
