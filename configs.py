@@ -56,8 +56,8 @@ if env == 'stable':
     """For permission"""
     UC_SYSTEM_URL = 'http://uc.ali.hexin.im/api'
     THEMIS_SYSTEM_URL = 'http://themis.ali.hexin.im/api/open'
-    permissionAppKey = NotImplemented
-    permissionAppSecret = NotImplemented
+    permissionAppKey = 'themisc0129c329b'
+    permissionAppSecret = '5ef4c591f28f5a6049d22d476840c980'
 
 else:
     DEBUG = True
@@ -108,7 +108,7 @@ else:
     CENTAURI_URL = 'http://zuoye.hexin.im/api'
 
     """For permission"""
-    UC_SYSTEM_URL = 'http://uc.hexin.im/api'
-    THEMIS_SYSTEM_URL = 'http://themis.hexin.im/api/open'
-    permissionAppKey = 'themis0093b2e00f'
-    permissionAppSecret = '0a1422d7a23e27f6ffb2a6c1dbd7fbf3'
+    UC_SYSTEM_URL = 'http://uc.ali.hexin.im/api'
+    THEMIS_SYSTEM_URL = 'http://themis.ali.hexin.im/api/open'
+    permissionAppKey = 'themisc0129c329b'
+    permissionAppSecret = '5ef4c591f28f5a6049d22d476840c980'
