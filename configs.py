@@ -99,16 +99,14 @@ else:
 
     """Celery task"""
 
-
     RESULT_BACKEND = 'redis://redis.hexin.im/20'
     BROKER_URL = 'redis://redis.hexin.im/20'
-
 
     """Centauri URL"""
     CENTAURI_URL = 'http://zuoye.hexin.im/api'
 
     """For permission"""
-    UC_SYSTEM_URL = 'http://uc.ali.hexin.im/api'
-    THEMIS_SYSTEM_URL = 'http://themis.ali.hexin.im/api/open'
+    UC_SYSTEM_URL = 'http://uc.hexinedu.com/api'
+    THEMIS_SYSTEM_URL = 'https://themis.hexinedu.com/api/open'
     permissionAppKey = 'themisc0129c329b'
     permissionAppSecret = '5ef4c591f28f5a6049d22d476840c980'
