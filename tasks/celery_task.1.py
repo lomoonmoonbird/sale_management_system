@@ -16,9 +16,14 @@ from configs import MONGODB_CONN_URL
 from loggings import logger
 import pickle
 import time
+import datetime
 from collections import defaultdict
 
 class BaseTask(Task):
+    def __init__(self):
+        super(BaseTask, self).__init__()
+        self.start_time = datetime.datetime(2018,1,1)
+        
     def on_failure(self, exc, task_id, args, kwargs, einfo):
         print (einfo)
 
@@ -63,14 +68,14 @@ class SummaryTask(BaseTask):
             self._total(school)
             school.update(self.total_dict)
             school['stages'] = self._stage(school)
-            self.bulk_update.append(UpdateOne({"_id": school['id']}, {'$set': school}, upsert=True ))
-            time.sleep(0.1)
+            if school:
+                self.bulk_update.append(UpdateOne({"_id": school['id']}, {'$set': school}, upsert=True ))
+            # time.sleep(0.8)
         # from tasks.celery_init import sales_celery
         # sales_celery.send_task('tasks.celery_task.Math', args=[4,5])
-
-
-        bulk_update_ret = self.mongo.school.bulk_write(self.bulk_update)
-        print (bulk_update_ret.bulk_api_result)
+        if self.bulk_update:
+            bulk_update_ret = self.mongo.school.bulk_write(self.bulk_update)
+            print (bulk_update_ret.bulk_api_result)
         self.bulk_update = []
         # print (schools)
 

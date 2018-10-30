@@ -15,6 +15,7 @@ metadata = MetaData()
 
 #Hermes 考试上传的答题卡图片
 as_hermes = Table('sigma_pool_as_hermes', metadata, 
+                Column('id', Integer, primary_key=True), #考试上传图片主键id
                 Column('uid', String(128), unique=True), #图片uid
                 Column('exercise_id', Integer), #考试id
                 Column('student_id', default=0, index=True), #学生id
@@ -62,6 +63,7 @@ ob_groupuser = Table('sigma_account_re_groupuser', metadata,
 
 #exercise 考试
 ob_exercise = Table('sigma_exercise_ob_exercise', metadata, 
+                Column('id', Integer, primary_key=True), #考试主键id
                 Column('uid', String(128), unique=True), #考试uid
                 Column('user_id', String(64)), #出卷人
                 Column('available', Boolean, default=1), #是否可用
@@ -88,11 +90,13 @@ us_user = Table('sigma_account_us_user', metadata,
                 Column('school_id', Integer, default=0, nullable=True), #学校id
                 Column('role_id', SmallInteger, default=0), #角色id
                 Column('available', Boolean, default=1), #是否可用
-                Column('time_create', DateTime) #创建时间
+                Column('time_create', DateTime), #创建时间
+                Column('time_modify', DateTime) #修改时间
                 )
 
 #wechat 用户和绑定微信关系
 re_userwechat = Table('sigma_account_re_userwechat', metadata, 
+                Column('id', Integer, primary_key=True), #微信用户关系主键id
                 Column('user_id'), #用户id
                 Column('wechat_id', Integer, index=True), #sigma_account_ob_wechat id
                 Column('relationship', default=0, nullable=False), #该user_id和wechat_id的关系
@@ -141,3 +145,21 @@ class Roles(Enum):
     BETA = 9
     EDU = 10
     WECHAT = 11 
+
+class StageEnum(Enum):
+    """
+    阶段类型
+    """
+    Register = 0 # 开通即注册
+    Using = 1 #使用阶段
+    Binding = 2 #绑定阶段
+    Pay = 3 #付费阶段
+
+class StudentRelationEnum(Enum):
+    """学生端微信持有者与学生的监护人关系"""
+    sich = 1  # 学生本人
+    father = 2  # 父亲
+    mother = 3  # 母亲
+    yeyenainai = 4  # 爷爷奶奶
+    laolaolaoye = 5  # 姥姥姥爷
+    others = 6  # 其他监护人
