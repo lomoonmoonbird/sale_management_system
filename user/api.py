@@ -217,7 +217,10 @@ class User(BaseHandler):
             bulk_update.append(UpdateOne({"old_id": old_id},
                                          {"$set": {"parent_id": request_data['area_id'],
                                                    "old_id": int(old_id),
-                                                   "role": Roles.CHANNEL.value
+                                                   "role": Roles.CHANNEL.value,
+                                                   "status": 1,
+                                                   "create_at": time.time(),
+                                                   "modify_at": time.time()
                                                    }
                                           },upsert=True))
         if bulk_update:
@@ -337,12 +340,12 @@ class User(BaseHandler):
         """
         request_data = await get_json(request)
 
-        bulk_delete = []
+        bulk_update = []
         for channelid in request_data['channel_ids']:
-            bulk_delete.append(DeleteMany({"_id": ObjectId(channelid)}))
+            bulk_update.append(UpdateOne({"_id": ObjectId(channelid)}, {"$set": {"status": 0}}))
 
-        if bulk_delete:
-            ret = await request.app['mongodb'][self.db][self.instance_coll].bulk_write(bulk_delete)
+        if bulk_update:
+            ret = await request.app['mongodb'][self.db][self.instance_coll].bulk_write(bulk_update)
             print(ret.bulk_api_result)
         return self.reply_ok({})
 
@@ -565,6 +568,22 @@ class User(BaseHandler):
 
         raise CreateUserError("Market adding user failed")
 
+    @validate_permission()
+    async def get_market_user(self, request: Request):
+        """
+        获取市场用户
+        :param request:
+        :return:
+        """
+        request_param = await get_params(request)
+        page = int(request_param['page'])
+        per_page = 100
+
+        #todo
+        if request['user_info']['instance_role_id'] != Roles.GLOBAL.value:
+            channel_id = request['user_info']['channel_id']
+            users = request.app['mongodb'][self.db][self.user_coll].find({"channel_id": channel_id, "status": 1}).skip(page*per_page).limit(per_page)
+            channel_info = await request.app['mongodb'][self.db][self.instance_coll].find_one({"_id": ObjectId(channel_id), "status": 1})
 
 
 
