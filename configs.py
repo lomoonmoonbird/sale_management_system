@@ -54,11 +54,12 @@ if env == 'stable':
     CENTAURI_URL = 'http://zuoye.ali.hexin.im/api'
 
     """For permission"""
-    UC_SYSTEM_URL = 'http://uc.ali.hexin.im/api'
-    THEMIS_SYSTEM_URL = 'http://themis.ali.hexin.im/api/open'
+    UC_SYSTEM_API_URL = 'http://uc.ali.hexin.im/api'
+    THEMIS_SYSTEM_OPEN_URL = 'http://themis.ali.hexin.im/api/open'
     permissionAppKey = 'themisc0129c329b'
     permissionAppSecret = '5ef4c591f28f5a6049d22d476840c980'
-
+    ucAppKey = '0d8cf2c3b25588ca'
+    ucAppSecret = '956bc2120d8cf2c3b25588ca8b3e116b'
 else:
     DEBUG = True
 
@@ -106,7 +107,11 @@ else:
     CENTAURI_URL = 'http://zuoye.hexin.im/api'
 
     """For permission"""
-    UC_SYSTEM_URL = 'http://uc.hexinedu.com/api'
-    THEMIS_SYSTEM_URL = 'https://themis.hexinedu.com/api/open'
-    permissionAppKey = 'themisc0129c329b'
-    permissionAppSecret = '5ef4c591f28f5a6049d22d476840c980'
+    UC_SYSTEM_API_URL = 'http://uc.hexin.im/api'
+    UC_SYSTEM_API_ADMIN_URL = 'http://uc.hexin.im/api/admin'
+    THEMIS_SYSTEM_OPEN_URL = 'http://themis.hexin.im/api/open'
+    THEMIS_SYSTEM_ADMIN_URL = 'http://themis.hexin.im/api/admin'
+    permissionAppKey = 'themisb560b78819'
+    permissionAppSecret = '1fab6d0efbd554e4daab74232774c5c0'
+    ucAppKey = '0d8cf2c3b25588ca'
+    ucAppSecret = '956bc2120d8cf2c3b25588ca8b3e116b'

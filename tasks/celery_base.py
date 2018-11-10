@@ -23,12 +23,17 @@ from collections import defaultdict
 import json
 from sshtunnel import SSHTunnelForwarder
 
+class CustomEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, (datetime.datetime)):
+            return str(obj)
 
+        return json.JSONEncoder.default(self, obj)
 
 class BaseTask(Task):
     def __init__(self):
         super(BaseTask, self).__init__()
-        self.start_time = datetime.datetime(2015,1,1)
+        self.start_time = datetime.datetime(2018,1,1)
         self.coll_time_threshold = 'sale_time_threshold'
         self.bulk_update = []
         self.total_dict = defaultdict(float)
@@ -55,38 +60,25 @@ class BaseTask(Task):
     def on_success(self, retval, task_id, args, kwargs):
         print ('success')
 
-    def _query(self, query):
-        """
-        执行查询 返回数据库结果
-        """
-        try:
-            with self.connection.cursor() as cursor:
-                # logger.debug(query.compile(dialect=mysql.dialect(),compile_kwargs= {"literal_binds": True}).string.replace("%%","%"))
-                cursor.execute(query.compile(dialect=mysql.dialect(),compile_kwargs= {"literal_binds": True}).string.replace("%%","%"))
-                ret = cursor.fetchall()
-                cursor.close()
-        except:
-            import traceback
-            traceback.print_exc()
-            ret = []
-        return ret
-        # cursor = self.connection.cursor()
-        # cursor.execute(
-        #     query.compile(dialect=mysql.dialect(), compile_kwargs={"literal_binds": True}).string.replace("%%", "%"))
-        # ret = cursor.fetchall()
-        # cursor.close()
-        # return ret
 
-    def _school(self)->list:
-        """
-        正序获取学校记录
-        如果有记录最后时间则从最后时间开始到前一天，否则从默认开始时间到当前时间前一天
-        """
-        print ("schooll..............")
-        t = self.time_threshold_table.get("school_begin_time", self.start_time)
-        q_schools = select([ob_school]).where(and_(ob_school.c.available==1,
-                                    ob_school.c.time_create > t.strftime("%Y-%m-%d"))).\
-                                    order_by(asc(ob_school.c.time_create))
-        schools = self._query(q_schools)
-        print ("return school..........")
-        return schools
+
+
+
+    def _date_range(self, field):
+        self.time_threshold_table = self.mongo[self.coll_time_threshold].find_one({"_id": "sale_time_threshold"}) or {}
+
+        start_date = self.time_threshold_table.get(field, self.start_time) if self.time_threshold_table.get(field, self.start_time) else self.start_time
+        end_date = datetime.datetime.now()
+
+        delta = end_date - start_date  # timedelta
+
+        date_range = []
+        for i in range(1, delta.days ):
+            # print(datetime.datetime.strftime((start_date + timedelta(i)), "%Y-%m-%d"))
+            date_range.append((datetime.datetime.strftime((start_date + timedelta(i-1)), "%Y-%m-%d"),
+                               datetime.datetime.strftime((start_date + timedelta(i)), "%Y-%m-%d")))
+
+        return date_range
+
+    def _set_time_threadshold(self, field, value):
+        self.mongo[self.coll_time_threshold].update({"_id": "sale_time_threshold"}, {"$set": {field: value}}, upsert=True)

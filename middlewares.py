@@ -17,16 +17,26 @@ async def error_handle_middleware(request, handler):
         resp = await handler(request)
     except asyncio.CancelledError:
         raise
+
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         error_name = e.__class__.__name__
         error_info = "'" + error_name + "'" + ' : ' + str(e)
         # TODO ADD LOG HERE.
+
         if hasattr(e, 'status_code'):
             logger.info(error_info)
             code = e.status_code
-            resp = json_response({'code': code, 'data': error_info}, status=code)
+            http_code = 200
+
+            if hasattr(e, 'http_code'):
+                http_code = e.http_code.value
+                print(http_code)
+            resp = json_response({'code': code.value, 'msg': error_info, 'data': {}}, status=http_code)
         else:
             logger.warning(error_info)
             resp = json_response(
-                {'code': 500, 'data': 'An unexpected exception ' + error_info}, status=500)
+                {'code': 500, 'msg': 'An unexpected exception ' + error_info, 'data': {}}, status=500)
+
     return resp

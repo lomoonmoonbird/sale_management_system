@@ -3,7 +3,7 @@ from motor.core import Collection
 
 async def insert_area(col: Collection, name: str):
     global_id = str((await col.find_one({'role': 1}))['_id'])
-    await col.insert_one({'name': name, 'role': 2, 'parent_id': global_id})
+    return await col.insert_one({'name': name, 'role': 2, 'parent_id': global_id})
 
 
 async def insert_channel(col: Collection, name: str, parent_id: str, old_id: int):

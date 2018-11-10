@@ -5,6 +5,7 @@ Include all routes here.
 """
 import demo.routes
 import statistics.school.routes
+import user.routes
 from aiohttp.web import Application
 from loggings import logger
 
@@ -22,4 +23,6 @@ def setup_routes(app: Application):
     logger.debug('Success register demo.routes')  # Add logger. Step-3
     statistics.school.routes.register(app.router)
     logger.debug('Success register stastictis.school.routes')
+    user.routes.register(app.router)
+    logger.debug('Success register user.routes')
 

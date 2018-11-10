@@ -87,3 +87,4 @@ class StudentTask(BaseTask):
 
 
     def _exam_images(self):
+        pass

@@ -23,7 +23,35 @@ from collections import defaultdict
 import json
 from sshtunnel import SSHTunnelForwarder
 from tasks.celery_base import BaseTask
+from pymongo.errors import BulkWriteError
+from celery.signals import worker_process_init,worker_process_shutdown
 
+connection = None
+
+@worker_process_init.connect
+def init_worker(**kwargs):
+    global connection
+    print('Initializing database connection for worker.')
+    server = SSHTunnelForwarder(
+        ssh_address_or_host=('139.196.77.128', 5318),  # 跳板机
+
+        ssh_password="PengKim@89527",
+        ssh_username="jinpeng",
+        remote_bind_address=('rr-uf6247jo85269bp6e.mysql.rds.aliyuncs.com', 3306))
+    server.start()
+    connection = pymysql.connect(host='127.0.0.1',
+                                      port=server.local_bind_port,
+                                      user='sigma',
+                                      password='sigmaLOVE2017',
+                                      db='sigma_centauri_new',
+                                      charset='utf8mb4',
+                                      cursorclass=pymysql.cursors.DictCursor)
+@worker_process_shutdown.connect
+def shutdown_worker(**kwargs):
+    global connection
+    if connection:
+        print('Closing database connectionn for worker.')
+        connection.close()
 
 class SchoolTask(BaseTask):
     """
@@ -32,61 +60,133 @@ class SchoolTask(BaseTask):
 
     def __init__(self):
         super(SchoolTask, self).__init__()
-        # self.connection = pymysql.connect(host='mysql.hexin.im',
-        #                      user='root',
-        #                      password='sigmalove',
-        #                      db='sigma_centauri_new',
-        #                      charset='utf8mb4',
-        #                      cursorclass=pymysql.cursors.DictCursor)
-        self.mongo = pymongo.MongoClient(MONGODB_CONN_URL).sales
-        self.server = SSHTunnelForwarder(
-            ssh_address_or_host=('139.196.77.128', 5318),  # B机器的配置
 
-            ssh_password="PengKim@89527",
-            ssh_username="jinpeng",
-            remote_bind_address=('rr-uf6247jo85269bp6e.mysql.rds.aliyuncs.com', 3306))
-        self.server.start()
+        self.mongo = pymongo.MongoClient(MONGODB_CONN_URL).sales
+
 
     def run(self):
         try:
-            schools = self._school()
-            for school in schools:
-                self._teacher_counts(school)
-                self._student_counts(school)
-                self._valid_exercise_students_counts(school)
-                self._exam_images_counts(school)
-                self._guardian_counts(school)
-                self._paid_counts(school)
-            # school = {}
-            # school['id'] = 1
-            # self._valid_exercise_students_counts(school)
-        except:
+            date_range = self._date_range("school_begin_time")  # 时间分段
+            schools = self._school(date_range)
+            # for school in schools:
+            #     self._teacher_counts(school)
+            #     self._student_counts(school)
+            #     self._valid_exercise_students_counts(school)
+            #     self._exam_images_counts(school)
+            #     self._guardian_counts(school)
+            #     self._paid_counts(school)
+            self.server.stop()
+            self.connection.close()
+            self.cursor.close()
+        except Exception as e:
             import traceback
             traceback.print_exc()
-            self.retry()
-        # school= {}
-        # school['id'] = 1
+
+            raise self.retry(exc=e, countdown=30, max_retries=5)
+
 
     def _query(self, query):
         """
         执行查询 返回数据库结果
         """
-        self.connection = pymysql.connect(host='127.0.0.1',
-                                          port=self.server.local_bind_port,
-                                          user='sigma',
-                                          password='sigmaLOVE2017',
-                                          db='sigma_centauri_new',
-                                          charset='utf8mb4',
-                                          cursorclass=pymysql.cursors.DictCursor)
-        cursor = self.connection.cursor()
+
+        cursor = connection.cursor()
         logger.debug(
             query.compile(dialect=mysql.dialect(), compile_kwargs={"literal_binds": True}).string.replace("%%", "%"))
+
         cursor.execute(
             query.compile(dialect=mysql.dialect(), compile_kwargs={"literal_binds": True}).string.replace("%%", "%"))
         ret = cursor.fetchall()
-        cursor.close()
-        print("_query reutrn .......")
         return ret
+
+
+    def _school(self, date_range)->list:
+        """
+        正序获取学校记录
+        如果有记录最后时间则从最后时间开始到前一天，否则从默认开始时间到当前时间前一天
+        """
+        for one_date in date_range:
+        # t = self.time_threshold_table.get("school_begin_time", self.start_time)
+            q_schools = select([ob_school]).where(and_(ob_school.c.available==1,
+                                                       ob_school.c.time_create >= one_date[0],
+                                                       ob_school.c.time_create < one_date[1])).\
+                                        order_by(asc(ob_school.c.time_create))
+            schools = self._query(q_schools)
+            bulk_update = []
+            for school in schools:
+                self._stage(school)
+                bulk_update.append(UpdateOne({"_id": str(school['id'])}, \
+                                             {'$set': school}, upsert=True))
+            if bulk_update:
+                try:
+                    bulk_update_ret = self.mongo.school.bulk_write(bulk_update)
+                    print(bulk_update_ret.bulk_api_result)
+                except BulkWriteError as bwe:
+                    print(bwe.details)
+            self._set_time_threadshold("school_begin_time", datetime.datetime.strptime(one_date[1], "%Y-%m-%d"))
+
+    def _stage(self, school):
+        """
+        年级阶段和学校阶段
+        获取
+        """
+        import collections
+        #学校年级每天有效考试
+        join = ob_groupuser.join(ob_group,
+                                 and_(ob_groupuser.c.group_id == ob_group.c.id,
+                                      ob_group.c.school_id == school['id'],
+                                      ob_group.c.available == 1,
+                                      ob_groupuser.c.available == 1)).join(as_hermes, and_(
+            ob_groupuser.c.user_id == as_hermes.c.student_id,
+            as_hermes.c.available == 1,
+            ob_groupuser.c.available == 1
+        )).alias("a")
+
+        q_stages = select([join, func.date_format(join.c.sigma_pool_as_hermes_time_create, "%Y-%m-%d"),
+                           func.count(join.c.sigma_account_re_groupuser_user_id). \
+                          label("user_count")])\
+            .select_from(join)\
+            .group_by(func.date_format(join.c.sigma_pool_as_hermes_time_create, "%Y-%m-%d"))\
+            .group_by(join.c.sigma_account_ob_group_grade) \
+            .having(text('user_count >= 10'))\
+            .order_by(asc(join.c.sigma_pool_as_hermes_time_create))
+        stages = self._query(q_stages)
+
+        #学校年级
+        q_grades_classes = select([ob_group]).where(
+            and_(ob_group.c.school_id == school['id'], ob_group.c.available == 1))
+        grades_classes = self._query(q_grades_classes)
+
+        bulk_update = []
+        using_start_time = []
+        for grade_class in grades_classes:
+            grade_class['stage'] = StageEnum.Register.value
+            for stage in stages:
+                if grade_class['grade'] == stage['sigma_account_ob_group_grade']:
+                    grade_class['stage'] = StageEnum.Using.value
+                    grade_class['using_start_time'] = stage['sigma_pool_as_hermes_time_create']
+                    using_start_time.append(stage['sigma_pool_as_hermes_time_create'])
+                    break
+
+            bulk_update.append(UpdateOne({"_id": str(grade_class['uid'])}, \
+                                         {'$set': grade_class}, upsert=True))
+
+
+        school["stage"] = min([StageEnum.Register.value] if not grades_classes else [k["stage"] for k in grades_classes])
+        if school['stage'] == StageEnum.Register.value:
+            school['using_start_time'] = ''
+        elif school['stage'] == StageEnum.Using.value:
+            school['using_start_time'] = using_start_time[0]
+
+        if bulk_update:
+            try:
+                bulk_update_ret = self.mongo.grades.bulk_write(bulk_update)
+                print(bulk_update_ret.bulk_api_result)
+            except BulkWriteError as bwe:
+                print(bwe.details)
+
+        return None
+
 
     def _teacher_counts(self, school):
         """

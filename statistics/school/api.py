@@ -6,7 +6,6 @@ from aiohttp.web import Request
 from utils import *
 
 from tasks.celery_init import school_task
-from demo.utils import assert_permissions
 
 
 async def schools(req: Request):

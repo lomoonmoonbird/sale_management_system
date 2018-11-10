@@ -21,7 +21,7 @@ as_hermes = Table('sigma_pool_as_hermes', metadata,
                 Column('student_id', default=0, index=True), #学生id
                 Column('status', Integer), #图片状态
                 Column('available', Boolean, default=1), #是否可用
-                Column('time_create', DateTime) #创建时间
+                Column('time_create', DateTime), #创建时间
                 )
 
 
@@ -37,7 +37,8 @@ ob_school = Table('sigma_account_ob_school', metadata,
                 Column('vip_level', Integer, default=0), #客户重要程度 0 普通用户
                 Column('pay_mode', SmallInteger, default=0), #0 按学校付费 1个人付费
                 Column('available', Boolean, default=1), #是否可用
-                Column('time_create', DateTime) #创建时间
+                Column('time_create', DateTime), #创建时间
+                Column('time_modify', DateTime) #修改时间
                 )
 
 #group 年级 班级
@@ -48,27 +49,43 @@ ob_group = Table('sigma_account_ob_group', metadata,
                 Column('grade', String(8)), #入学年份  当前时间与此字段计算几年级
                 Column('school_id', Integer), #学校id
                 Column('available', Boolean, default=1), #是否可用
-                Column('time_create', DateTime) #创建时间
+                Column('time_create', DateTime), #创建时间
+                Column('time_modify', DateTime) #修改时间
                 )
 
 #groupuser 用户和年级班级关系
 
-ob_groupuser = Table('sigma_account_re_groupuser', metadata, 
+ob_groupuser = Table('sigma_account_re_groupuser', metadata,
+                Column('id', Integer, primary_key=True), #主键id
                 Column('group_id', String), #年级id
                 Column('user_id', String, index=True), #用户id
                 Column('role_id', String), #角色
                 Column('available', Boolean, default=1), #是否可用
-                Column('time_create', DateTime) #创建时间
+                Column('time_create', DateTime), #创建时间
+                Column('time_modify', DateTime) #修改时间
                 )
 
 #exercise 考试
-ob_exercise = Table('sigma_exercise_ob_exercise', metadata, 
+ob_exercise = Table('sigma_exercise_ob_exercise', metadata,
                 Column('id', Integer, primary_key=True), #考试主键id
                 Column('uid', String(128), unique=True), #考试uid
                 Column('user_id', String(64)), #出卷人
                 Column('available', Boolean, default=1), #是否可用
-                Column('time_create', DateTime) #创建时间
+                Column('time_create', DateTime), #创建时间
+                Column('time_modify', DateTime) #修改时间
                 )
+
+#exercise 考试meta信息
+ob_exercisemeta = Table('sigma_exercise_re_exercisemeta', metadata,
+                Column('id', Integer, primary_key=True), #主键id
+                Column('exercise_id', Integer, unique=True), #考试uid
+                Column('key', String(32), unique=True), #键
+                Column('value', String(512)), #键
+                Column('available', Boolean, default=1), #是否可用
+                Column('time_create', DateTime), #创建时间
+                Column('time_modify', DateTime) #修改时间
+                )
+
 
 #wechat 微信绑定关系
 ob_wechat = Table('sigma_account_ob_wechat', metadata, 
@@ -76,7 +93,8 @@ ob_wechat = Table('sigma_account_ob_wechat', metadata,
                 Column('openid', Integer, index=True, nullable=True), #微信openid
                 Column('role_id', default=2, nullable=False), #角色分类
                 Column('available', Boolean, default=1), #是否可用
-                Column('time_create', DateTime) #创建时间
+                Column('time_create', DateTime), #创建时间
+                Column('time_modify', DateTime) #修改时间
                 )
 
 
@@ -101,11 +119,13 @@ re_userwechat = Table('sigma_account_re_userwechat', metadata,
                 Column('wechat_id', Integer, index=True), #sigma_account_ob_wechat id
                 Column('relationship', default=0, nullable=False), #该user_id和wechat_id的关系
                 Column('available', Boolean, default=1), #是否可用
-                Column('time_create', DateTime) #创建时间
+                Column('time_create', DateTime), #创建时间
+                Column('time_modify', DateTime) #修改时间
                 )
 
 #order 账单订单
-ob_order = Table('sigma_pay_ob_order', metadata, 
+ob_order = Table('sigma_pay_ob_order', metadata,
+                Column('id', Integer, primary_key=True), #主键id
                 Column('uid', String(128), unique=True, index=True, nullable=True), #账单id
                 Column('user_id', Integer, index=True, nullable=True), #购买者用户id
                 Column('origin_amount', default=2, nullable=False), #订单原始金额
@@ -113,7 +133,8 @@ ob_order = Table('sigma_pay_ob_order', metadata,
                 Column('coupon_amount', DateTime), #使用优惠券之后价格，实际支付价格
                 Column('status', default=2, nullable=False), #订单状态
                 Column('available', Boolean, default=1), #是否可用
-                Column('time_create', DateTime) #创建时间
+                Column('time_create', DateTime), #创建时间
+                Column('time_modify', DateTime) #修改时间
                 )
 
 
@@ -163,3 +184,10 @@ class StudentRelationEnum(Enum):
     yeyenainai = 4  # 爷爷奶奶
     laolaolaoye = 5  # 姥姥姥爷
     others = 6  # 其他监护人
+
+class ExerciseTypeEnum(Enum):
+    """
+    考试类型
+    """
+    normal_exercise = 1 #正常考试
+    word_exercise = 2 #单词考试
