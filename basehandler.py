@@ -7,6 +7,7 @@
 
 from utils import json_response
 from aiohttp import ClientSession
+import ujson
 
 class BaseHandler():
 

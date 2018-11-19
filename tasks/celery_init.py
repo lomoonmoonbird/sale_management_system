@@ -109,20 +109,20 @@ per_day_task = PerDayTask()
 sales_celery.register_task(per_day_task)
 sales_celery.send_task('tasks.celery_task_user.PerDayTask')
 #
-# per_day_exercise_images = PerDaySubTask_IMAGES()
-# sales_celery.register_task(per_day_exercise_images)
-#
-# per_data_guardian = PerDaySubTask_GUARDIAN()
-# sales_celery.register_task(per_data_guardian)
-#
-# per_day_payments = PerDaySubTask_PAYMENTS()
-# sales_celery.register_task(per_day_payments)
+per_day_exercise_images = PerDaySubTask_IMAGES()
+sales_celery.register_task(per_day_exercise_images)
 
-# per_day_schools = PerDayTask_SCHOOL()
-# sales_celery.register_task(per_day_schools)
+per_data_guardian = PerDaySubTask_GUARDIAN()
+sales_celery.register_task(per_data_guardian)
 
-# per_day_users_number = PerDaySubTask_USERS()
-# sales_celery.register_task(per_day_users_number)
+per_day_payments = PerDaySubTask_PAYMENTS()
+sales_celery.register_task(per_day_payments)
+
+per_day_schools = PerDayTask_SCHOOL()
+sales_celery.register_task(per_day_schools)
+
+per_day_users_number = PerDaySubTask_USERS()
+sales_celery.register_task(per_day_users_number)
 
 per_day_valid_exercise_word = PerDayTask_VALIADCONTEST()
 sales_celery.register_task(per_day_valid_exercise_word)

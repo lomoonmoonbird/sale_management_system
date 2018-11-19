@@ -12,13 +12,25 @@ import ujson
 from aiohttp import web
 from aiohttp.helpers import sentinel
 from loggings import logger
+import json
+import datetime
+import functools
+from bson import ObjectId
 
 __all__ = ('json_response', 'text_response', 'get_json', 'get_params', 'get_cookie')
 
+class CustomEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, (datetime.datetime)):
+            return str(obj)
+        if isinstance(obj, (ObjectId)):
+            return str(obj)
+        return json.JSONEncoder.default(self, obj)
 
+json_dumps = functools.partial(json.dumps,cls=CustomEncoder)
 def json_response(data=sentinel, *, text=None, body=None, status=200,
                   reason=None, headers=None, content_type='application/json',
-                  dumps=ujson.dumps):
+                  dumps=json_dumps):
     if data is not sentinel:
         if text or body:
             raise ValueError(

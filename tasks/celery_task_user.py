@@ -416,18 +416,17 @@ class PerDaySubTask_GUARDIAN(BaseTask):
                     channel_guardian_default_dict[
                         school_channel_map.get(usergroup_map.get(guardian['user_id'], {}).get("school_id", -1))]['wechats'] = [guardian['wechat_id']]
 
-
-
-
-
                 class_guardian_default_dict[guardian['user_id']]['group_info'] = usergroup_map.get(guardian['user_id'], {})
+                grade_guardian_default_dict[guardian['user_id']]['group_info'] = usergroup_map.get(guardian['user_id'],{})
+                channel_guardian_default_dict[guardian['user_id']]['group_info'] = usergroup_map.get(guardian['user_id'],{})
 
             class_bulk_update = []
             for k, v in class_guardian_default_dict.items():
+
                 guardian_schema = {
-                    "school_id": usergroup_map_class_key.get(k, {}).get("school_id", -1),
-                    "channel": school_channel_map.get(usergroup_map_class_key.get(k, {}).get("school_id", -1), -1),
-                    "grade": usergroup_map_class_key.get(k, {}).get("grade", -1),
+                    "school_id": usergroup_map.get(k, {}).get("school_id", -1),
+                    "channel": school_channel_map.get(usergroup_map.get(k, {}).get("school_id", -1), -1),
+                    "grade": usergroup_map.get(k, {}).get("grade", -1),
                     "guardian_count":len(v['n']),
                     "wechats": v['wechats'],
                 }
@@ -436,9 +435,11 @@ class PerDaySubTask_GUARDIAN(BaseTask):
 
             grade_bulk_update = []
             for k, v in grade_guardian_default_dict.items():
+
+                # print(json.dumps(usergroup_map, indent=4, cls=CustomEncoder))
                 guardian_schema = {
-                    "school_id": usergroup_map_grade_key.get(k, {}).get("school_id", -1),
-                    "channel": school_channel_map.get(usergroup_map_grade_key.get(k, {}).get("school_id", -1), -1),
+                    "school_id": usergroup_map.get(k, {}).get("school_id", -1),
+                    "channel": school_channel_map.get(usergroup_map.get(k, {}).get("school_id", -1), -1),
                     "guardian_count": len(v['n']),
                     "wechats": v['wechats'],
                 }
@@ -1494,11 +1495,11 @@ class PerDayTask(BaseTask):
         try:
             print ('begin')
             from tasks.celery_init import sales_celery
-            # sales_celery.send_task("tasks.celery_task_user.PerDaySubTask_IMAGES") #考试 单词图片数
-            # sales_celery.send_task("tasks.celery_task_user.PerDaySubTask_GUARDIAN") #家长数也为绑定数
-            # sales_celery.send_task("tasks.celery_task_user.PerDaySubTask_PAYMENTS") #付费数 付费额
-            # sales_celery.send_task("tasks.celery_task_user.PerDaySubTask_USERS") #学生数 老师数
-            # sales_celery.send_task("tasks.celery_task_user.PerDayTask_SCHOOL") #学校数
+            sales_celery.send_task("tasks.celery_task_user.PerDaySubTask_IMAGES") #考试 单词图片数
+            sales_celery.send_task("tasks.celery_task_user.PerDaySubTask_GUARDIAN") #家长数也为绑定数
+            sales_celery.send_task("tasks.celery_task_user.PerDaySubTask_PAYMENTS") #付费数 付费额
+            sales_celery.send_task("tasks.celery_task_user.PerDaySubTask_USERS") #学生数 老师数
+            sales_celery.send_task("tasks.celery_task_user.PerDayTask_SCHOOL") #学校数
             sales_celery.send_task("tasks.celery_task_user.PerDayTask_VALIADCONTEST") #有效考试 有效单词
 
             print ('finished.......')
