@@ -10,7 +10,8 @@ import asyncio
 import json
 import time
 from aiohttp.web import Request
-from configs import UC_SYSTEM_API_ADMIN_URL, THEMIS_SYSTEM_ADMIN_URL, ucAppKey, ucAppSecret, permissionAppKey
+from configs import UC_SYSTEM_API_ADMIN_URL, THEMIS_SYSTEM_ADMIN_URL,THEMIS_SYSTEM_OPEN_URL, ucAppKey, \
+    ucAppSecret, permissionAppKey, permissionAppSecret
 import aiohttp
 import ujson
 from utils import get_json, get_params
@@ -20,31 +21,12 @@ from exceptions import InternalError, UserExistError, CreateUserError, DELETEERR
 from menu.menu import Menu
 from auth.utils import insert_area
 from motor.core import Collection
-from enum import Enum
+
 from aiomysql.cursors import DictCursor
 from pymongo import UpdateOne, DeleteMany
 from bson import ObjectId
+from enumconstant import Roles, PermissionRole
 
-class Roles(Enum):
-    """
-    销管对应的实例角色
-    """
-    SUPER = 0 #超级管理员
-    GLOBAL = 1 #总部
-    AREA = 2  #大区
-    CHANNEL = 3 #渠道
-    MARKET = 4 #市场
-    SCHOOL = 5 #学校
-
-class PermissionRole(Enum):
-    """
-    对应themis角色的id
-    """
-    SUPER = 37 #超级管理员id
-    GLOBAL= 35 #总部id
-    AREA = 33 #大区id
-    CHANNEL = 34 #渠道id
-    MARKET = 36 #市场id
 
 
 class User(BaseHandler):
@@ -147,57 +129,62 @@ class User(BaseHandler):
         :param request:
         :return:
         """
+        try:
+            request_data = await get_json(request)
+            if not request_data.get("area_id"):
+                raise RequestError("Parameter error: area_id is empty")
+            uc_create_user = {
+                "appKey": ucAppKey,
+                "appSecret": ucAppSecret,
+                "data": ujson.dumps(
+                    [{
+                        "username": request_data['username'],
+                        "password": request_data['password'] or 123456
+                    }]
+                )
 
-        request_data = await get_json(request)
-        if not request_data.get("area_id"):
-            raise RequestError("Parameter error: area_id is empty")
-        uc_create_user = {
-            "appKey": ucAppKey,
-            "appSecret": ucAppSecret,
-            "data": ujson.dumps(
-                [{
-                    "username": request_data['username'],
-                    "password": request_data['password'] or 123456
-                }]
-            )
-
-        }
-
-        #uc创建用户
-        create_resp = await self.json_post_request(request.app['http_session'],
-                                            UC_SYSTEM_API_ADMIN_URL + '/user/bulkCreate',
-                                            data=ujson.dumps(uc_create_user))
-        if create_resp['status'] == 0:
-
-            themis_role_user = {
-                "appKey": permissionAppKey,
-                "userId": create_resp['data'][0]["userId"],
-                "roleId": PermissionRole.AREA.value
             }
 
-            #绑定用户和权限角色
-            bindg_resp = await self.json_post_request(request.app['http_session'],
-                                                THEMIS_SYSTEM_ADMIN_URL + "/userRole/create",
-                                                data=ujson.dumps(themis_role_user), cookie=request.headers.get('Cookie'))
-            if bindg_resp['status'] == 0:
-                global_id = (await request.app['mongodb'][self.db][self.instance_coll].find_one({'role': Roles.GLOBAL.value}))['_id']
-                user_data = {
-                    "username": create_resp['data'][0]['username'],
-                    "user_id": create_resp['data'][0]['userId'],
-                    "nickname": request_data['nickname'],
-                    "password": request_data['password'] or 123456,
-                    "phone": request_data.get('phone', ''),
-                    "global_id": str(global_id),
-                    "area_id": request_data.get('area_id', ''),
-                    "status": 1,
-                    "create_at": time.time(),
-                    "modify_at": time.time(),
-                    "role_id": PermissionRole.AREA.value,
-                    "instance_role_id": Roles.AREA.value
-                }
-                await self._create_user(request.app['mongodb'][self.db][self.user_coll], user_data)
-                return self.reply_ok(user_data)
+            #uc创建用户
+            create_resp = await self.json_post_request(request.app['http_session'],
+                                                UC_SYSTEM_API_ADMIN_URL + '/user/bulkCreate',
+                                                data=ujson.dumps(uc_create_user))
+            if create_resp['status'] == 0:
 
+                themis_role_user = {
+                    "appKey": permissionAppKey,
+                    "appSecret": permissionAppSecret,
+                    "userId": [create_resp['data'][0]["userId"]],
+                    "roleId": [PermissionRole.AREA.value]
+                }
+
+                #绑定用户和权限角色
+                bindg_resp = await self.json_post_request(request.app['http_session'],
+                                                          THEMIS_SYSTEM_OPEN_URL + "/userRole/bulkCreate",
+                                                    data=ujson.dumps(themis_role_user), cookie=request.headers.get('Cookie'))
+
+
+                if bindg_resp['status'] == 0:
+                    global_id = (await request.app['mongodb'][self.db][self.instance_coll].find_one({'role': Roles.GLOBAL.value}))['_id']
+                    user_data = {
+                        "username": create_resp['data'][0]['username'],
+                        "user_id": create_resp['data'][0]['userId'],
+                        "nickname": request_data['nickname'],
+                        "password": request_data['password'] or 123456,
+                        "phone": request_data.get('phone', ''),
+                        "global_id": str(global_id),
+                        "area_id": request_data.get('area_id', ''),
+                        "status": 1,
+                        "create_at": time.time(),
+                        "modify_at": time.time(),
+                        "role_id": PermissionRole.AREA.value,
+                        "instance_role_id": Roles.AREA.value
+                    }
+                    await self._create_user(request.app['mongodb'][self.db][self.user_coll], user_data)
+                    return self.reply_ok(user_data)
+        except:
+            import traceback
+            traceback.print_exc()
         raise CreateUserError("AREA adding user failed")
 
     @validate_permission()
@@ -212,10 +199,11 @@ class User(BaseHandler):
         :return:
         """
         request_data = await get_json(request)
+        print (request_data)
         bulk_update = []
         for old_id in request_data['old_channel_ids']:
-            bulk_update.append(UpdateOne({"old_id": old_id},
-                                         {"$set": {"parent_id": request_data['area_id'],
+            bulk_update.append(UpdateOne({"parent_id": str(request_data['area_id']),"old_id": old_id},
+                                         {"$set": {"parent_id": str(request_data['area_id']),
                                                    "old_id": int(old_id),
                                                    "role": Roles.CHANNEL.value,
                                                    "status": 1,
@@ -315,15 +303,36 @@ class User(BaseHandler):
         :param request:
         :return:
         """
+
         request_data = await get_json(request)
 
-        channels_counts = await request.app['mongodb'][self.db][self.instance_coll].count_documents({"parent_id": ObjectId(request_data['area_id']),
+        channels_counts = await request.app['mongodb'][self.db][self.instance_coll].count_documents({"parent_id": request_data['area_id'],
                                                                                         "role": Roles.CHANNEL.value})
         if channels_counts > 0:
             raise DELETEERROR("Area has channels")
+        await request.app['mongodb'][self.db][self.instance_coll].update_many({"_id": ObjectId(request_data['area_id'])},
+                                                                          {"$set": {"status": 0}})
         await request.app['mongodb'][self.db][self.user_coll].update_many({"area_id": request_data['area_id']},
                                                                           {"$set": {"status": 0}})
 
+
+        return self.reply_ok({})
+
+    @validate_permission()
+    async def del_area_user(self, request: Request):
+        """
+        删除大区用户
+        {
+            "area_id": "",
+            "user_id": ""
+        }
+        :param request:
+        :return:
+        """
+        request_data = await get_json(request)
+
+        await request.app['mongodb'][self.db][self.instance_coll].update_one({"user_id": request_data['user_id'],
+                                                                        "status": 1}, {"$set": {"status": 0}})
 
         return self.reply_ok({})
 
@@ -385,18 +394,19 @@ class User(BaseHandler):
                                                    UC_SYSTEM_API_ADMIN_URL + '/user/bulkCreate',
                                                    data=ujson.dumps(uc_create_user))
         if create_resp['status'] == 0:
-
             themis_role_user = {
                 "appKey": permissionAppKey,
-                "userId": create_resp['data'][0]["userId"],
-                "roleId": PermissionRole.CHANNEL.value
+                "appSecret": permissionAppSecret,
+                "userId": [create_resp['data'][0]["userId"]],
+                "roleId": [PermissionRole.CHANNEL.value]
             }
 
             # 绑定用户和权限角色
             bindg_resp = await self.json_post_request(request.app['http_session'],
-                                                      THEMIS_SYSTEM_ADMIN_URL + "/userRole/create",
+                                                      THEMIS_SYSTEM_OPEN_URL + "/userRole/bulkCreate",
                                                       data=ujson.dumps(themis_role_user),
                                                       cookie=request.headers.get('Cookie'))
+
             if bindg_resp['status'] == 0:
 
                 user_data = {
@@ -421,7 +431,7 @@ class User(BaseHandler):
     @validate_permission()
     async def get_area_user_channels(self, request: Request):
         """
-        分页获取带有标注大区的渠道
+        分页获取大区用户的渠道
         :param request:
         :return:
         """
@@ -431,21 +441,43 @@ class User(BaseHandler):
             per_page = 100
 
             query_cond = {
-                "role": Roles.CHANNEL.value
+                "role": Roles.CHANNEL.value,
+                "status": 1
             }
             area_infos = []
             res = []
             if not request['user_info']['area_id']:
                 return self.reply_ok({"areas": [], "channels": []})
+
             if request["user_info"]["instance_role_id"] != Roles.GLOBAL.value:
                 area_id = request['user_info']['area_id']
-                query_cond.update({"parent_id": ObjectId(area_id)})
+                query_cond.update({"parent_id": area_id})
 
-                area_info = await request.app['mongodb'][self.db][self.instance_coll].find_one({"_id": ObjectId(request['user_info']['area_id'])})
+                area_info = await request.app['mongodb'][self.db][self.instance_coll].\
+                    find_one({"_id": ObjectId(request['user_info']['area_id']), "status": 1})
 
                 channels = request.app['mongodb'][self.db][self.instance_coll].find(query_cond).skip(page*per_page).limit(per_page)
                 channels = await channels.to_list(100000)
+                channels_map = {}
+                for channel in channels:
+                    channels_map[channel['old_id']] = {"channel_id": str(channel['_id'])}
+
                 old_ids = [str(item['old_id']) for item in channels]
+                channels_ids = [str(item['_id']) for item in channels]
+                users = request.app['mongodb'][self.db][self.user_coll].find({"channel_id": {"$in": channels_ids},
+                                                                              "instance_role_id": Roles.CHANNEL.value,
+                                                                              "status": 1})
+
+                users = await users.to_list(10000)
+
+                users_map = {}
+                for u in users:
+                    one_user = {"user_id": u.get('user_id', -1), "nickname": u.get('nickname', '')}
+                    if users_map.get(u['channel_id'], []):
+                        users_map[u['channel_id']].append(one_user)
+                    else:
+                        users_map[u['channel_id']] = [one_user]
+
                 sql = ''
                 if old_ids:
                     sql = "select * from sigma_account_us_user where available = 1 and role_id = 6 and id in (%s)" % ','.join(old_ids)
@@ -457,14 +489,13 @@ class User(BaseHandler):
 
                 # area_info["id"] = str(area_info['_id'])
                 # area_info["parent_id"] = str(area_info['parent_id'])
+                for channel in res:
+                    channel['channel_id'] = channels_map.get(channel['id'], {}).get("channel_id", "")
+                    channel['area_info'] = {"area_id": str(area_info['_id']), "area_name": area_info['name']}
+                    channel['channel_info'] = channels_map.get(channel['id'], {})
+                    channel['user_info'] = users_map.get(channel['channel_id'], [])
 
 
-                area_info = {
-                    "area_id": str(area_info['_id']),
-                    "area_name": area_info['name']
-                }
-                area_infos.append(area_info)
-                res = res
             else:
                 sql = "select * from sigma_account_us_user where available = 1 and role_id = 6 limit %s, %s " % (page*per_page, per_page)
 
@@ -475,37 +506,38 @@ class User(BaseHandler):
 
                 old_ids = [item['id'] for item in res]
 
-                channels = request.app['mongodb'][self.db][self.instance_coll].find({"old_id": {"$in": old_ids}})
+                channels = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id":  request['user_info']['area_id'],
+                                                                                     "old_id": {"$in": old_ids}, "status": 1})
                 channels = await channels.to_list(100000)
-                for channel in res:
-                    for c in channels:
-                        if channel['id'] == c['old_id']:
-                            channel['area_id'] = str(c['parent_id'])
-                            break
-
-                parent_ids = [item['parent_id'] for item in channels]
+                parent_ids = list(set([str(item['parent_id']) for item in channels]))
                 area_info = request.app['mongodb'][self.db][self.instance_coll].find(
                     {"parent_id": {"$in": parent_ids}, "status": 1})
                 area_info = await area_info.to_list(10000)
-                for a_i in area_info:
-                    area_infos.append({
-                        "area_id": str(a_i['_id']),
-                        "area_name": a_i['name'],
 
-                    })
+                for channel in res:
+                    area_id = ''
+                    for c in channels:
+                        if channel['id'] == c['old_id']:
+                            area_id = str(c['parent_id'])
+                            break
+
+                    for area in area_info:
+                        if area_id == str(area['_id']):
+                            channel['area_info'] = {"area_id": area_id, "area_name": area['name']}
+                    print (channel)
+
+
         except:
             import traceback
             traceback.print_exc()
 
-        return self.reply_ok({"areas": area_infos, "channels": res})
+        return self.reply_ok({"channels": res})
 
     @validate_permission()
     async def add_market_user(self, request: Request):
         """
         创建市场用户
         {
-            "area_id": "",
-            "channel_id": "",
             "nickname": "",
             "username": "",
             "password": "",
@@ -514,64 +546,129 @@ class User(BaseHandler):
         :param request:
         :return:
         """
+        try:
+            request_data = await get_json(request)
 
-        request_data = await get_json(request)
-        if not request_data.get("area_id") or not request_data.get("channel_id"):
-            raise RequestError("Parameter error: area_id or channel_id is empty")
-        uc_create_user = {
-            "appKey": ucAppKey,
-            "appSecret": ucAppSecret,
-            "data": ujson.dumps(
-                [{
-                    "username": request_data['username'],
-                    "password": request_data['password'] or 123456
-                }]
-            )
+            # if not request_data.get("area_id") or not request_data.get("channel_id"):
+            #     raise RequestError("Parameter error: area_id or channel_id is empty")
+            uc_create_user = {
+                "appKey": ucAppKey,
+                "appSecret": ucAppSecret,
+                "data": ujson.dumps(
+                    [{
+                        "username": request_data['username'],
+                        "password": request_data['password'] or 123456
+                    }]
+                )
 
-        }
-
-        # uc创建用户
-        create_resp = await self.json_post_request(request.app['http_session'],
-                                                   UC_SYSTEM_API_ADMIN_URL + '/user/bulkCreate',
-                                                   data=ujson.dumps(uc_create_user))
-        if create_resp['status'] == 0:
-
-            themis_role_user = {
-                "appKey": permissionAppKey,
-                "userId": create_resp['data'][0]["userId"],
-                "roleId": PermissionRole.MARKET.value
             }
 
-            # 绑定用户和权限角色
-            bindg_resp = await self.json_post_request(request.app['http_session'],
-                                                      THEMIS_SYSTEM_ADMIN_URL + "/userRole/create",
-                                                      data=ujson.dumps(themis_role_user),
-                                                      cookie=request.headers.get('Cookie'))
-            if bindg_resp['status'] == 0:
-                user_data = {
-                    "username": create_resp['data'][0]['username'],
-                    "user_id": create_resp['data'][0]['userId'],
-                    "nickname": request_data['nickname'],
-                    "password": request_data['password'] or 123456,
-                    "phone": request_data.get('phone', ''),
-                    "global_id": request['user_info']['global_id'],
-                    "area_id": request['user_info']['area_id'],
-                    "channel_id": request_data.get('channel_id', ''),
-                    "status": 1,
-                    "create_at": time.time(),
-                    "modify_at": time.time(),
-                    "role_id": PermissionRole.MARKET.value,
-                    "instance_role_id": Roles.MARKET.value
+            # uc创建用户
+            create_resp = await self.json_post_request(request.app['http_session'],
+                                                       UC_SYSTEM_API_ADMIN_URL + '/user/bulkCreate',
+                                                       data=ujson.dumps(uc_create_user))
+            print (create_resp)
+            if create_resp['status'] == 0:
+
+                themis_role_user = {
+                    "appKey": permissionAppKey,
+                    "appSecret": permissionAppSecret,
+                    "userId": [create_resp['data'][0]["userId"]],
+                    "roleId": [PermissionRole.MARKET.value]
                 }
-                await self._create_user(request.app['mongodb'][self.db][self.user_coll], user_data)
-                return self.reply_ok(user_data)
+
+                # 绑定用户和权限角色
+                bindg_resp = await self.json_post_request(request.app['http_session'],
+                                                          THEMIS_SYSTEM_OPEN_URL + "/userRole/bulkCreate",
+                                                          data=ujson.dumps(themis_role_user),
+                                                          cookie=request.headers.get('Cookie'))
+
+
+                print (bindg_resp)
+                if bindg_resp['status'] == 0:
+                    user_data = {
+                        "username": create_resp['data'][0]['username'],
+                        "user_id": create_resp['data'][0]['userId'],
+                        "nickname": request_data['nickname'],
+                        "password": request_data['password'] or 123456,
+                        "phone": request_data.get('phone', ''),
+                        "global_id": request['user_info']['global_id'],
+                        "area_id": request['user_info']['area_id'],
+                        "channel_id": request['user_info']['channel_id'],
+                        "status": 1,
+                        "create_at": time.time(),
+                        "modify_at": time.time(),
+                        "role_id": PermissionRole.MARKET.value,
+                        "instance_role_id": Roles.MARKET.value
+                    }
+                    await self._create_user(request.app['mongodb'][self.db][self.user_coll], user_data)
+                    await request.app['mongodb'][self.db][self.instance_coll].\
+                        update_one({"parent_id": request_data.get('channel_id', ''),
+                                    "user_id": user_data['user_id'],
+                                    "status": 1}, {"$set": {"parent_id": request_data.get('channel_id', ''),
+                                                            "user_id": user_data['user_id'],
+                                                            "role": Roles.MARKET.value,
+                                                            "status": 1,
+                                                            "create_at": time.time(),
+                                                            "modify_at": time.time()}}, upsert=True)
+                    return self.reply_ok(user_data)
+        except:
+            import  traceback
+            traceback.print_exc()
 
         raise CreateUserError("Market adding user failed")
+
+    @validate_permission()
+    async def update_marker_user(self, request: Request):
+        """
+        编辑市场用户信息
+        {
+            "user_id": "",
+            "nickname": "",
+            "phone": ""
+        }
+        :param request:
+        :return:
+        """
+        request_data = await get_json(request)
+        user_id = request_data['user_id']
+        nickname = request_data['nickname']
+        phone = request_data['phone']
+        user = await request.app['mongodb'][self.db][self.user_coll].find_one({"user_id": user_id})
+        if not user:
+            return self.reply_ok({})
+        await request.app['mongodb'][self.db][self.user_coll].update_one({"user_id": user_id},
+                                                                         {"$set": {"nickname": nickname,
+                                                                                   "phone": phone,
+                                                                                   "modify_at": time.time()}})
+
+        return self.reply_ok({})
+
+    @validate_permission()
+    async def del_market_user(self, request: Request):
+        """
+        删除市场
+        {
+            "user_id": ""
+        }
+        :param request:
+        :return:
+        """
+        request_data = await get_json(request)
+        channel_id = request['user_info']['channel_id']
+        await request.app['mongodb'][self.db][self.instance_coll].update_many({"parent_id": channel_id,
+                                                                          "user_id": request_data['user_id']},
+                                                                         {"$set": {"status": 0}})
+
+        return self.reply_ok({})
 
     @validate_permission()
     async def get_market_user(self, request: Request):
         """
         获取市场用户
+        {
+            "page": ""
+        }
         :param request:
         :return:
         """
@@ -580,12 +677,93 @@ class User(BaseHandler):
         per_page = 100
 
         #todo
-        if request['user_info']['instance_role_id'] != Roles.GLOBAL.value:
+        channels = []
+        users_info = []
+        if request['user_info']['instance_role_id'] == Roles.GLOBAL.value:
+            # channel_id = request['user_info']['channel_id']
+            # users = request.app['mongodb'][self.db][self.user_coll].find({"channel_id": channel_id, "status": 1})\
+            #     .skip(page*per_page).limit(per_page)
+            # channel_info = await request.app['mongodb'][self.db][self.instance_coll].find_one({"_id": ObjectId(channel_id),
+            #                                                                                    "status": 1})
+            # if channel_info:
+            #     channels.append({"channel_id": str(channel_info['_id']), "name": channel_info['name']})
+            # users_info = users
+            global_id = \
+            (await request.app['mongodb'][self.db][self.instance_coll].find_one({'role': Roles.GLOBAL.value}))['_id']
+            # areas = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": global_id, "status": 1})
+
+            users = request.app['mongodb'][self.db][self.user_coll].find({"instance_role_id": Roles.MARKET.value,
+                                                                          "status": 1}).skip(page*per_page).limit(per_page)
+            users = await users.to_list(10000)
+            area_ids = list(set([item['area_id'] for item in users]))
+            channel_ids = list(set([item['channel_id'] for item in users]))
+            area_info = request.app['mongodb'][self.db][self.instance_coll].find({"_id": area_ids, "status": 1})
+            area_info = await area_info.to_list(10000)
+            channel_info = request.app['mongodb'][self.db][self.instance_coll].find({"_id": channel_ids, "status": 1})
+            channel_info = await channel_info.to_list(10000)
+
+            for user in users:
+                for area in area_info:
+                    if user['area_id'] == str(area['_id']):
+                        user["area_info"] = {"area_id": user['area_id'], "area_name": area['name']}
+                        break
+                for channel in channel_info:
+                    if user['channel_id'] == (channel['_id']):
+                        user['channel_info'] = {"channel_id": user['channel_id']}
+                        break
+                users_info.append(user)
+
+        elif request['user_info']['instance_role_id'] == Roles.AREA.value:
+            channel_of_area =  request.app['mongodb'][self.db][self.instance_coll].\
+                find({"parent_id": request['user_info']['area_id'],
+                      "status": 1})
+
+            channel_of_area = await channel_of_area.to_list(100000)
+            channel_ids = [str(item['_id']) for item in channel_of_area]
+            area_info = await request.app['mongodb'][self.db][self.instance_coll].\
+                find_one({"_id": ObjectId(request['user_info']['area_id']),
+                          "status": 1})
+            # if channel_old_ids:
+            #     sql = "select * from sigma_account_us_user where available = 1 and" \
+            #           " role_id = 6 and id in %s " % (','.join(channel_old_ids))
+            #
+            #     async with request.app['mysql'].acquire() as conn:
+            #         async with conn.cursor(DictCursor) as cur:
+            #             await cur.execute(sql)
+            #             channel_info = await cur.fetchall()
+            users = request.app['mongodb'][self.db][self.user_coll].find({"channel_id": {"$in": channel_ids}, "status": 1})
+            users = await users.to_list(10000)
+            for user in users:
+                for channel in channel_of_area:
+                    user['id'] = str(user['_id'])
+
+                    if user['channel_id'] == str(channel['_id']):
+                        user['channel_info'] = {"channel_id": user['channel_id']}
+                        user['area_info'] = {"area_id": str(area_info['_id']), "area_name": area_info['name']}
+                del user['_id']
+                users_info.append(user)
+
+        elif request['user_info']['instance_role_id'] == Roles.CHANNEL.value:
             channel_id = request['user_info']['channel_id']
-            users = request.app['mongodb'][self.db][self.user_coll].find({"channel_id": channel_id, "status": 1}).skip(page*per_page).limit(per_page)
-            channel_info = await request.app['mongodb'][self.db][self.instance_coll].find_one({"_id": ObjectId(channel_id), "status": 1})
+            users = request.app['mongodb'][self.db][self.instance_coll].find({"channel_id": channel_id,
+                                                                              "status": 1})\
+                .skil(page*per_page).limit(per_page)
+            area_info = await request.app['mongodb'][self.db][self.instance_coll]. \
+                find_one({"_id": ObjectId(request['user_info']['area_id']),
+                          "status": 1})
+            channel_info = await request.app['mongodb'][self.db][self.instance_coll]. \
+                find_one({"_id": ObjectId(request['user_info']['channel_id']),
+                          "status": 1})
+            users = await users.to_list(100000)
+
+            for user in users:
+                user['channel_info'] = {"channel_id": str(channel_info['_id'])}
+                user['area_info'] = {"area_id": str(area_info['_id']), "area_name": area_info['name']}
+                users_info.append(user)
 
 
+
+        return self.reply_ok({"users": users_info})
 
     async def _create_user(self, col: Collection, user_data: dict):
         return await col.update_one({"user_id": user_data['user_id']},
@@ -600,9 +778,8 @@ class User(BaseHandler):
         :return:
         """
         global_id = (await col.find_one({'role': Roles.GLOBAL.value}))['_id']
-        area_data.update({"parent_id": global_id, "role": Roles.AREA.value})
+        area_data.update({"parent_id": str(global_id), "role": Roles.AREA.value})
         return await col.update_one({"name": area_data['name']},
                                                                 {"$set": area_data},
                                                                 upsert=True)
-
 

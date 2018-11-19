@@ -4,8 +4,9 @@ aapi.routes
 Include all routes here.
 """
 import demo.routes
-import statistics.school.routes
+import statistics.routes
 import user.routes
+import school.routes
 from aiohttp.web import Application
 from loggings import logger
 
@@ -21,8 +22,12 @@ def setup_routes(app: Application):
     logger.debug('Setup routes.')
     demo.routes.register(app.router)  # Add routes. Step-2
     logger.debug('Success register demo.routes')  # Add logger. Step-3
-    statistics.school.routes.register(app.router)
-    logger.debug('Success register stastictis.school.routes')
+    # statistics.school.routes.register(app.router)
+    # logger.debug('Success register stastictis.school.routes')
     user.routes.register(app.router)
     logger.debug('Success register user.routes')
+    school.routes.register(app.router)
+    logger.debug('Success register school.routes')
+    statistics.routes.register(app.router)
+    logger.debug('Success register statistics.routes')
 

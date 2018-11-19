@@ -19,6 +19,7 @@ as_hermes = Table('sigma_pool_as_hermes', metadata,
                 Column('uid', String(128), unique=True), #图片uid
                 Column('exercise_id', Integer), #考试id
                 Column('student_id', default=0, index=True), #学生id
+                Column('sheetIndex', Integer), #页码
                 Column('status', Integer), #图片状态
                 Column('available', Boolean, default=1), #是否可用
                 Column('time_create', DateTime), #创建时间

@@ -11,11 +11,12 @@ from celery.schedules import crontab
 import configs
 from tasks.celery_task_grade import  GradeTask
 from tasks.celery_task_summary import SummaryTask
-from tasks.celery_task_school import SchoolTask
+from tasks.celery_task_school_backup import SchoolTask
 from tasks.celery_task_student import StudentTask
-from tasks.celery_task_user import UserTask, UserPerDayTask
-from tasks.celery_task_contest import ContestTask
+from tasks.celery_task_user import  PerDayTask, PerDaySubTask_IMAGES,PerDaySubTask_GUARDIAN, \
+    PerDaySubTask_PAYMENTS, PerDaySubTask_PAYMENTS, PerDaySubTask_USERS, PerDayTask_SCHOOL, PerDayTask_VALIADCONTEST
 from tasks.celery_test import TestTask
+from tasks.celery_task_school import PerDayTask_SCHOOL_NUMBER
 
 sales_celery = Celery("Sales")
 
@@ -46,29 +47,33 @@ class Config():
     # }
     task_default_queue = 'sale_defult_queue'
     task_queues = (
-        Queue('user', Exchange('user') ,routing_key="user"),
+        # Queue('user', Exchange('user') ,routing_key="user"),
         Queue('user_per_day', Exchange('user_per_day'), routing_key="user_per_day"),
-        Queue('contest', Exchange('contest'), routing_key="contest"),
-        Queue('school', Exchange('school'), routing_key="school"),
+        # Queue('contest', Exchange('contest'), routing_key="contest"),
+        # Queue('school', Exchange('school'), routing_key="school"),
 
     )
     task_routes = {
-        'tasks.celery_task_user.UserTask': {
-            'queue': 'user',
-            'routing_key': 'user'
-        },
-        'tasks.celery_task_user.UserPerDayTask': {
+        # 'tasks.celery_task_user.UserTask': {
+        #     'queue': 'user',
+        #     'routing_key': 'user'
+        # },
+        'tasks.celery_task_user.PerDayTask': {
             'queue': 'user_per_day',
             'routing_key': 'user_per_day'
         },
-        'tasks.celery_task_contest.ContestTask': {
-            'queue': 'contest',
-            'routing_key': 'contest'
-        },
-        'tasks.celery_task_school.SchoolTask': {
-            'queue': 'school',
-            'routing_key': 'school'
-        }
+        # 'tasks.celery_task_user.PerDaySubTask_IMAGES': {
+        #     'queue': 'user_per_day_exercise_image',
+        #     'routing_key': 'user_per_day_exercise_image'
+        # },
+        # 'tasks.celery_task_contest.ContestTask': {
+        #     'queue': 'contest',
+        #     'routing_key': 'contest'
+        # },
+        # 'tasks.celery_task_school.SchoolTask': {
+        #     'queue': 'school',
+        #     'routing_key': 'school'
+        # }
 
     }
 
@@ -100,21 +105,51 @@ class Config():
 sales_celery.config_from_object(Config)
 
 #user task
-user_task = UserTask()
-sales_celery.register_task(user_task)
-sales_celery.send_task('tasks.celery_task_user.UserTask')
-# #user per day task
-user_per_day_task = UserPerDayTask()
-sales_celery.register_task(user_per_day_task)
-sales_celery.send_task("tasks.celery_task_user.UserPerDayTask")
+per_day_task = PerDayTask()
+sales_celery.register_task(per_day_task)
+sales_celery.send_task('tasks.celery_task_user.PerDayTask')
+#
+# per_day_exercise_images = PerDaySubTask_IMAGES()
+# sales_celery.register_task(per_day_exercise_images)
+#
+# per_data_guardian = PerDaySubTask_GUARDIAN()
+# sales_celery.register_task(per_data_guardian)
+#
+# per_day_payments = PerDaySubTask_PAYMENTS()
+# sales_celery.register_task(per_day_payments)
+
+# per_day_schools = PerDayTask_SCHOOL()
+# sales_celery.register_task(per_day_schools)
+
+# per_day_users_number = PerDaySubTask_USERS()
+# sales_celery.register_task(per_day_users_number)
+
+per_day_valid_exercise_word = PerDayTask_VALIADCONTEST()
+sales_celery.register_task(per_day_valid_exercise_word)
+
+#school
+# school_number_per_day_task = PerDayTask_SCHOOL_NUMBER()
+# sales_celery.register_task(school_number_per_day_task)
+# sales_celery.send_task('tasks.celery_task_school.PerDayTask_SCHOOL_NUMBER')
+
+
+
+
+
+
+
+#user per day task
+# user_per_day_task = UserPerDayTask()
+# sales_celery.register_task(user_per_day_task)
+# sales_celery.send_task("tasks.celery_task_user.UserPerDayTask")
 # # #contest task
-contest_task = ContestTask()
-sales_celery.register_task(contest_task)
-sales_celery.send_task('tasks.celery_task_contest.ContestTask')
-# # #school
-school_task = SchoolTask()
-sales_celery.register_task(school_task)
-sales_celery.send_task("tasks.celery_task_school.SchoolTask")
+# contest_task = ContestTask()
+# sales_celery.register_task(contest_task)
+# sales_celery.send_task('tasks.celery_task_contest.ContestTask')
+# # # #school
+# school_task = SchoolTask()
+# sales_celery.register_task(school_task)
+# sales_celery.send_task("tasks.celery_task_school.SchoolTask")
 
 
 # summary_task = SummaryTask()
