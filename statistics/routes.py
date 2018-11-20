@@ -9,4 +9,6 @@ arealist = AreaList()
 
 def register(router: UrlDispatcher):
     router.add_get('/api/stat/global/overview', overview.overview)
+    router.add_get('/api/stat/area/overview', overview.overview)
     router.add_get('/api/stat/area/list', arealist.area_list)
+    router.add_get('/api/stat/channel/list', arealist.area_list)

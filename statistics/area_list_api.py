@@ -52,7 +52,8 @@ class AreaList(BaseHandler):
                                                                               "status": 1}).skip(page*per_page).limit(per_page)
             areas = await areas.to_list(100000)
             areas_ids = [str(item['_id']) for item in areas]
-            channels = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": {"$in": areas_ids}, "role": Roles.CHANNEL.value, "status": 1})
+            channels = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": {"$in": areas_ids},
+                                                                                 "role": Roles.CHANNEL.value, "status": 1})
             channels = await channels.to_list(100000)
             old_ids = [item['old_id'] for item in channels]
             areas_map = {}
@@ -65,34 +66,37 @@ class AreaList(BaseHandler):
 
 
             items = await self._list(request, old_ids)
-            print (items, "items")
+
             for item in items:
                 item["area_info"] = areas_map.get(channels_map.get(item['_id'], 0), {})
             return self.reply_ok(items)
         elif request["user_info"]["instance_role_id"] == Roles.AREA.value:
             channels = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": request['user_info']['area_id'],
                                                                                  "role": Roles.CHANNEL.value,
-                                                                                 "status": 1}).limit(page*per_page).skip(per_page)
+                                                                                 "status": 1
+                                                                                 }).skip(page*per_page).limit(per_page)
 
             channels = await channels.to_list(10000)
-            print (channels, 'channels')
+
             old_ids = [item['old_id'] for item in channels]
             items = []
             if old_ids:
-                sql = "select id, name from sigma_account_us_user where available = 1 and id in (%s) " % ','.join([str(id) for id in old_ids])
-                print (sql)
+                sql = "select id, name from sigma_account_us_user where available = 1 and id in (%s) " % \
+                      ','.join([str(id) for id in old_ids])
                 async with request.app['mysql'].acquire() as conn:
                     async with conn.cursor(DictCursor) as cur:
                         await cur.execute(sql)
                         real_channels = await cur.fetchall()
+
                 channels_map = {}
                 for channel in real_channels:
                     channels_map[channel["id"]] = channel
-
                 items = await self._list(request, old_ids)
                 for item in items:
+
                     item["channel_info"] = channels_map.get(item["_id"], 0)
-            return self.reply_ok(items)
+
+                return self.reply_ok(items)
         else:
             return self.reply_ok([])
 
@@ -109,74 +113,73 @@ class AreaList(BaseHandler):
         yesterday_before_30day = yesterday - timedelta(30)
         yesterday_str = yesterday.strftime("%Y-%m-%d")
         yesterday_before_30day_str = yesterday_before_30day.strftime("%Y-%m-%d")
-        if request['user_info']['instance_role_id'] == Roles.GLOBAL.value:
 
-            item_count = coll.aggregate(
-                [
-                    {
-                        "$match": {
-                            "channel": {"$in": channel_ids}
-                        }
-                    },
-                    {
-                        "$project": {
-                            "channel": 1,
-                            "school_number": 1,
-                            "teacher_number": 1,
-                            "student_number": 1,
-                            "guardian_count": 1,
-                            "pay_number": 1,
-                            "pay_amount": 1,
-                            # "valid_exercise_number": {"$cond": {"if": {"$and": [{"$lt": ["$day", yesterday_str]}, {"$gte": ["$day", yesterday_before_30day_str]}] }, "then": {"valid_exercise_number"} } },
-                            "valid_exercise_count": {"$cond": [{"$and": [{"$lt": ["$day", yesterday_str]}, {
-                                "$gte": ["$day", yesterday_before_30day_str]}]}, "$valid_exercise_count", 0]},
-                            "e_image_c": {"$cond": [{"$and": [{"$lt": ["$day", yesterday_str]}, {
-                                "$gte": ["$day", yesterday_before_30day_str]}]}, "$e_image_c", 0]},
-                            "valid_word_count": {"$cond": [{"$and": [{"$lt": ["$day", yesterday_str]}, {
-                                "$gte": ["$day", yesterday_before_30day_str]}]}, "$valid_word_count", 0]},
-                            "w_image_c": {"$cond": [{"$and": [{"$lt": ["$day", yesterday_str]}, {
-                                "$gte": ["$day", yesterday_before_30day_str]}]}, "$e_image_c", 0]},
 
-                            "day": 1
-                        }
-                    },
+        item_count = coll.aggregate(
+            [
+                {
+                    "$match": {
+                        "channel": {"$in": channel_ids}
+                    }
+                },
+                {
+                    "$project": {
+                        "channel": 1,
+                        "school_number": 1,
+                        "teacher_number": 1,
+                        "student_number": 1,
+                        "guardian_count": 1,
+                        "pay_number": 1,
+                        "pay_amount": 1,
+                        "valid_exercise_count": {"$cond": [{"$and": [{"$lt": ["$day", yesterday_str]}, {
+                            "$gte": ["$day", yesterday_before_30day_str]}]}, "$valid_exercise_count", 0]},
+                        "e_image_c": {"$cond": [{"$and": [{"$lt": ["$day", yesterday_str]}, {
+                            "$gte": ["$day", yesterday_before_30day_str]}]}, "$e_image_c", 0]},
+                        "valid_word_count": {"$cond": [{"$and": [{"$lt": ["$day", yesterday_str]}, {
+                            "$gte": ["$day", yesterday_before_30day_str]}]}, "$valid_word_count", 0]},
+                        "w_image_c": {"$cond": [{"$and": [{"$lt": ["$day", yesterday_str]}, {
+                            "$gte": ["$day", yesterday_before_30day_str]}]}, "$e_image_c", 0]},
 
-                    {"$group": {"_id": "$channel",
-                                "total_school_number": {"$sum": "$school_number"},
-                                "total_teacher_number": {"$sum": "$teacher_number"},
-                                "total_student_number": {"$sum": "$student_number"},
-                                "total_guardian_number": {"$sum": "$guardian_count"},
-                                "total_pay_number": {"$sum": "$pay_number"},
-                                "total_pay_amount": {"$sum": "$pay_amount"},
-                                "total_valid_exercise_number": {"$sum": "$valid_exercise_count"},
-                                "total_valid_word_number": {"$sum": "$valid_word_count"},
-                                "total_exercise_image_number": {"$sum": "$e_image_c"},
-                                "total_word_image_number": {"$sum": "$w_image_c"}
-                                }
-                     },
-                    {
-                        "$project": {
-                            "_id": 1,
-                            "total_school_number": 1,
-                            "total_teacher_number": 1,
-                            "total_student_number": 1,
-                            "total_guardian_number": 1,
-                            "total_pay_number": 1,
-                            "total_pay_amount": 1,
-                            "total_valid_exercise_number": 1,
-                            "total_valid_word_number": 1,
-                            "total_exercise_image_number": 1,
-                            "total_word_image_number": 1,
-                            "pay_ratio": {"$divide": ["$total_pay_number", "$total_student_number"]},
-                            "bind_ratio": {"$divide": ["$total_guardian_number", "$total_student_number"]}
-                        }
+                        "day": 1
+                    }
+                },
 
+                {"$group": {"_id": "$channel",
+                            "total_school_number": {"$sum": "$school_number"},
+                            "total_teacher_number": {"$sum": "$teacher_number"},
+                            "total_student_number": {"$sum": "$student_number"},
+                            "total_guardian_number": {"$sum": "$guardian_count"},
+                            "total_pay_number": {"$sum": "$pay_number"},
+                            "total_pay_amount": {"$sum": "$pay_amount"},
+                            "total_valid_exercise_number": {"$sum": "$valid_exercise_count"},
+                            "total_valid_word_number": {"$sum": "$valid_word_count"},
+                            "total_exercise_image_number": {"$sum": "$e_image_c"},
+                            "total_word_image_number": {"$sum": "$w_image_c"}
+                            }
+                 },
+                {
+                    "$project": {
+                        "_id": 1,
+                        "total_school_number": 1,
+                        "total_teacher_number": 1,
+                        "total_student_number": 1,
+                        "total_guardian_number": 1,
+                        "total_pay_number": 1,
+                        "total_pay_amount": 1,
+                        "total_valid_exercise_number": 1,
+                        "total_valid_word_number": 1,
+                        "total_exercise_image_number": 1,
+                        "total_word_image_number": 1,
+                        "pay_ratio": {"$divide": ["$total_pay_number", "$total_student_number"]},
+                        "bind_ratio": {"$divide": ["$total_guardian_number", "$total_student_number"]}
                     }
 
-                ])
+                }
 
-            async for item in item_count:
-                items.append(item)
+            ])
+
+        async for item in item_count:
+            items.append(item)
 
         return items
 
