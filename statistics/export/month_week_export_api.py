@@ -8,6 +8,7 @@
 from datetime import datetime, timedelta, date
 import asyncio
 import mimetypes
+import os
 from tempfile import NamedTemporaryFile
 import json
 import time
@@ -88,17 +89,17 @@ class ExportReport(BaseHandler):
         old_ids = [item['old_id'] for item in channels]
 
         items = await self._list_month(request, old_ids)
-
+        template_path = os.path.dirname(__file__) + "/templates/global_month_template.xlsx"
         sheet = await request.app.loop.run_in_executor(self.thread_pool,
                                                        self.sheet,
-                                                       "/Users/moonmoonbird/Documents/sigmod/Sales-management-system/statistics/export/templates/global_month_template.xlsx",
+                                                       template_path,
                                                        items,
                                                        channel_map,
                                                        area_users)
 
 
 
-        return await self.replay_stream(sheet, "test", request)
+        return await self.replay_stream(sheet, "总部月报-"+datetime.now().strftime("%Y-%m-%d"), request)
 
     @validate_permission()
     async def week(self, request: Request):
@@ -137,15 +138,16 @@ class ExportReport(BaseHandler):
 
         items = await self._list_week(request, old_ids)
 
+        template_path = os.path.dirname(__file__) + "/templates/global_week_template.xlsx"
         sheet = await request.app.loop.run_in_executor(self.thread_pool,
                                                        self.sheet,
-                                                       "/Users/moonmoonbird/Documents/sigmod/Sales-management-system/statistics/export/templates/global_week_template.xlsx",
+                                                       template_path,
                                                        items,
                                                        channel_map,
                                                        area_users)
 
 
-        return await self.replay_stream(sheet, "test", request)
+        return await self.replay_stream(sheet, "总部周报-"+datetime.now().strftime("%Y-%m-%d"), request)
 
 
     def sheet(self, template, items, channel_map, users):
@@ -833,6 +835,3 @@ class ExportReport(BaseHandler):
         font = Font(name='Calibri', size=11, bold=False, italic=False, vertAlign=None, underline='none', strike=False,
                     color='FFFF0000')
         return font
-
-
-
