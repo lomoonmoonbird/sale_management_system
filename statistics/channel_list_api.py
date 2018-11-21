@@ -27,7 +27,7 @@ from bson import ObjectId
 from enumconstant import Roles, PermissionRole
 
 
-class AreaList(BaseHandler):
+class ChannelList(BaseHandler):
     def __init__(self):
         self.db = 'sales'
         self.instance_coll = 'instance'
@@ -36,7 +36,7 @@ class AreaList(BaseHandler):
         self.channel_per_day_coll = 'channel_per_day'
 
     @validate_permission()
-    async def area_list(self, request: Request):
+    async def channel_list(self, request: Request):
         """
         大区列表
         :param request:
@@ -46,31 +46,33 @@ class AreaList(BaseHandler):
         page = int(request_param.get('page', 0))
         per_page = 100
 
-        areas = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": request['user_info']['global_id'],
-                                                                          "role": Roles.AREA.value,
-                                                                          "status": 1}).skip(page*per_page).limit(per_page)
-        areas = await areas.to_list(100000)
-        areas_ids = [str(item['_id']) for item in areas]
-        channels = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": {"$in": areas_ids},
-                                                                             "role": Roles.CHANNEL.value, "status": 1})
-        channels = await channels.to_list(100000)
+
+        channels = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": request['user_info']['area_id'],
+                                                                             "role": Roles.CHANNEL.value,
+                                                                             "status": 1
+                                                                             }).skip(page*per_page).limit(per_page)
+
+        channels = await channels.to_list(10000)
+
         old_ids = [item['old_id'] for item in channels]
-        areas_map = {}
-        for area in areas:
-            areas_map[str(area['_id'])] = area
-        channels_map = {}
-        for channel in channels:
-            channels_map[channel['old_id']] = channel['parent_id']
+        if old_ids:
+            sql = "select id, name from sigma_account_us_user where available = 1 and id in (%s) " % \
+                  ','.join([str(id) for id in old_ids])
+            async with request.app['mysql'].acquire() as conn:
+                async with conn.cursor(DictCursor) as cur:
+                    await cur.execute(sql)
+                    real_channels = await cur.fetchall()
 
+            channels_map = {}
+            for channel in real_channels:
+                channels_map[channel["id"]] = channel
+            items = await self._list(request, old_ids)
+            for item in items:
+                item['contest_coverage_ratio'] = 0
+                item['contest_average_per_person'] = 0
+                item["channel_info"] = channels_map.get(item["_id"], 0)
 
-
-        items = await self._list(request, old_ids)
-
-        for item in items:
-            item['contest_coverage_ratio'] = 0
-            item['contest_average_per_person'] = 0
-            item["area_info"] = areas_map.get(channels_map.get(item['_id'], 0), {})
-        return self.reply_ok(items)
+            return self.reply_ok(items)
 
 
     async def _list(self, request: Request, channel_ids: list):
