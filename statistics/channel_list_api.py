@@ -53,7 +53,7 @@ class ChannelList(BaseHandler):
                                                                              }).skip(page*per_page).limit(per_page)
 
         channels = await channels.to_list(10000)
-
+        items = []
         old_ids = [item['old_id'] for item in channels]
         if old_ids:
             sql = "select id, name from sigma_account_us_user where available = 1 and id in (%s) " % \
@@ -71,8 +71,9 @@ class ChannelList(BaseHandler):
                 item['contest_coverage_ratio'] = 0
                 item['contest_average_per_person'] = 0
                 item["channel_info"] = channels_map.get(item["_id"], 0)
+            items = items
+        return self.reply_ok(items)
 
-            return self.reply_ok(items)
 
 
     async def _list(self, request: Request, channel_ids: list):
