@@ -76,7 +76,7 @@ def validate_permission():
                 if u.get('status', 0) != 1:
                     raise UserBannedError("User Banned")
             else:
-                raise LoginError("User not exists")
+                raise PermissionError("Not Authorized")
 
             request_uri = ' '.join((request.method, request.path))
             if not await _validate_permission(http_session, user_id, request_uri):

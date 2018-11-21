@@ -149,6 +149,7 @@ class User(BaseHandler):
             create_resp = await self.json_post_request(request.app['http_session'],
                                                 UC_SYSTEM_API_ADMIN_URL + '/user/bulkCreate',
                                                 data=ujson.dumps(uc_create_user))
+            print(create_resp)
             if create_resp['status'] == 0:
 
                 themis_role_user = {
@@ -162,8 +163,7 @@ class User(BaseHandler):
                 bindg_resp = await self.json_post_request(request.app['http_session'],
                                                           THEMIS_SYSTEM_OPEN_URL + "/userRole/bulkCreate",
                                                     data=ujson.dumps(themis_role_user), cookie=request.headers.get('Cookie'))
-
-
+                print(bindg_resp)
                 if bindg_resp['status'] == 0:
                     global_id = (await request.app['mongodb'][self.db][self.instance_coll].find_one({'role': Roles.GLOBAL.value}))['_id']
                     user_data = {
