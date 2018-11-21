@@ -74,7 +74,7 @@ def validate_permission():
             u = await request.app['mongodb']['sales']['sale_user'].find_one({"user_id": str(user_id)})
             if u:
                 if u.get('status', 0) != 1:
-                    raise UserBannedError("User Banned")
+                    raise PermissionError("User Banned")
             else:
                 raise PermissionError("Not Authorized")
 

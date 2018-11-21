@@ -159,6 +159,20 @@ class ExportReport(BaseHandler):
 
         area_dimesion_items = {}
         for item in items:
+            # 地市
+            area_dimesion_items.setdefault(
+                channel_map.get(item["_id"], {}).get("area_info", {}).get("name", "") + '@' + str(
+                    channel_map.get(item["_id"], {}).get("area_info", {}).get("_id", "")), {}).setdefault(
+                'total_city_number', []).append(item['total_city_number'])
+            area_dimesion_items.setdefault(
+                channel_map.get(item["_id"], {}).get("area_info", {}).get("name", "") + '@' + str(
+                    channel_map.get(item["_id"], {}).get("area_info", {}).get("_id", "")),
+                {}).setdefault('city_number_last_month', []).append(item['city_number_last_month'])
+            area_dimesion_items.setdefault(
+                channel_map.get(item["_id"], {}).get("area_info", {}).get("name", "") + '@' + str(
+                    channel_map.get(item["_id"], {}).get("area_info", {}).get("_id", "")),
+                {}).setdefault('city_number_curr_month', []).append(
+                item['city_number_curr_month'])
             #学校
             area_dimesion_items.setdefault(channel_map.get(item["_id"], {}).get("area_info", {}).get("name", "") + '@' + str(channel_map.get(item["_id"], {}).get("area_info", {}).get("_id", "")), {}).setdefault('total_school_number', []).append(item['total_school_number'])
             area_dimesion_items.setdefault(channel_map.get(item["_id"], {}).get("area_info", {}).get("name", "") + '@' + str(channel_map.get(item["_id"], {}).get("area_info", {}).get("_id", "")),
@@ -259,7 +273,8 @@ class ExportReport(BaseHandler):
 
         #todo
         if report_type == 'week':
-            row1[0].value = "周报"
+            last_week = self.last_week()
+            row1[0].value = "全局市场_" + last_week[0] + "-" + last_week[6] + "周报数据"
         elif report_type == 'month':
             _, _, last_month, _, _, _ = self._curr_and_last_and_last_last_month()
             month = datetime.strptime(last_month, "%Y-%m-%d").timetuple()[1]
@@ -269,14 +284,17 @@ class ExportReport(BaseHandler):
             #大区名字
             row[0].value = area_name.split('@')[0]
             #新增地市
-            row[1].value = "暂无功能"
-            row[2].value = "暂无功能"
-            row[3].value = "暂无功能"
-            row[4].value = "暂无功能"
-            summary_map[1].append(0)
-            summary_map[2].append(0)
-            summary_map[3].append(0)
-            summary_map[4].append(0)
+            mom = (sum(area_data['city_number_curr_month']) - sum(area_data['city_number_last_month'])) / sum(
+                area_data['city_number_last_month']) \
+                if sum(area_data['city_number_last_month']) else 0
+            row[1].value = sum(area_data['total_city_number'])
+            row[2].value = sum(area_data['city_number_last_month'])
+            row[3].value = sum(area_data['city_number_curr_month'])
+            row[4].value = self.percentage(mom)
+            summary_map[1].append(row[1].value)
+            summary_map[2].append(row[2].value)
+            summary_map[3].append(row[3].value)
+            summary_map[4].append(mom)
             # 新增学校
             mom = (sum(area_data['school_number_curr_month']) - sum(area_data['school_number_last_month']))/sum(area_data['school_number_last_month']) \
                 if sum(area_data['school_number_last_month']) else 0
@@ -406,7 +424,7 @@ class ExportReport(BaseHandler):
             if index == 0:
                 continue
             if index in (4, 8, 12, 16, 20, 23, 27, 30, 34, 35, 38, 42): #平均值
-                cell.value = self.percentage(sum((summary_map.get(index, [0]))) / area_number)
+                cell.value = self.percentage(sum((summary_map.get(index, [0]))) / area_number if area_number > 0 else 0)
             else:
                 cell.value = self.rounding(sum(summary_map.get(index,[0])))
         notifications = self._analyze(area_dimesion_items, users)
@@ -496,172 +514,188 @@ class ExportReport(BaseHandler):
         :param channel_ids:
         :return:
         """
-        coll = request.app['mongodb'][self.db][self.channel_per_day_coll]
-        items = []
+        try:
+            coll = request.app['mongodb'][self.db][self.channel_per_day_coll]
+            items = []
 
-        last_last_month_first_day, last_last_month_last_day, last_month_first_day, last_month_last_day,\
-        curr_month_first_day, curr_month_last_day = self._curr_and_last_and_last_last_month()
+            last_last_month_first_day, last_last_month_last_day, last_month_first_day, last_month_last_day,\
+            curr_month_first_day, curr_month_last_day = self._curr_and_last_and_last_last_month()
 
-        item_count = coll.aggregate(
-            [
-                {
-                    "$match": {
-                        "channel": {"$in": channel_ids}
+            item_count = coll.aggregate(
+                [
+                    {
+                        "$match": {
+                            "channel": {"$in": channel_ids}
+                        }
+                    },
+                    {
+                        "$project": {
+                            "channel": 1,
+                            "city_number": 1,
+                            "school_number": 1,
+                            "teacher_number": 1,
+                            "student_number": 1,
+                            "guardian_count": 1,
+                            "pay_number": 1,
+                            "pay_amount": 1,
+                            "valid_exercise_count":1,
+                            "valid_word_count": 1,
+                            "e_image_c": 1,
+                            "w_image_c": 1,
+                            "total_images": {"$sum": ["$e_image_c", "$w_image_c"]},
+
+                            "city_number_curr_month": {"$cond": [{"$and": [{"$lte": ["$day", last_month_last_day]}, {
+                                "$gte": ["$day", last_month_first_day]}]}, "$city_number", 0]},
+                            "city_number_last_month": {"$cond": [{"$and": [{"$lte": ["$day", last_last_month_last_day]}, {
+                                "$gte": ["$day", last_last_month_first_day]}]}, "$city_number", 0]},
+
+                            "school_number_curr_month": {"$cond": [{"$and": [{"$lte": ["$day", last_month_last_day]}, {
+                                "$gte": ["$day", last_month_first_day]}]}, "$school_number", 0]},
+                            "school_number_last_month": {"$cond": [{"$and": [{"$lte": ["$day", last_last_month_last_day]}, {
+                                "$gte": ["$day", last_last_month_first_day]}]}, "$school_number", 0]},
+
+                            "teacher_number_curr_month": {"$cond": [{"$and": [{"$lte": ["$day", last_month_last_day]}, {
+                                "$gte": ["$day", last_month_first_day]}]}, "$teacher_number", 0]},
+                            "teacher_number_last_month": {"$cond": [{"$and": [{"$lte": ["$day", last_last_month_last_day]}, {
+                                "$gte": ["$day", last_last_month_first_day]}]}, "$teacher_number", 0]},
+
+                            "student_number_curr_month": {"$cond": [{"$and": [{"$lte": ["$day", last_month_last_day]}, {
+                                "$gte": ["$day", last_month_first_day]}]}, "$student_number", 0]},
+                            "student_number_last_month": {"$cond": [{"$and": [{"$lte": ["$day", last_last_month_last_day]}, {
+                                "$gte": ["$day", last_last_month_first_day]}]}, "$student_number", 0]},
+
+                            "guardian_number_curr_month": {"$cond": [{"$and": [{"$lte": ["$day", last_month_last_day]}, {
+                                "$gte": ["$day", last_month_first_day]}]}, "$guardian_number", 0]},
+                            "guardian_number_last_month": {"$cond": [{"$and": [{"$lte": ["$day", last_last_month_last_day]}, {
+                                "$gte": ["$day", last_last_month_first_day]}]}, "$guardian_number", 0]},
+
+                            "pay_number_curr_month": {"$cond": [{"$and": [{"$lte": ["$day", last_month_last_day]}, {
+                                "$gte": ["$day", last_month_first_day]}]}, "$pay_number", 0]},
+                            "pay_number_last_month": {"$cond": [{"$and": [{"$lte": ["$day", last_last_month_last_day]}, {
+                                "$gte": ["$day", last_last_month_first_day]}]}, "$pay_number", 0]},
+
+                            "pay_amount_curr_month": {"$cond": [{"$and": [{"$lte": ["$day", last_month_last_day]}, {
+                                "$gte": ["$day", last_month_first_day]}]}, "$pay_amount", 0]},
+                            "pay_amount_last_month": {"$cond": [{"$and": [{"$lte": ["$day", last_last_month_last_day]}, {
+                                "$gte": ["$day", last_last_month_first_day]}]}, "$pay_amount", 0]},
+
+                            "valid_exercise_count_curr_month": {"$cond": [{"$and": [{"$lte": ["$day", last_month_last_day]}, {
+                                "$gte": ["$day", last_month_first_day]}]}, "$valid_exercise_count", 0]},
+                            "valid_exercise_count_last_month": {"$cond": [{"$and": [{"$lte": ["$day", last_last_month_last_day]}, {
+                                "$gte": ["$day", last_last_month_first_day]}]}, "$valid_exercise_count", 0]},
+
+                            "valid_word_count_curr_month": {
+                                "$cond": [{"$and": [{"$lte": ["$day", last_month_last_day]}, {
+                                    "$gte": ["$day", last_month_first_day]}]}, "$valid_word_count", 0]},
+                            "valid_word_count_last_month": {
+                                "$cond": [{"$and": [{"$lte": ["$day", last_last_month_last_day]}, {
+                                    "$gte": ["$day", last_last_month_first_day]}]}, "$valid_word_count", 0]},
+
+                            "e_image_c_curr_month": {
+                                "$cond": [{"$and": [{"$lte": ["$day", last_month_last_day]}, {
+                                    "$gte": ["$day", last_month_first_day]}]}, "$e_image_c", 0]},
+                            "e_image_c_last_month": {
+                                "$cond": [{"$and": [{"$lte": ["$day", last_last_month_last_day]}, {
+                                    "$gte": ["$day", last_last_month_first_day]}]}, "$e_image_c", 0]},
+
+                            "w_image_c_curr_month": {
+                                "$cond": [{"$and": [{"$lte": ["$day", last_month_last_day]}, {
+                                    "$gte": ["$day", last_month_first_day]}]}, "$w_image_c", 0]},
+                            "w_image_c_last_month": {
+                                "$cond": [{"$and": [{"$lte": ["$day", last_last_month_last_day]}, {
+                                    "$gte": ["$day", last_last_month_first_day]}]}, "$w_image_c", 0]},
+
+                            "day": 1
+                        }
+                    },
+
+                    {"$group": {"_id": "$channel",
+                                "valid_exercise_count": {"$sum": "$valid_exercise_count"},
+                                "valid_word_count": {"$sum": "$valid_word_count"},
+                                "e_image_c": {"$sum": "$e_image_c"},
+                                "w_image_c": {"$sum": "$w_image_c"},
+                                "total_city_number": {"$sum": "$city_number"},
+                                "total_school_number": {"$sum": "$school_number"},
+                                "total_teacher_number": {"$sum": "$teacher_number"},
+                                "total_student_number": {"$sum": "$student_number"},
+                                "total_guardian_number": {"$sum": "$guardian_count"},
+                                "total_pay_number": {"$sum": "$pay_number"},
+                                "total_pay_amount": {"$sum": "$pay_amount"},
+                                "city_number_curr_month": {"$sum": "$city_number_curr_month"},
+                                "city_number_last_month": {"$sum": "$city_number_last_month"},
+                                "school_number_curr_month": {"$sum": "$school_number_curr_month"},
+                                "school_number_last_month": {"$sum": "$school_number_last_month"},
+                                "teacher_number_curr_month": {"$sum": "$teacher_number_curr_month"},
+                                "teacher_number_last_month": {"$sum": "$teacher_number_last_month"},
+                                "student_number_curr_month": {"$sum": "$student_number_curr_month"},
+                                "student_number_last_month": {"$sum": "$student_number_last_month"},
+                                "guardian_number_curr_month": {"$sum": "$guardian_number_curr_month"},
+                                "guardian_number_last_month": {"$sum": "$guardian_number_last_month"},
+                                "pay_number_curr_month": {"$sum": "$pay_number_curr_month"},
+                                "pay_number_last_month": {"$sum": "$pay_number_last_month"},
+                                "pay_amount_curr_month": {"$sum": "$pay_amount_curr_month"},
+                                "pay_amount_last_month": {"$sum": "$pay_amount_last_month"},
+                                "valid_exercise_count_curr_month": {"$sum": "$valid_exercise_count_curr_month"},
+                                "valid_exercise_count_last_month": {"$sum": "$valid_exercise_count_last_month"},
+                                "valid_word_count_curr_month": {"$sum": "$valid_word_count_curr_month"},
+                                "valid_word_count_last_month": {"$sum": "$valid_word_count_last_month"},
+                                "e_image_c_curr_month": {"$sum": "$e_image_c_curr_month"},
+                                "e_image_c_last_month": {"$sum": "$e_image_c_last_month"},
+                                "w_image_c_curr_month": {"$sum": "$w_image_c_curr_month"},
+                                "w_image_c_last_month": {"$sum": "$w_image_c_last_month"}
+                                }
+                     },
+                    {
+                        "$project": {
+                            "_id": 1,
+                            "total_city_number": 1,
+                            "total_school_number": 1,
+                            "total_teacher_number": 1,
+                            "total_student_number": 1,
+                            "total_guardian_number": 1,
+                            "total_pay_number": 1,
+                            "total_pay_amount": 1,
+                            "valid_exercise_count": 1,
+                            "valid_word_count": 1,
+                            "e_image_c": 1,
+                            "w_image_c": 1,
+                            "city_number_curr_month": 1,
+                            "city_number_last_month": 1,
+                            "school_number_curr_month": 1,
+                            "school_number_last_month": 1,
+                            "teacher_number_curr_month": 1,
+                            "teacher_number_last_month": 1,
+                            "student_number_curr_month": 1,
+                            "student_number_last_month": 1,
+                            "guardian_number_curr_month": 1,
+                            "guardian_number_last_month": 1,
+                            "pay_number_curr_month": 1,
+                            "pay_number_last_month": 1,
+                            "pay_amount_curr_month": 1,
+                            "pay_amount_last_month": 1,
+                            "valid_exercise_count_curr_month": 1,
+                            "valid_exercise_count_last_month": 1,
+                            "valid_word_count_curr_month": 1,
+                            "valid_word_count_last_month": 1,
+                            "e_image_c_curr_month": 1,
+                            "e_image_c_last_month": 1,
+                            "w_image_c_curr_month": 1,
+                            "w_image_c_last_month": 1,
+
+                            # "pay_ratio": {"$divide": ["$total_pay_number", "$total_student_number"]},
+                            # "bind_ratio": {"$divide": ["$total_guardian_number", "$total_student_number"]},
+                            # "school_MoM":
+                        }
+
                     }
-                },
-                {
-                    "$project": {
-                        "channel": 1,
-                        "school_number": 1,
-                        "teacher_number": 1,
-                        "student_number": 1,
-                        "guardian_count": 1,
-                        "pay_number": 1,
-                        "pay_amount": 1,
-                        "valid_exercise_count":1,
-                        "valid_word_count": 1,
-                        "e_image_c": 1,
-                        "w_image_c": 1,
-                        "total_images": {"$sum": ["$e_image_c", "$w_image_c"]},
 
-                        "school_number_curr_month": {"$cond": [{"$and": [{"$lte": ["$day", last_month_last_day]}, {
-                            "$gte": ["$day", last_month_first_day]}]}, "$school_number", 0]},
-                        "school_number_last_month": {"$cond": [{"$and": [{"$lte": ["$day", last_last_month_last_day]}, {
-                            "$gte": ["$day", last_last_month_first_day]}]}, "$school_number", 0]},
+                ])
 
-                        "teacher_number_curr_month": {"$cond": [{"$and": [{"$lte": ["$day", last_month_last_day]}, {
-                            "$gte": ["$day", last_month_first_day]}]}, "$teacher_number", 0]},
-                        "teacher_number_last_month": {"$cond": [{"$and": [{"$lte": ["$day", last_last_month_last_day]}, {
-                            "$gte": ["$day", last_last_month_first_day]}]}, "$teacher_number", 0]},
-
-                        "student_number_curr_month": {"$cond": [{"$and": [{"$lte": ["$day", last_month_last_day]}, {
-                            "$gte": ["$day", last_month_first_day]}]}, "$student_number", 0]},
-                        "student_number_last_month": {"$cond": [{"$and": [{"$lte": ["$day", last_last_month_last_day]}, {
-                            "$gte": ["$day", last_last_month_first_day]}]}, "$student_number", 0]},
-
-                        "guardian_number_curr_month": {"$cond": [{"$and": [{"$lte": ["$day", last_month_last_day]}, {
-                            "$gte": ["$day", last_month_first_day]}]}, "$guardian_number", 0]},
-                        "guardian_number_last_month": {"$cond": [{"$and": [{"$lte": ["$day", last_last_month_last_day]}, {
-                            "$gte": ["$day", last_last_month_first_day]}]}, "$guardian_number", 0]},
-
-                        "pay_number_curr_month": {"$cond": [{"$and": [{"$lte": ["$day", last_month_last_day]}, {
-                            "$gte": ["$day", last_month_first_day]}]}, "$pay_number", 0]},
-                        "pay_number_last_month": {"$cond": [{"$and": [{"$lte": ["$day", last_last_month_last_day]}, {
-                            "$gte": ["$day", last_last_month_first_day]}]}, "$pay_number", 0]},
-
-                        "pay_amount_curr_month": {"$cond": [{"$and": [{"$lte": ["$day", last_month_last_day]}, {
-                            "$gte": ["$day", last_month_first_day]}]}, "$pay_amount", 0]},
-                        "pay_amount_last_month": {"$cond": [{"$and": [{"$lte": ["$day", last_last_month_last_day]}, {
-                            "$gte": ["$day", last_last_month_first_day]}]}, "$pay_amount", 0]},
-
-                        "valid_exercise_count_curr_month": {"$cond": [{"$and": [{"$lte": ["$day", last_month_last_day]}, {
-                            "$gte": ["$day", last_month_first_day]}]}, "$valid_exercise_count", 0]},
-                        "valid_exercise_count_last_month": {"$cond": [{"$and": [{"$lte": ["$day", last_last_month_last_day]}, {
-                            "$gte": ["$day", last_last_month_first_day]}]}, "$valid_exercise_count", 0]},
-
-                        "valid_word_count_curr_month": {
-                            "$cond": [{"$and": [{"$lte": ["$day", last_month_last_day]}, {
-                                "$gte": ["$day", last_month_first_day]}]}, "$valid_word_count", 0]},
-                        "valid_word_count_last_month": {
-                            "$cond": [{"$and": [{"$lte": ["$day", last_last_month_last_day]}, {
-                                "$gte": ["$day", last_last_month_first_day]}]}, "$valid_word_count", 0]},
-
-                        "e_image_c_curr_month": {
-                            "$cond": [{"$and": [{"$lte": ["$day", last_month_last_day]}, {
-                                "$gte": ["$day", last_month_first_day]}]}, "$e_image_c", 0]},
-                        "e_image_c_last_month": {
-                            "$cond": [{"$and": [{"$lte": ["$day", last_last_month_last_day]}, {
-                                "$gte": ["$day", last_last_month_first_day]}]}, "$e_image_c", 0]},
-
-                        "w_image_c_curr_month": {
-                            "$cond": [{"$and": [{"$lte": ["$day", last_month_last_day]}, {
-                                "$gte": ["$day", last_month_first_day]}]}, "$w_image_c", 0]},
-                        "w_image_c_last_month": {
-                            "$cond": [{"$and": [{"$lte": ["$day", last_last_month_last_day]}, {
-                                "$gte": ["$day", last_last_month_first_day]}]}, "$w_image_c", 0]},
-
-                        "day": 1
-                    }
-                },
-
-                {"$group": {"_id": "$channel",
-                            "valid_exercise_count": {"$sum": "$valid_exercise_count"},
-                            "valid_word_count": {"$sum": "$valid_word_count"},
-                            "e_image_c": {"$sum": "$e_image_c"},
-                            "w_image_c": {"$sum": "$w_image_c"},
-                            "total_school_number": {"$sum": "$school_number"},
-                            "total_teacher_number": {"$sum": "$teacher_number"},
-                            "total_student_number": {"$sum": "$student_number"},
-                            "total_guardian_number": {"$sum": "$guardian_count"},
-                            "total_pay_number": {"$sum": "$pay_number"},
-                            "total_pay_amount": {"$sum": "$pay_amount"},
-                            "school_number_curr_month": {"$sum": "$school_number_curr_month"},
-                            "school_number_last_month": {"$sum": "$school_number_last_month"},
-                            "teacher_number_curr_month": {"$sum": "$teacher_number_curr_month"},
-                            "teacher_number_last_month": {"$sum": "$teacher_number_last_month"},
-                            "student_number_curr_month": {"$sum": "$student_number_curr_month"},
-                            "student_number_last_month": {"$sum": "$student_number_last_month"},
-                            "guardian_number_curr_month": {"$sum": "$guardian_number_curr_month"},
-                            "guardian_number_last_month": {"$sum": "$guardian_number_last_month"},
-                            "pay_number_curr_month": {"$sum": "$pay_number_curr_month"},
-                            "pay_number_last_month": {"$sum": "$pay_number_last_month"},
-                            "pay_amount_curr_month": {"$sum": "$pay_amount_curr_month"},
-                            "pay_amount_last_month": {"$sum": "$pay_amount_last_month"},
-                            "valid_exercise_count_curr_month": {"$sum": "$valid_exercise_count_curr_month"},
-                            "valid_exercise_count_last_month": {"$sum": "$valid_exercise_count_last_month"},
-                            "valid_word_count_curr_month": {"$sum": "$valid_word_count_curr_month"},
-                            "valid_word_count_last_month": {"$sum": "$valid_word_count_last_month"},
-                            "e_image_c_curr_month": {"$sum": "$e_image_c_curr_month"},
-                            "e_image_c_last_month": {"$sum": "$e_image_c_last_month"},
-                            "w_image_c_curr_month": {"$sum": "$w_image_c_curr_month"},
-                            "w_image_c_last_month": {"$sum": "$w_image_c_last_month"}
-                            }
-                 },
-                {
-                    "$project": {
-                        "_id": 1,
-                        "total_school_number": 1,
-                        "total_teacher_number": 1,
-                        "total_student_number": 1,
-                        "total_guardian_number": 1,
-                        "total_pay_number": 1,
-                        "total_pay_amount": 1,
-                        "valid_exercise_count": 1,
-                        "valid_word_count": 1,
-                        "e_image_c": 1,
-                        "w_image_c": 1,
-                        "school_number_curr_month": 1,
-                        "school_number_last_month": 1,
-                        "teacher_number_curr_month": 1,
-                        "teacher_number_last_month": 1,
-                        "student_number_curr_month": 1,
-                        "student_number_last_month": 1,
-                        "guardian_number_curr_month": 1,
-                        "guardian_number_last_month": 1,
-                        "pay_number_curr_month": 1,
-                        "pay_number_last_month": 1,
-                        "pay_amount_curr_month": 1,
-                        "pay_amount_last_month": 1,
-                        "valid_exercise_count_curr_month": 1,
-                        "valid_exercise_count_last_month": 1,
-                        "valid_word_count_curr_month": 1,
-                        "valid_word_count_last_month": 1,
-                        "e_image_c_curr_month": 1,
-                        "e_image_c_last_month": 1,
-                        "w_image_c_curr_month": 1,
-                        "w_image_c_last_month": 1,
-
-                        "pay_ratio": {"$divide": ["$total_pay_number", "$total_student_number"]},
-                        "bind_ratio": {"$divide": ["$total_guardian_number", "$total_student_number"]},
-                        # "school_MoM":
-                    }
-
-                }
-
-            ])
-
-        async for item in item_count:
-            items.append(item)
+            async for item in item_count:
+                items.append(item)
+        except:
+            import traceback
+            traceback.print_exc()
 
         return items
 
@@ -689,6 +723,7 @@ class ExportReport(BaseHandler):
                 {
                     "$project": {
                         "channel": 1,
+                        "city_number": 1,
                         "school_number": 1,
                         "teacher_number": 1,
                         "student_number": 1,
@@ -700,6 +735,11 @@ class ExportReport(BaseHandler):
                         "e_image_c": 1,
                         "w_image_c": 1,
                         "total_images": {"$sum": ["$e_image_c", "$w_image_c"]},
+
+                        "city_number_curr_month": {"$cond": [{"$and": [{"$lte": ["$day", last_week_last_day]}, {
+                            "$gte": ["$day", last_week_first_day]}]}, "$city_number", 0]},
+                        "city_number_last_month": {"$cond": [{"$and": [{"$lte": ["$day", last_last_week_last_day]}, {
+                            "$gte": ["$day", last_last_week_first_day]}]}, "$city_number", 0]},
 
                         "school_number_curr_month": {"$cond": [{"$and": [{"$lte": ["$day", last_week_last_day]}, {
                             "$gte": ["$day", last_week_first_day]}]}, "$school_number", 0]},
@@ -766,12 +806,15 @@ class ExportReport(BaseHandler):
                             "valid_word_count": {"$sum": "$valid_word_count"},
                             "e_image_c": {"$sum": "$e_image_c"},
                             "w_image_c": {"$sum": "$w_image_c"},
+                            "total_city_number": {"$sum": "$city_number"},
                             "total_school_number": {"$sum": "$school_number"},
                             "total_teacher_number": {"$sum": "$teacher_number"},
                             "total_student_number": {"$sum": "$student_number"},
                             "total_guardian_number": {"$sum": "$guardian_count"},
                             "total_pay_number": {"$sum": "$pay_number"},
                             "total_pay_amount": {"$sum": "$pay_amount"},
+                            "city_number_curr_month": {"$sum": "$city_number_curr_month"},
+                            "city_number_last_month": {"$sum": "$city_number_last_month"},
                             "school_number_curr_month": {"$sum": "$school_number_curr_month"},
                             "school_number_last_month": {"$sum": "$school_number_last_month"},
                             "teacher_number_curr_month": {"$sum": "$teacher_number_curr_month"},
@@ -797,6 +840,7 @@ class ExportReport(BaseHandler):
                 {
                     "$project": {
                         "_id": 1,
+                        "total_city_number": 1,
                         "total_school_number": 1,
                         "total_teacher_number": 1,
                         "total_student_number": 1,
@@ -807,6 +851,8 @@ class ExportReport(BaseHandler):
                         "valid_word_count": 1,
                         "e_image_c": 1,
                         "w_image_c": 1,
+                        "city_number_curr_month": 1,
+                        "city_number_last_month": 1,
                         "school_number_curr_month": 1,
                         "school_number_last_month": 1,
                         "teacher_number_curr_month": 1,
