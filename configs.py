@@ -55,7 +55,9 @@ if env == 'stable':
 
     """For permission"""
     UC_SYSTEM_API_URL = 'http://uc.ali.hexin.im/api'
+    UC_SYSTEM_API_ADMIN_URL = 'http://uc.ali.hexin.im/api/admin'
     THEMIS_SYSTEM_OPEN_URL = 'http://themis.ali.hexin.im/api/open'
+    THEMIS_SYSTEM_ADMIN_URL = 'http://themis.ali.hexin.im/api/admin'
     permissionAppKey = 'themisc0129c329b'
     permissionAppSecret = '5ef4c591f28f5a6049d22d476840c980'
     ucAppKey = '0d8cf2c3b25588ca'

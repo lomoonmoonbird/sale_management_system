@@ -9,7 +9,7 @@ import json
 from celery import Task
 from models.mysql.centauri import ob_school, us_user, re_userwechat, ob_group, \
 ob_groupuser, ob_exercise, as_hermes, ob_order, re_userwechat, Roles, StageEnum, \
-    StudentRelationEnum, ExerciseTypeEnum, ob_exercisemeta
+    StudentRelationEnum, ExerciseTypeEnum, ob_exercisemeta, st_location
 import pymysql
 import pymongo
 from pymongo import InsertOne, DeleteMany, ReplaceOne, UpdateOne
@@ -688,8 +688,8 @@ class PerDayTask_SCHOOL(BaseTask):
         执行查询 返回数据库结果
         """
         cursor = connection.cursor()
-        # logger.debug(
-        #     query.compile(dialect=mysql.dialect(), compile_kwargs={"literal_binds": True}).string.replace("%%", "%"))
+        logger.debug(
+            query.compile(dialect=mysql.dialect(), compile_kwargs={"literal_binds": True}).string.replace("%%", "%"))
 
         cursor.execute(
             query.compile(dialect=mysql.dialect(), compile_kwargs={"literal_binds": True}).string.replace("%%", "%"))
@@ -697,7 +697,7 @@ class PerDayTask_SCHOOL(BaseTask):
         return ret
 
     def run(self):
-
+        print('@@@@@@@@@@@@@@@@@@@@@')
         date_range = self._date_range("school_number_per_day_begin_time")  # 时间分段
         self._school(date_range) #学校数
 
@@ -707,21 +707,43 @@ class PerDayTask_SCHOOL(BaseTask):
         :param date_range:
         :return:
         """
+        q_locations = select([st_location.c.id, st_location.c.city_id])
+        locations = self._query(q_locations)
+        locations_map = {}
+        for location in locations:
+            locations_map[location['id']] = location['city_id']
+        print(locations_map)
+        distinct_location_set = set()
         for one_date in date_range:
-            q_schools = select([ob_school.c.id, ob_school.c.owner_id])\
+            q_schools = select([ob_school.c.id, ob_school.c.owner_id, ob_school.c.location_id])\
                 .where(and_(ob_school.c.available == 1,
-                            ob_school.c.time_create > one_date[0],
+                            ob_school.c.time_create >= one_date[0],
                             ob_school.c.time_create < one_date[1])
                        )
 
             schools = self._query(q_schools)
 
-            school_defaultdict = defaultdict(list)
+            school_defaultdict = defaultdict(lambda: defaultdict(dict))
 
             self_school_bulk_update = []
             channel_school_bulk_update = []
             for school in schools:
-                school_defaultdict[school['owner_id']].append(1)
+                if school_defaultdict[school['owner_id']]['school_n']:
+                    school_defaultdict[school['owner_id']]['school_n'].append(1)
+                else:
+                    school_defaultdict[school['owner_id']]['school_n'] = [1]
+
+
+                if locations_map.get(school['location_id'], "") not in distinct_location_set:
+                    if school_defaultdict[school['owner_id']]['location_n']:
+                        school_defaultdict[school['owner_id']]['location_n'].append(1)
+                        distinct_location_set.add(locations_map.get(school['location_id'], ""))
+                    else:
+                        school_defaultdict[school['owner_id']]['location_n'] = [1]
+                else:
+                    pass
+
+
                 school_schema = {
                     "channel": school['owner_id'],
                 }
@@ -732,7 +754,8 @@ class PerDayTask_SCHOOL(BaseTask):
             for k,v in school_defaultdict.items():
                 school_schema = {
 
-                    "school_number": sum(v),
+                    "school_number": sum(v['school_n']),
+                    "city_number": sum(v['location_n'])
                 }
 
                 channel_school_bulk_update.append(UpdateOne({"channel": k, "day": one_date[0]},
@@ -1497,12 +1520,12 @@ class PerDayTask(BaseTask):
         try:
             print ('begin')
             from tasks.celery_init import sales_celery
-            sales_celery.send_task("tasks.celery_task_user.PerDaySubTask_IMAGES") #考试 单词图片数
-            sales_celery.send_task("tasks.celery_task_user.PerDaySubTask_GUARDIAN") #家长数也为绑定数
-            sales_celery.send_task("tasks.celery_task_user.PerDaySubTask_PAYMENTS") #付费数 付费额
-            sales_celery.send_task("tasks.celery_task_user.PerDaySubTask_USERS") #学生数 老师数
+            # sales_celery.send_task("tasks.celery_task_user.PerDaySubTask_IMAGES") #考试 单词图片数
+            # sales_celery.send_task("tasks.celery_task_user.PerDaySubTask_GUARDIAN") #家长数也为绑定数
+            # sales_celery.send_task("tasks.celery_task_user.PerDaySubTask_PAYMENTS") #付费数 付费额
+            # sales_celery.send_task("tasks.celery_task_user.PerDaySubTask_USERS") #学生数 老师数
             sales_celery.send_task("tasks.celery_task_user.PerDayTask_SCHOOL") #学校数
-            sales_celery.send_task("tasks.celery_task_user.PerDayTask_VALIADCONTEST") #有效考试 有效单词
+            # sales_celery.send_task("tasks.celery_task_user.PerDayTask_VALIADCONTEST") #有效考试 有效单词
 
             print ('finished.......')
             # self.server.stop()

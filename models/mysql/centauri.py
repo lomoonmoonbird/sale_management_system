@@ -33,6 +33,7 @@ ob_school = Table('sigma_account_ob_school', metadata,
                 Column('full_name', String(64)), #学校全名
                 Column('short_name', String(32)), #学校缩略名
                 Column('admin_id', Integer), #管理员id
+                Column('location_id', Integer), #位置id
                 Column('owner_id', Integer, default=0), #渠道账号id
                 Column('expire', DateTime), #过期时间
                 Column('vip_level', Integer, default=0), #客户重要程度 0 普通用户
@@ -137,6 +138,15 @@ ob_order = Table('sigma_pay_ob_order', metadata,
                 Column('time_create', DateTime), #创建时间
                 Column('time_modify', DateTime) #修改时间
                 )
+
+#地理位置
+st_location = Table('sigma_pool_st_location', metadata,
+                Column('id', Integer, primary_key=True), #主键id
+                Column('province_id', Integer, index=True,), #省id
+                Column('city_id', Integer, index=True,), #城市id
+                Column('district_id', Integer, index=True,), #区id
+                )
+
 
 
 class Roles(Enum):

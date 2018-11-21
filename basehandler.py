@@ -69,12 +69,26 @@ class BaseHandler():
 
 
     def current_week(self):
-
+        """
+        本周
+        :return:
+        """
         #list(self._get_week(datetime.now().date()))
         return [d.isoformat() for d in self._get_week(datetime.now().date())]
 
     def last_week(self):
+        """
+        上周
+        :return:
+        """
         return [d.isoformat() for d in self._get_week((datetime.now()-timedelta(7)).date())]
+
+    def last_last_week(self):
+        """
+        上上周
+        :return:
+        """
+        return [d.isoformat() for d in self._get_week((datetime.now() - timedelta(14)).date())]
 
     def _get_week(self, date):
         one_day = timedelta(days=1)
@@ -86,7 +100,7 @@ class BaseHandler():
             date += one_day
 
 
-    def _curra_and_last_month(self):
+    def _curr_and_last_and_last_last_month(self):
         """
         当月和上月分别开始和结束日期
         :return:
@@ -94,6 +108,10 @@ class BaseHandler():
         today = date.today()
         first_day_of_curr_month = today.replace(day=1)
         last_day_of_last_month = first_day_of_curr_month - timedelta(days=1)
+
         first_day_of_last_month = last_day_of_last_month.replace(day=1)
-        return first_day_of_last_month.strftime("%Y-%m-%d"), last_day_of_last_month.strftime("%Y-%m-%d"), \
+        last_day_of_last_last_month =first_day_of_last_month - timedelta(days=1)
+        first_day_of_last_last_month = last_day_of_last_last_month.replace(day=1)
+        return first_day_of_last_last_month.strftime("%Y-%m-%d"), last_day_of_last_last_month.strftime("%Y-%m-%d"), \
+               first_day_of_last_month.strftime("%Y-%m-%d"), last_day_of_last_month.strftime("%Y-%m-%d"), \
                first_day_of_curr_month.strftime("%Y-%m-%d"), today.strftime("%Y-%m-%d")
