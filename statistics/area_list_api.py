@@ -68,6 +68,8 @@ class AreaList(BaseHandler):
             items = await self._list(request, old_ids)
 
             for item in items:
+                item['contest_coverage_ratio'] = 0
+                item['contest_average_per_person'] = 0
                 item["area_info"] = areas_map.get(channels_map.get(item['_id'], 0), {})
             return self.reply_ok(items)
         elif request["user_info"]["instance_role_id"] == Roles.AREA.value:
@@ -93,7 +95,8 @@ class AreaList(BaseHandler):
                     channels_map[channel["id"]] = channel
                 items = await self._list(request, old_ids)
                 for item in items:
-
+                    item['contest_coverage_ratio'] = 0
+                    item['contest_average_per_person'] = 0
                     item["channel_info"] = channels_map.get(item["_id"], 0)
 
                 return self.reply_ok(items)

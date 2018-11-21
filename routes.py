@@ -7,6 +7,7 @@ import demo.routes
 import statistics.routes
 import user.routes
 import school.routes
+import statistics.export.routes
 from aiohttp.web import Application
 from loggings import logger
 
@@ -30,4 +31,6 @@ def setup_routes(app: Application):
     logger.debug('Success register school.routes')
     statistics.routes.register(app.router)
     logger.debug('Success register statistics.routes')
+    statistics.export.routes.register(app.router)
+    logger.debug('Success register statistics.export.routes')
 

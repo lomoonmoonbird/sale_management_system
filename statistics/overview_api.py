@@ -1398,19 +1398,3 @@ class Overview(BaseHandler):
         return total,current_week,last_week
 
 
-    def current_week(self):
-
-        #list(self._get_week(datetime.now().date()))
-        return [d.isoformat() for d in self._get_week(datetime.now().date())]
-
-    def last_week(self):
-        return [d.isoformat() for d in self._get_week((datetime.now()-timedelta(7)).date())]
-
-    def _get_week(self, date):
-        one_day = timedelta(days=1)
-        day_idx = (date.weekday()) % 7
-        sunday = date - timedelta(days=day_idx)
-        date = sunday
-        for n in range(7):
-            yield date
-            date += one_day

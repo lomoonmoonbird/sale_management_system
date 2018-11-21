@@ -1039,9 +1039,11 @@ class PerDayTask_VALIADCONTEST(BaseTask):
         try:
             date_range = self._date_range("valid_exercise_word_begin_time") #时间分段
             self._exercise_number(date_range) #有效考试 有效词汇
-            self.server.stop()
-            self.connection.close()
-            self.cursor.close()
+            cursor.close()
+            connection.close()
+            server.stop()
+
+
         except Exception as e:
             import traceback
             traceback.print_exc()

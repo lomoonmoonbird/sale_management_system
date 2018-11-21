@@ -7,7 +7,10 @@
 
 from utils import json_response
 from aiohttp import ClientSession
+from aiohttp.web import Response, StreamResponse
 import ujson
+import mimetypes
+from datetime import datetime, timedelta, date
 
 class BaseHandler():
 
@@ -31,3 +34,66 @@ class BaseHandler():
         data = {"code": 0, "msg": "ok", "data": response_data}
         return json_response(data=data)
 
+    async def replay_stream(self, byte_data,filename, request):
+        resp = StreamResponse()
+        resp.content_type = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        disposition = 'filename="{}"'.format(filename+'.xlsx')
+        if 'text' not in resp.content_type:
+            disposition = 'attachment; ' + disposition
+
+        resp.headers['CONTENT-DISPOSITION'] = disposition
+
+        resp.content_length = len(byte_data)
+        await resp.prepare(request)
+
+        await resp.write(byte_data)
+        await resp.write_eof()
+        return resp
+
+
+    def rounding(self, number):
+        """
+        四舍五入
+        :param number:
+        :return:
+        """
+        return "%.2f" % number
+
+    def percentage(self, number):
+        """
+        转换成百分比
+        :param number:
+        :return:
+        """
+        return "{0:0.2f}%".format(number)
+
+
+    def current_week(self):
+
+        #list(self._get_week(datetime.now().date()))
+        return [d.isoformat() for d in self._get_week(datetime.now().date())]
+
+    def last_week(self):
+        return [d.isoformat() for d in self._get_week((datetime.now()-timedelta(7)).date())]
+
+    def _get_week(self, date):
+        one_day = timedelta(days=1)
+        day_idx = (date.weekday()) % 7
+        sunday = date - timedelta(days=day_idx)
+        date = sunday
+        for n in range(7):
+            yield date
+            date += one_day
+
+
+    def _curra_and_last_month(self):
+        """
+        当月和上月分别开始和结束日期
+        :return:
+        """
+        today = date.today()
+        first_day_of_curr_month = today.replace(day=1)
+        last_day_of_last_month = first_day_of_curr_month - timedelta(days=1)
+        first_day_of_last_month = last_day_of_last_month.replace(day=1)
+        return first_day_of_last_month.strftime("%Y-%m-%d"), last_day_of_last_month.strftime("%Y-%m-%d"), \
+               first_day_of_curr_month.strftime("%Y-%m-%d"), today.strftime("%Y-%m-%d")
