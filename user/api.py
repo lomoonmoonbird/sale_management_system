@@ -516,9 +516,11 @@ class User(BaseHandler):
 
                 for channel in res:
                     area_id = ''
+                    channel['channel_id'] = ''
                     for c in channels:
                         if channel['id'] == c['old_id']:
                             area_id = str(c['parent_id'])
+                            channel['channel_id'] = str(c['_id'])
                             break
 
                     for area in area_info:
