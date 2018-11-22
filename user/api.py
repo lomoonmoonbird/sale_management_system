@@ -479,7 +479,8 @@ class User(BaseHandler):
 
                 users_map = {}
                 for u in users:
-                    one_user = {"user_id": u.get('user_id', -1), "nickname": u.get('nickname', '')}
+                    one_user = {"user_id": u.get('user_id', -1), "nickname": u.get('nickname', ''),
+                                "username": u.get("username", ""), "phone": u.get("phone", "")}
                     if users_map.get(u['channel_id'], []):
                         users_map[u['channel_id']].append(one_user)
                     else:
