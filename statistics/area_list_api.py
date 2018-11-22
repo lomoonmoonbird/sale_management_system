@@ -25,7 +25,7 @@ from aiomysql.cursors import DictCursor
 from pymongo import UpdateOne, DeleteMany
 from bson import ObjectId
 from enumconstant import Roles, PermissionRole
-
+from utils import CustomEncoder
 
 class AreaList(BaseHandler):
     def __init__(self):
@@ -42,6 +42,7 @@ class AreaList(BaseHandler):
         :param request:
         :return:
         """
+        #todo 有bug
         request_param = await get_params(request)
         page = int(request_param.get('page', 0))
         per_page = 100
@@ -50,11 +51,14 @@ class AreaList(BaseHandler):
                                                                           "role": Roles.AREA.value,
                                                                           "status": 1}).skip(page*per_page).limit(per_page)
         areas = await areas.to_list(100000)
+        print('areas', areas)
         areas_ids = [str(item['_id']) for item in areas]
         channels = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": {"$in": areas_ids},
                                                                              "role": Roles.CHANNEL.value, "status": 1})
         channels = await channels.to_list(100000)
+        print('channels', channels)
         old_ids = [item['old_id'] for item in channels]
+        print("old_ids", old_ids)
         areas_map = {}
         for area in areas:
             areas_map[str(area['_id'])] = area
@@ -65,6 +69,7 @@ class AreaList(BaseHandler):
 
 
         items = await self._list(request, old_ids)
+        print(json.dumps(items, indent=4, cls=CustomEncoder))
         from collections import defaultdict
         area_compact_data = defaultdict(dict)
 
@@ -214,8 +219,11 @@ class AreaList(BaseHandler):
                         "total_valid_word_number": 1,
                         "total_exercise_image_number": 1,
                         "total_word_image_number": 1,
-                        "pay_ratio": {"$divide": ["$total_pay_number", "$total_student_number"]},
-                        "bind_ratio": {"$divide": ["$total_guardian_number", "$total_student_number"]}
+                        # "pay_ratio": {"$divide": ["$total_pay_number", "$total_student_number"]},
+                        # "bind_ratio": {"$divide": ["$total_guardian_number", "$total_student_number"]},
+
+                        "pay_ratio": {"$cond": [[{"$eq": ["$total_student_number", 0]}], 0, {"$divide": ["$total_pay_number", "$total_student_number"]}]},
+                        "bind_ratio": {"$cond": [[{"$eq": ["$total_student_number", 0]}], 0, {"$divide": ["$total_guardian_number", "$total_student_number"]}]}
                     }
 
                 }
