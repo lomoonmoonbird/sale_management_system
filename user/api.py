@@ -449,7 +449,7 @@ class User(BaseHandler):
             if not request['user_info']['area_id']:
                 return self.reply_ok({"areas": [], "channels": []})
 
-            if request["user_info"]["instance_role_id"] != Roles.GLOBAL.value:
+            if request["user_info"]["instance_role_id"] == Roles.AREA.value:
                 area_id = request['user_info']['area_id']
                 query_cond.update({"parent_id": area_id})
 
@@ -496,7 +496,7 @@ class User(BaseHandler):
                     channel['user_info'] = users_map.get(channel['channel_id'], [])
 
 
-            else:
+            elif request["user_info"]["instance_role_id"] == Roles.GLOBAL.value:
                 sql = "select * from sigma_account_us_user where available = 1 and role_id = 6 limit %s, %s " % (page*per_page, per_page)
 
                 async with request.app['mysql'].acquire() as conn:
@@ -506,12 +506,12 @@ class User(BaseHandler):
 
                 old_ids = [item['id'] for item in res]
 
-                channels = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id":  request['user_info']['area_id'],
-                                                                                     "old_id": {"$in": old_ids}, "status": 1})
+                channels = request.app['mongodb'][self.db][self.instance_coll].find({"old_id": {"$in": old_ids}, "role": Roles.CHANNEL.value, "status": 1})
                 channels = await channels.to_list(100000)
-                parent_ids = list(set([str(item['parent_id']) for item in channels]))
+                print(channels)
+                parent_ids = list(set([ObjectId(item['parent_id']) for item in channels]))
                 area_info = request.app['mongodb'][self.db][self.instance_coll].find(
-                    {"parent_id": {"$in": parent_ids}, "status": 1})
+                    {"_id": {"$in": parent_ids}, "status": 1})
                 area_info = await area_info.to_list(10000)
 
                 for channel in res:
@@ -524,7 +524,7 @@ class User(BaseHandler):
                     for area in area_info:
                         if area_id == str(area['_id']):
                             channel['area_info'] = {"area_id": area_id, "area_name": area['name']}
-                    print (channel)
+
 
 
         except:

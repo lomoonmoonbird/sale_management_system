@@ -43,7 +43,7 @@ class CustomEncoder(json.JSONEncoder):
 
         return json.JSONEncoder.default(self, obj)
 
-class ExportReport(BaseHandler):
+class GlobalExportReport(BaseHandler):
     def __init__(self):
         self.db = 'sales'
         self.user_coll = 'sale_user'
@@ -417,9 +417,6 @@ class ExportReport(BaseHandler):
                         one.font = self._red_font()
 
 
-
-
-        print(summary_map)
         for index, cell in enumerate(sheet[total_cell_begin_position+spare+4]):
             if index == 0:
                 continue
