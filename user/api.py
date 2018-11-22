@@ -771,9 +771,12 @@ class User(BaseHandler):
 
         elif request['user_info']['instance_role_id'] == Roles.CHANNEL.value:
             channel_id = request['user_info']['channel_id']
-            users = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": channel_id,
+            users = request.app['mongodb'][self.db][self.user_coll].find({"channel_id": channel_id,
+                                                                              "instance_role_id": Roles.MARKET.value,
                                                                               "status": 1})\
                 .skip(page*per_page).limit(per_page)
+
+
             area_info = await request.app['mongodb'][self.db][self.instance_coll]. \
                 find_one({"_id": ObjectId(request['user_info']['area_id']),
                           "status": 1})
@@ -781,7 +784,7 @@ class User(BaseHandler):
                 find_one({"_id": ObjectId(request['user_info']['channel_id']),
                           "status": 1})
             users = await users.to_list(100000)
-
+            print(users)
             for user in users:
                 user['channel_info'] = {"channel_id": str(channel_info['_id'])}
                 user['area_info'] = {"area_id": str(area_info['_id']), "area_name": area_info['name']}
