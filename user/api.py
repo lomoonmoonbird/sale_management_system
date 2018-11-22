@@ -201,6 +201,9 @@ class User(BaseHandler):
         request_data = await get_json(request)
         print (request_data)
         bulk_update = []
+        await request.app['mongodb'][self.db][self.instance_coll].update_many({"parent_id": str(request_data['area_id']),
+                                                                         "instance_role_id": Roles.CHANNEL.value,
+                                                                         "status": 1}, {"$set": {"status": 0}})
         for old_id in request_data['old_channel_ids']:
             # bulk_update.append(UpdateOne({"parent_id": str(request_data['area_id']),"old_id": old_id},
             #                              {"$set": {"parent_id": str(request_data['area_id']),
