@@ -388,7 +388,7 @@ class GlobalExportReport(BaseHandler):
             # 新增家长数量
             mom = (sum(area_data['guardian_number_curr_month']) - sum(area_data['guardian_number_last_month'])) / sum(area_data[
                 'guardian_number_last_month']) if sum(area_data['guardian_number_last_month']) else 0
-            avg = sum(area_data['total_guardian_number']) / sum(area_data['total_student_number'])
+            avg = sum(area_data['total_guardian_number']) / sum(area_data['total_student_number']) if sum(area_data['total_student_number']) > 0 else 0
             row[35].value = self.percentage(avg)
             row[36].value = sum(area_data['guardian_number_last_month'])
             row[37].value = sum(area_data['guardian_number_curr_month'])
@@ -492,8 +492,8 @@ class GlobalExportReport(BaseHandler):
                 for area_user in area_users:
                     notification.append({"user": area_user, "info": "大区经理共使用平台" + str(sum( area_data['valid_exercise_count_last_month'] + area_data['valid_word_count_last_month']  )) + "次，本月有新增使用，但无新增家长，建议推动绑定", })
             if sum( area_data['valid_exercise_count_last_month'] +
-                      area_data['valid_word_count_last_month']  ) == 0 and  sum(  area_data['school_number_last_month'] + area_data['teacher_number_last_month'] +
-                      area_data['student_number_last_month'] + area_data['e_image_c_last_month'] + area_data['w_image_c_last_month'] + area_data['guardian_number_last_month'] + area_data['pay_amount_last_month'], area_data['']  ) > 0:
+                      area_data['valid_word_count_last_month']  ) == 0 and sum(  area_data['school_number_last_month'] + area_data['teacher_number_last_month'] +
+                      area_data['student_number_last_month'] + area_data['e_image_c_last_month'] + area_data['w_image_c_last_month'] + area_data['guardian_number_last_month'] + area_data['pay_amount_last_month']  ) > 0:
 
                 area_users = user_area_map.get(area_name.split('@')[1], "")
                 for area_user in area_users:

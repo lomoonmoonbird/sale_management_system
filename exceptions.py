@@ -37,3 +37,6 @@ class UserBannedError(RequestError):
 
 class DELETEERROR(RequestError):
     status_code = ErrorCode.DELETEERROR
+
+class ChannelNotExist(RequestError):
+    status_code = ErrorCode.CHANNELNOTEXIST

@@ -15,7 +15,7 @@ import aiohttp
 import ujson
 from utils import get_json, get_params, validate_permission
 from basehandler import BaseHandler
-from exceptions import InternalError, UserExistError, CreateUserError, DELETEERROR, RequestError
+from exceptions import InternalError, UserExistError, CreateUserError, DELETEERROR, RequestError, ChannelNotExist
 from menu.menu import Menu
 from motor.core import Collection
 from enum import Enum
@@ -29,6 +29,7 @@ class QueryMixin(BaseHandler):
 
     def __init__(self):
         self.db = 'sales'
+        self.user_coll = 'sale_user'
         self.instance_coll = 'instance'
         self.class_per_day_coll = 'class_per_day'
         self.grade_per_day_coll = 'grade_per_day'
@@ -496,7 +497,7 @@ class QueryMixin(BaseHandler):
         :param coll:
         :return:
         """
-        coll = request.app['mongodb'][self.db][self.class_per_day_coll]
+        coll = request.app['mongodb'][self.db][self.channel_per_day_coll]
         total_pay_count_list = []
         current_week_new_pay_count_list = []
         last_week_new_pay_count_list = []
@@ -591,7 +592,7 @@ class QueryMixin(BaseHandler):
         :param coll:
         :return:
         """
-        coll = request.app['mongodb'][self.db][self.class_per_day_coll]
+        coll = request.app['mongodb'][self.db][self.channel_per_day_coll]
         total_pay_amount_list = []
         current_week_new_pay_amount_list = []
         last_week_new_pay_amount_list = []
@@ -765,6 +766,91 @@ class QueryMixin(BaseHandler):
 
         return items
 
+    async def _list_channel(self, request: Request, school_ids: list):
+        """
+        学校数
+        :param request:
+        :param channel_ids:
+        :return:
+        """
+        coll = request.app['mongodb'][self.db][self.grade_per_day_coll]
+        items = []
+        yesterday = datetime.now() - timedelta(1)
+        yesterday_before_30day = yesterday - timedelta(30)
+        yesterday_str = yesterday.strftime("%Y-%m-%d")
+        yesterday_before_30day_str = yesterday_before_30day.strftime("%Y-%m-%d")
+
+
+        item_count = coll.aggregate(
+            [
+                {
+                    "$match": {
+                        "school_id": {"$in": school_ids}
+                    }
+                },
+                {
+                    "$project": {
+                        "school_id":1,
+                        "channel": 1,
+                        "school_number": 1,
+                        "teacher_number": 1,
+                        "student_number": 1,
+                        "guardian_count": 1,
+                        "pay_number": 1,
+                        "pay_amount": 1,
+                        "valid_exercise_count": {"$cond": [{"$and": [{"$lt": ["$day", yesterday_str]}, {
+                            "$gte": ["$day", yesterday_before_30day_str]}]}, "$valid_exercise_count", 0]},
+                        "e_image_c": {"$cond": [{"$and": [{"$lt": ["$day", yesterday_str]}, {
+                            "$gte": ["$day", yesterday_before_30day_str]}]}, "$e_image_c", 0]},
+                        "valid_word_count": {"$cond": [{"$and": [{"$lt": ["$day", yesterday_str]}, {
+                            "$gte": ["$day", yesterday_before_30day_str]}]}, "$valid_word_count", 0]},
+                        "w_image_c": {"$cond": [{"$and": [{"$lt": ["$day", yesterday_str]}, {
+                            "$gte": ["$day", yesterday_before_30day_str]}]}, "$w_image_c", 0]},
+
+                        "day": 1
+                    }
+                },
+
+                {"$group": {"_id": "$school_id",
+                            "total_school_number": {"$sum": "$school_number"},
+                            "total_teacher_number": {"$sum": "$teacher_number"},
+                            "total_student_number": {"$sum": "$student_number"},
+                            "total_guardian_number": {"$sum": "$guardian_count"},
+                            "total_pay_number": {"$sum": "$pay_number"},
+                            "total_pay_amount": {"$sum": "$pay_amount"},
+                            "total_valid_exercise_number": {"$sum": "$valid_exercise_count"},
+                            "total_valid_word_number": {"$sum": "$valid_word_count"},
+                            "total_exercise_image_number": {"$sum": "$e_image_c"},
+                            "total_word_image_number": {"$sum": "$w_image_c"}
+                            }
+                 },
+                {
+                    "$project": {
+                        "_id": 1,
+                        "total_school_number": 1,
+                        "total_teacher_number": 1,
+                        "total_student_number": 1,
+                        "total_guardian_number": 1,
+                        "total_pay_number": 1,
+                        "total_pay_amount": 1,
+                        "total_valid_exercise_number": 1,
+                        "total_valid_word_number": 1,
+                        "total_exercise_image_number": 1,
+                        "total_word_image_number": 1,
+                        "pay_ratio": {"$cond": [{"$eq": ["$total_student_number", 0]}, 0, {"$divide": ["$total_pay_number", "$total_student_number"]}]},
+                        "bind_ratio": {"$cond": [{"$eq": ["$total_student_number", 0]}, 0,
+                                                {"$divide": ["$total_guardian_number", "$total_student_number"]}]},
+                    }
+
+                }
+
+            ])
+
+        async for item in item_count:
+            items.append(item)
+
+        return items
+
 class AreaDetail(QueryMixin):
     """
     大区详情
@@ -872,6 +958,8 @@ class AreaDetail(QueryMixin):
                 channel_id_map[channel['id']] = channel
 
             for item in items:
+                item['contest_coverage_ratio'] = 0
+                item['contest_average_per_person'] = 0
                 item['area_info'] = channel_id_map.get(item['_id'], {})
 
         return self.reply_ok(items)
@@ -897,5 +985,168 @@ class ChannelDetail(QueryMixin):
         channel_id = request_param.get("channel_id", "")
         if not channel_id:
             return self.reply_ok([])
+        channel = await request.app['mongodb'][self.db][self.instance_coll].find_one({"_id": ObjectId(channel_id), "status": 1})
+        if channel:
+            channel_old_id = [channel.get("old_id", 0)]
+            schools = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": channel_id, "role": Roles.SCHOOL.value, "status": 1})
+            schools = await schools.to_list(10000)
+            school_ids = [item['school_id'] for item in schools]
+            pay_total, pay_curr_week_new_number, pay_last_week_new_number = await self._pay_number(request, channel_old_id,
+                                                                                                   "$channel")
+
+            pay_amount, pay_curr_week_new_amount, pay_last_week_new_amount = await self._pay_amount(request, channel_old_id,
+                                                                                                    "$channel")
+
+            total_school_number, curr_week_new_school_number, last_week_new_school_number = await self._school_number(
+                request, channel_old_id, "$channel")
+
+            teacher_total, teacher_curr_week_new_number, teacher_last_week_new_number = await self._teacher_number(
+                request, channel_old_id, "$channel")
+            student_total, student_curr_week_new_number, student_last_week_new_number = await self._student_number(
+                request, channel_old_id, "$channel")
+
+            image_total, image_curr_week_new_number, image_last_week_new_number = await self._images_number(request,
+                                                                                                            channel_old_id,
+                                                                                                            "$channel")
+
+            guardian_total, guardian_curr_week_new_number, guardian_last_week_new_number = await self._guardian_number(
+                request, channel_old_id, "$channel")
+
+            print ()
+
+            return self.reply_ok({"pay_total": pay_total,
+                                  "pay_curr_week_new_number": pay_curr_week_new_number,
+                                  "pay_last_week_new_number": pay_last_week_new_number,
+                                  "pay_amount": pay_amount,
+                                  "pay_curr_week_new_amount": pay_curr_week_new_amount,
+                                  "pay_last_week_new_amount": pay_last_week_new_amount,
+                                  "total_school_number": total_school_number,
+                                  "curr_week_new_school_number": curr_week_new_school_number,
+                                  "last_week_new_school_number": last_week_new_school_number,
+                                  "total_teacher_number": teacher_total,
+                                  "teacher_curr_week_new_number": teacher_curr_week_new_number,
+                                  "teacher_last_week_new_number": teacher_last_week_new_number,
+                                  "student_total": student_total,
+                                  "student_curr_week_new_number": student_curr_week_new_number,
+                                  "student_last_week_new_number": student_last_week_new_number,
+                                  "image_total": image_total,
+                                  "image_curr_week_new_number": image_curr_week_new_number,
+                                  "image_last_week_new_number": image_last_week_new_number,
+                                  "guardian_total": guardian_total,
+                                  "guardian_curr_week_new_number": guardian_curr_week_new_number,
+                                  "guardian_last_week_new_number": guardian_last_week_new_number
+                                  })
+        # raise ChannelNotExist("Channel not exist")
+        return self.reply_ok([])
+
+    async def market_list(self, request: Request):
+        """
+        市场列表
+        {
+            "area_id": ""
+        }
+        :param request:
+        :return:
+        """
+        request_param = await get_params(request)
+        channel_id = request_param.get("channel_id", "")
+        if not channel_id:
+            return self.reply_ok([])
+        schools = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": channel_id, "role": Roles.SCHOOL.value, "status": 1})
+        schools = await schools.to_list(100000)
+        schools_ids = list(set([item['school_id'] for item in schools]))
+        market_users = request.app['mongodb'][self.db][self.user_coll].find({"channel_id": channel_id, "instance_role_id": Roles.MARKET.value, "status": 1})
+        market_users = await market_users.to_list(10000)
+        market_users_user_ids = [item['user_id'] for item in market_users]
+        users = request.app['mongodb'][self.db][self.user_coll].find({"user_id": {"$in": market_users_user_ids}})
+        users = await users.to_list(10000)
+
+        market_users_map = {}
+        for market in users:
+            market_users_map[market['user_id']] = market
+
+        school_market_map = {}
+        for school in schools:
+            school_market_map[school['school_id']] = market_users_map.get(str(school['user_id']))
+        items = await self._list_channel(request, schools_ids)
+
+        from collections import defaultdict
+        channel_campact_data = defaultdict(dict)
+        for item in items:
+            item['contest_coverage_ratio'] = 0
+            item['contest_average_per_person'] = 0
+            channel_campact_data.setdefault(school_market_map.get(item['_id'], {}).get("user_id", ""), {}).setdefault(
+                'total_school_number', []).append(item['total_school_number'])
+
+            channel_campact_data.setdefault(school_market_map.get(item['_id'], {}).get("user_id", ""), {}).setdefault(
+                'total_teacher_number', []).append(item['total_teacher_number'])
+
+            channel_campact_data.setdefault(school_market_map.get(item['_id'], {}).get("user_id", ""), {}).setdefault(
+                'total_student_number', []).append(item['total_student_number'])
+
+            channel_campact_data.setdefault(school_market_map.get(item['_id'], {}).get("user_id", ""), {}).setdefault(
+                'total_guardian_number', []).append(item['total_guardian_number'])
+
+            channel_campact_data.setdefault(school_market_map.get(item['_id'], {}).get("user_id", ""), {}).setdefault(
+                'total_pay_number', []).append(item['total_pay_number'])
+
+            channel_campact_data.setdefault(school_market_map.get(item['_id'], {}).get("user_id", ""), {}).setdefault(
+                'total_pay_amount', []).append(item['total_pay_amount'])
+
+            channel_campact_data.setdefault(school_market_map.get(item['_id'], {}).get("user_id", ""), {}).setdefault(
+                'total_valid_exercise_number', []).append(item['total_valid_exercise_number'])
+
+            channel_campact_data.setdefault(school_market_map.get(item['_id'], {}).get("user_id", ""), {}).setdefault(
+                'total_valid_word_number', []).append(item['total_valid_word_number'])
+
+            channel_campact_data.setdefault(school_market_map.get(item['_id'], {}).get("user_id", ""), {}).setdefault(
+                'total_exercise_image_number', []).append(item['total_exercise_image_number'])
+
+            channel_campact_data.setdefault(school_market_map.get(item['_id'], {}).get("user_id", ""), {}).setdefault(
+                'total_word_image_number', []).append(item['total_word_image_number'])
+
+            channel_campact_data.setdefault(school_market_map.get(item['_id'], {}).get("user_id", ""), {}).setdefault(
+                'pay_ratio', []).append(item['pay_ratio'])
+
+            channel_campact_data.setdefault(school_market_map.get(item['_id'], {}).get("user_id", ""), {}).setdefault(
+                'bind_ratio', []).append(item['bind_ratio'])
+
+            channel_campact_data.setdefault(school_market_map.get(item['_id'], {}).get("user_id", ""), {}).setdefault(
+                'contest_coverage_ratio', []).append(item['contest_coverage_ratio'])
+
+            channel_campact_data.setdefault(school_market_map.get(item['_id'], {}).get("user_id", ""), {}).setdefault(
+                'contest_average_per_person', []).append(item['contest_average_per_person'])
 
 
+
+
+
+            item["market_info"] = market_users_map.get(str(school_market_map.get(item['_id'], {}).get("user_id", "")), {})
+
+        items = []
+        for user_id, item in channel_campact_data.items():
+            items.append(
+                {
+                    "total_school_number": sum(item['total_school_number']),
+                    "total_teacher_number": sum(item['total_teacher_number']),
+                    "total_student_number": sum(item['total_student_number']),
+                    "total_guardian_number": sum(item['total_guardian_number']),
+                    "total_pay_number": sum(item['total_pay_number']),
+                    "total_pay_amount": sum(item['total_pay_amount']),
+                    "total_valid_exercise_number": sum(item['total_valid_exercise_number']),
+                    "total_valid_word_number": sum(item['total_valid_word_number']),
+                    "total_exercise_image_number": sum(item['total_exercise_image_number']),
+                    "total_word_image_number": sum(item['total_word_image_number']),
+                    "pay_ratio": sum(item['pay_ratio']),
+                    "bind_ratio": sum(item['bind_ratio']),
+                    "contest_coverage_ratio": sum(item['contest_coverage_ratio']),
+                    "contest_average_per_person": sum(item['contest_average_per_person']),
+                    "market_info": market_users_map.get(str(user_id), {})
+                }
+            )
+
+        from utils import CustomEncoder
+        print(json.dumps(items , indent=4, cls=CustomEncoder))
+
+
+        return self.reply_ok(items)

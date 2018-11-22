@@ -3,12 +3,14 @@ from aiohttp.web import UrlDispatcher
 from statistics.overview_api import Overview
 from statistics.area_list_api import AreaList
 from statistics.channel_list_api import ChannelList
-from statistics.detail import AreaDetail
+from statistics.detail import AreaDetail, ChannelDetail
 
 overview = Overview()
 arealist = AreaList()
 channellist = ChannelList()
 areadetail = AreaDetail()
+channeldetail = ChannelDetail()
+
 
 def register(router: UrlDispatcher):
     router.add_get('/api/stat/global/overview', overview.overview)
@@ -18,3 +20,5 @@ def register(router: UrlDispatcher):
 
     router.add_get('/api/stat/detail/area/overview', areadetail.overview)
     router.add_get('/api/stat/detail/area/channelist', areadetail.channel_list)
+    router.add_get('/api/stat/detail/channel/overview', channeldetail.overview)
+    router.add_get('/api/stat/detail/channel/marketlist', channeldetail.market_list)
