@@ -773,7 +773,7 @@ class User(BaseHandler):
             channel_id = request['user_info']['channel_id']
             users = request.app['mongodb'][self.db][self.instance_coll].find({"channel_id": channel_id,
                                                                               "status": 1})\
-                .skil(page*per_page).limit(per_page)
+                .skip(page*per_page).limit(per_page)
             area_info = await request.app['mongodb'][self.db][self.instance_coll]. \
                 find_one({"_id": ObjectId(request['user_info']['area_id']),
                           "status": 1})
