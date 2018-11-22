@@ -678,7 +678,10 @@ class GlobalExportReport(BaseHandler):
                             "e_image_c_last_month": 1,
                             "w_image_c_curr_month": 1,
                             "w_image_c_last_month": 1,
-
+                            "pay_ratio": {"$cond": [{"$eq": ["$total_student_number", 0]}, 0,
+                                                    {"$divide": ["$total_pay_number", "$total_student_number"]}]},
+                            "bind_ratio": {"$cond": [{"$eq": ["$total_student_number", 0]}, 0,
+                                                     {"$divide": ["$total_guardian_number", "$total_student_number"]}]},
                             # "pay_ratio": {"$divide": ["$total_pay_number", "$total_student_number"]},
                             # "bind_ratio": {"$divide": ["$total_guardian_number", "$total_student_number"]},
                             # "school_MoM":
@@ -871,8 +874,9 @@ class GlobalExportReport(BaseHandler):
                         "w_image_c_curr_month": 1,
                         "w_image_c_last_month": 1,
 
-                        "pay_ratio": {"$divide": ["$total_pay_number", "$total_student_number"]},
-                        "bind_ratio": {"$divide": ["$total_guardian_number", "$total_student_number"]},
+                        "pay_ratio": {"$cond": [{"$eq": ["$total_student_number", 0]}, 0, {"$divide": ["$total_pay_number", "$total_student_number"]}]},
+                        "bind_ratio": {"$cond": [{"$eq": ["$total_student_number", 0]}, 0,
+                                                {"$divide": ["$total_guardian_number", "$total_student_number"]}]},
                         # "school_MoM":
                     }
 

@@ -1,4 +1,3 @@
-import statistics.school.api
 from aiohttp.web import UrlDispatcher
 
 from statistics.overview_api import Overview

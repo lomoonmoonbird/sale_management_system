@@ -114,7 +114,7 @@ class ChannelList(BaseHandler):
                         "valid_word_count": {"$cond": [{"$and": [{"$lt": ["$day", yesterday_str]}, {
                             "$gte": ["$day", yesterday_before_30day_str]}]}, "$valid_word_count", 0]},
                         "w_image_c": {"$cond": [{"$and": [{"$lt": ["$day", yesterday_str]}, {
-                            "$gte": ["$day", yesterday_before_30day_str]}]}, "$e_image_c", 0]},
+                            "$gte": ["$day", yesterday_before_30day_str]}]}, "$w_image_c", 0]},
 
                         "day": 1
                     }

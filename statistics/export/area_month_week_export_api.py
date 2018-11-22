@@ -289,7 +289,7 @@ class AreaExportReport(BaseHandler):
             # 新增家长数量
             mom = (item['guardian_number_curr_month'] - item['guardian_number_last_month']) / item[
                 'guardian_number_last_month'] if item['guardian_number_last_month'] else 0
-            avg = item['total_guardian_number'] / item['total_student_number']
+            avg = item['total_guardian_number'] / item['total_student_number'] if item['total_student_number'] >0 else 0
             row[31].value = self.percentage(avg)
             row[32].value = item['guardian_number_last_month']
             row[33].value = item['guardian_number_curr_month']
