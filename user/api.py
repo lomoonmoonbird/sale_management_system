@@ -533,18 +533,16 @@ class User(BaseHandler):
                         "channel_id": str(channels_oid_map.get(channel['id'], {}).get("_id", ""))
                     }
                     channel['user_info'] = users_map.get(str(channels_oid_map.get(channel['id'], {}).get("_id", "")), [])
-                    for c in channels:
-                        if channel['id'] == c['old_id']:
-                            area_id = str(c['parent_id'])
-                            channel['channel_info']['channel_id'] = str(c['_id'])
-                            break
+
+                    area_id = channels_oid_map.get(channel['id'], {}).get("parent_id", "")
+
 
                     for area in area_info:
                         if area_id == str(area['_id']):
                             channel['area_info'] = {"area_id": area_id, "area_name": area['name']}
-
                         else:
                             channel['area_info'] = {"area_id": "", "area_name": ""}
+
 
         except:
             import traceback
