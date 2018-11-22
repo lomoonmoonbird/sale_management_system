@@ -519,7 +519,8 @@ class User(BaseHandler):
                 from collections import defaultdict
                 users_map = defaultdict(list)
                 for user in users:
-                    users_map[user['channel_id']].append({"user_id": user['user_id'], "nickname": user['nickname']})
+                    users_map[user['channel_id']].append({"user_id": user['user_id'], "nickname": user['nickname'],
+                                                          "username": user['username'], 'phone': user['phone']})
 
                 channels_oid_map = {}
                 channels_id_map = {}
