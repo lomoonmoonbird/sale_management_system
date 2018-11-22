@@ -16,4 +16,5 @@ def register(router: UrlDispatcher):
     router.add_get('/api/stat/area/list', arealist.area_list)
     router.add_get('/api/stat/channel/list', channellist.channel_list)
 
-    router.add_get('/api/stat/detail/area', areadetail.overview)
+    router.add_get('/api/stat/detail/area/overview', areadetail.overview)
+    router.add_get('/api/stat/detail/area/channelist', areadetail.channel_list)

@@ -629,9 +629,9 @@ class User(BaseHandler):
                     }
                     await self._create_user(request.app['mongodb'][self.db][self.user_coll], user_data)
                     await request.app['mongodb'][self.db][self.instance_coll].\
-                        update_one({"parent_id": request_data.get('channel_id', ''),
+                        update_one({"parent_id": request['user_info']['channel_id'],
                                     "user_id": user_data['user_id'],
-                                    "status": 1}, {"$set": {"parent_id": request_data.get('channel_id', ''),
+                                    "status": 1}, {"$set": {"parent_id": request['user_info']['channel_id'],
                                                             "user_id": user_data['user_id'],
                                                             "role": Roles.MARKET.value,
                                                             "status": 1,
