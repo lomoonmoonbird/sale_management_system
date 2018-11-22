@@ -492,8 +492,8 @@ class PerDaySubTask_PAYMENTS(BaseTask):
         执行查询 返回数据库结果
         """
         cursor = connection.cursor()
-        # logger.debug(
-        #     query.compile(dialect=mysql.dialect(), compile_kwargs={"literal_binds": True}).string.replace("%%", "%"))
+        logger.debug(
+            query.compile(dialect=mysql.dialect(), compile_kwargs={"literal_binds": True}).string.replace("%%", "%"))
 
         cursor.execute(
             query.compile(dialect=mysql.dialect(), compile_kwargs={"literal_binds": True}).string.replace("%%", "%"))
@@ -501,7 +501,6 @@ class PerDaySubTask_PAYMENTS(BaseTask):
         return ret
 
     def run(self):
-
         date_range = self._date_range("class_grade_channel_pay_per_day_begin_time")  # 时间分段
         self._pay_amount(date_range) #付费数 付费额
 
@@ -697,7 +696,6 @@ class PerDayTask_SCHOOL(BaseTask):
         return ret
 
     def run(self):
-        print('@@@@@@@@@@@@@@@@@@@@@')
         date_range = self._date_range("school_number_per_day_begin_time")  # 时间分段
         self._school(date_range) #学校数
 
@@ -1520,12 +1518,12 @@ class PerDayTask(BaseTask):
         try:
             print ('begin')
             from tasks.celery_init import sales_celery
-            # sales_celery.send_task("tasks.celery_task_user.PerDaySubTask_IMAGES") #考试 单词图片数
-            # sales_celery.send_task("tasks.celery_task_user.PerDaySubTask_GUARDIAN") #家长数也为绑定数
-            # sales_celery.send_task("tasks.celery_task_user.PerDaySubTask_PAYMENTS") #付费数 付费额
-            # sales_celery.send_task("tasks.celery_task_user.PerDaySubTask_USERS") #学生数 老师数
+            sales_celery.send_task("tasks.celery_task_user.PerDaySubTask_IMAGES") #考试 单词图片数
+            sales_celery.send_task("tasks.celery_task_user.PerDaySubTask_GUARDIAN") #家长数也为绑定数
+            sales_celery.send_task("tasks.celery_task_user.PerDaySubTask_PAYMENTS") #付费数 付费额
+            sales_celery.send_task("tasks.celery_task_user.PerDaySubTask_USERS") #学生数 老师数
             sales_celery.send_task("tasks.celery_task_user.PerDayTask_SCHOOL") #学校数
-            # sales_celery.send_task("tasks.celery_task_user.PerDayTask_VALIADCONTEST") #有效考试 有效单词
+            sales_celery.send_task("tasks.celery_task_user.PerDayTask_VALIADCONTEST") #有效考试 有效单词
 
             print ('finished.......')
             # self.server.stop()
