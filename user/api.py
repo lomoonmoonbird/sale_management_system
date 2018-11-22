@@ -202,15 +202,21 @@ class User(BaseHandler):
         print (request_data)
         bulk_update = []
         for old_id in request_data['old_channel_ids']:
-            bulk_update.append(UpdateOne({"parent_id": str(request_data['area_id']),"old_id": old_id},
+            # bulk_update.append(UpdateOne({"parent_id": str(request_data['area_id']),"old_id": old_id},
+            #                              {"$set": {"parent_id": str(request_data['area_id']),
+            #                                        "old_id": int(old_id),
+            #                                        "role": Roles.CHANNEL.value,
+            #                                        "status": 1,
+            #                                        "create_at": time.time(),
+            #                                        "modify_at": time.time()
+            #                                        }
+            #                               },upsert=True))
+            bulk_update.append(UpdateOne({"old_id": int(old_id), "role": Roles.CHANNEL.value, "status": 1},
                                          {"$set": {"parent_id": str(request_data['area_id']),
-                                                   "old_id": int(old_id),
                                                    "role": Roles.CHANNEL.value,
-                                                   "status": 1,
-                                                   "create_at": time.time(),
                                                    "modify_at": time.time()
                                                    }
-                                          },upsert=True))
+                                          }, upsert=True))
         if bulk_update:
             ret = await request.app['mongodb'][self.db][self.instance_coll].bulk_write(bulk_update)
             print (ret.bulk_api_result)
