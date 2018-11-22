@@ -146,8 +146,9 @@ class ChannelList(BaseHandler):
                         "total_valid_word_number": 1,
                         "total_exercise_image_number": 1,
                         "total_word_image_number": 1,
-                        "pay_ratio": {"$divide": ["$total_pay_number", "$total_student_number"]},
-                        "bind_ratio": {"$divide": ["$total_guardian_number", "$total_student_number"]}
+                        "pay_ratio": {"$cond": [{"$eq": ["$total_student_number", 0]}, 0, {"$divide": ["$total_pay_number", "$total_student_number"]}]},
+                        "bind_ratio": {"$cond": [{"$eq": ["$total_student_number", 0]}, 0,
+                                                {"$divide": ["$total_guardian_number", "$total_student_number"]}]},
                     }
 
                 }
