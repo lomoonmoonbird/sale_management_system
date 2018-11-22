@@ -65,11 +65,82 @@ class AreaList(BaseHandler):
 
 
         items = await self._list(request, old_ids)
+        from collections import defaultdict
+        area_compact_data = defaultdict(dict)
 
         for item in items:
             item['contest_coverage_ratio'] = 0
             item['contest_average_per_person'] = 0
+            area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
+                'total_school_number', []).append(item['total_school_number'])
+
+            area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
+                'total_teacher_number', []).append(item['total_teacher_number'])
+
+            area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
+                'total_student_number', []).append(item['total_student_number'])
+
+            area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
+                'total_guardian_number', []).append(item['total_guardian_number'])
+
+            area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
+                'total_pay_number', []).append(item['total_pay_number'])
+
+            area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
+                'total_pay_amount', []).append(item['total_pay_amount'])
+
+            area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
+                'total_valid_exercise_number', []).append(item['total_valid_exercise_number'])
+
+            area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
+                'total_valid_word_number', []).append(item['total_valid_word_number'])
+
+            area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
+                'total_exercise_image_number', []).append(item['total_exercise_image_number'])
+
+            area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
+                'total_word_image_number', []).append(item['total_word_image_number'])
+
+            area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
+                'pay_ratio', []).append(item['pay_ratio'])
+
+            area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
+                'bind_ratio', []).append(item['bind_ratio'])
+
+            area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
+                'contest_coverage_ratio', []).append(item['contest_coverage_ratio'])
+
+            area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
+                'contest_average_per_person', []).append(item['contest_average_per_person'])
+
+
+
+
+
             item["area_info"] = areas_map.get(channels_map.get(item['_id'], 0), {})
+
+        items = []
+        for area_id, item in area_compact_data.items():
+            items.append(
+                {
+                    "total_school_number": sum(item['total_school_number']),
+                    "total_teacher_number": sum(item['total_teacher_number']),
+                    "total_student_number": sum(item['total_student_number']),
+                    "total_guardian_number": sum(item['total_guardian_number']),
+                    "total_pay_number": sum(item['total_pay_number']),
+                    "total_pay_amount": sum(item['total_pay_amount']),
+                    "total_valid_exercise_number": sum(item['total_valid_exercise_number']),
+                    "total_valid_word_number": sum(item['total_valid_word_number']),
+                    "total_exercise_image_number": sum(item['total_exercise_image_number']),
+                    "total_word_image_number": sum(item['total_word_image_number']),
+                    "pay_ratio": sum(item['pay_ratio']),
+                    "bind_ratio": sum(item['bind_ratio']),
+                    "contest_coverage_ratio": sum(item['contest_coverage_ratio']),
+                    "contest_average_per_person": sum(item['contest_average_per_person']),
+                    "area_info": areas_map.get(area_id, {})
+                }
+            )
+        print(area_compact_data)
         return self.reply_ok(items)
 
 
