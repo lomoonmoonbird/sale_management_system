@@ -771,7 +771,7 @@ class User(BaseHandler):
 
         elif request['user_info']['instance_role_id'] == Roles.CHANNEL.value:
             channel_id = request['user_info']['channel_id']
-            users = request.app['mongodb'][self.db][self.instance_coll].find({"channel_id": channel_id,
+            users = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": channel_id,
                                                                               "status": 1})\
                 .skip(page*per_page).limit(per_page)
             area_info = await request.app['mongodb'][self.db][self.instance_coll]. \
