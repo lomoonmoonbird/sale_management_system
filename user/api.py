@@ -507,20 +507,36 @@ class User(BaseHandler):
                 old_ids = [item['id'] for item in res]
 
                 channels = request.app['mongodb'][self.db][self.instance_coll].find({"old_id": {"$in": old_ids}, "role": Roles.CHANNEL.value, "status": 1})
-                channels = await channels.to_list(100000)
+                channels = await channels.to_list(10000)
                 print(channels)
                 parent_ids = list(set([ObjectId(item['parent_id']) for item in channels]))
                 area_info = request.app['mongodb'][self.db][self.instance_coll].find(
                     {"_id": {"$in": parent_ids}, "status": 1})
                 area_info = await area_info.to_list(10000)
 
+                users = request.app['mongodb'][self.db][self.user_coll].find({"instance_role_id": Roles.CHANNEL.value, "status": 1})
+                users = await users.to_list(10000)
+                from collections import defaultdict
+                users_map = defaultdict(list)
+                for user in users:
+                    users_map[user['channel_id']].append({"user_id": user['user_id'], "nickname": user['nickname']})
+
+                channels_oid_map = {}
+                channels_id_map = {}
+                for channel in channels:
+                    channels_oid_map[channel['old_id']] = channel
+                    channels_id_map[str(channel['_id'])] = channel
+
                 for channel in res:
                     area_id = ''
-                    channel['channel_id'] = ''
+                    channel['channel_info'] = {
+                        "channel_id": str(channels_oid_map.get(channel['id'], {}).get("_id", ""))
+                    }
+                    channel['user_info'] = users_map.get(str(channels_oid_map.get(channel['id'], {}).get("_id", "")), [])
                     for c in channels:
                         if channel['id'] == c['old_id']:
                             area_id = str(c['parent_id'])
-                            channel['channel_id'] = str(c['_id'])
+                            channel['channel_info']['channel_id'] = str(c['_id'])
                             break
 
                     for area in area_info:
