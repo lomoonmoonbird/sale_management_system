@@ -42,7 +42,7 @@ class AreaList(BaseHandler):
         :param request:
         :return:
         """
-        #todo 有bug
+        #todo 有bug 不能按渠道循环
         request_param = await get_params(request)
         page = int(request_param.get('page', 0))
         per_page = 100
@@ -51,14 +51,11 @@ class AreaList(BaseHandler):
                                                                           "role": Roles.AREA.value,
                                                                           "status": 1}).skip(page*per_page).limit(per_page)
         areas = await areas.to_list(100000)
-        print('areas', areas)
         areas_ids = [str(item['_id']) for item in areas]
         channels = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": {"$in": areas_ids},
                                                                              "role": Roles.CHANNEL.value, "status": 1})
         channels = await channels.to_list(100000)
-        print('channels', channels)
-        old_ids = [item['old_id'] for item in channels]
-        print("old_ids", old_ids)
+        old_ids = list(set([item['old_id'] for item in channels]))
         areas_map = {}
         for area in areas:
             areas_map[str(area['_id'])] = area
@@ -69,9 +66,10 @@ class AreaList(BaseHandler):
 
 
         items = await self._list(request, old_ids)
-        print(json.dumps(items, indent=4, cls=CustomEncoder))
         from collections import defaultdict
         area_compact_data = defaultdict(dict)
+
+
 
         for item in items:
             item['contest_coverage_ratio'] = 0
@@ -145,7 +143,33 @@ class AreaList(BaseHandler):
                     "area_info": areas_map.get(area_id, {})
                 }
             )
-        print(area_compact_data)
+
+        channel_compact_data = {}
+        for item in items:
+            channel_compact_data[str(item['area_info']['_id'])] = item
+        items = []
+        for area in areas:
+            if channel_compact_data.get(str(area['_id'])):
+                items.append(channel_compact_data.get(str(area['_id'])))
+            else:
+                items.append({
+                    "total_school_number": 0,
+                    "total_teacher_number": 0,
+                    "total_student_number": 0,
+                    "total_guardian_number": 0,
+                    "total_pay_number": 0,
+                    "total_pay_amount": 0,
+                    "total_valid_exercise_number": 0,
+                    "total_valid_word_number": 0,
+                    "total_exercise_image_number": 0,
+                    "total_word_image_number": 0,
+                    "pay_ratio": 0,
+                    "bind_ratio": 0,
+                    "contest_coverage_ratio": 0,
+                    "contest_average_per_person": 0,
+                    "area_info": areas_map.get(str(area['_id']), {})
+                })
+
         return self.reply_ok(items)
 
 
