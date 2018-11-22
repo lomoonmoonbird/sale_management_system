@@ -251,13 +251,6 @@ class PerDayTask_VALIADCONTEST(BaseTask):
                         channel_valid_word_number_defaultdict[school_channel_map.gt(
                             usergroup_single_map.get(e_w_image['student_id'], {}).get("school_id", -1), -1)].append(1)
 
-            class_valid_exervise_number_defaultdict
-            grade_valid_exervise_number_defaultdict
-            channel_valid_exervise_number_defaultdict
-
-            class_valid_word_number_defaultdict
-            grade_valid_word_number_defaultdict
-            channel_valid_word_number_defaultdict
 
             class_valid_exercise_number_bulk = []
             grade_valid_exercise_number_bulk = []

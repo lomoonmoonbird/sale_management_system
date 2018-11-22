@@ -27,6 +27,8 @@ from sshtunnel import SSHTunnelForwarder
 from tasks.celery_base import BaseTask, CustomEncoder
 from pymongo.errors import BulkWriteError
 from celery.signals import worker_process_init,worker_process_shutdown
+from configs import DEBUG, MONGODB_CONN_URL, MYSQL_NAME, MYSQL_USER, MYSQL_PASSWORD, MYSQL_HOST, MYSQL_PORT
+
 
 connection = None
 server = None
@@ -35,27 +37,38 @@ def init_worker(**kwargs):
     global connection
     global server
     print('Initializing database connection for worker.')
-    server = SSHTunnelForwarder(
-        ssh_address_or_host=('139.196.77.128', 5318),  # 跳板机
+    if DEBUG:
+        print("this is debug")
+        server = SSHTunnelForwarder(
+            ssh_address_or_host=('139.196.77.128', 5318),  # 跳板机
 
-        ssh_password="PengKim@89527",
-        ssh_username="jinpeng",
-        remote_bind_address=('rr-uf6247jo85269bp6e.mysql.rds.aliyuncs.com', 3306))
-    server.start()
-    connection = pymysql.connect(host="127.0.0.1",
-                                      port=server.local_bind_port,
-                                      user='sigma',
-                                      password='sigmaLOVE2017',
-                                      db='sigma_centauri_new',
-                                      charset='utf8mb4',
-                                      cursorclass=pymysql.cursors.DictCursor)
+            ssh_password="PengKim@89527",
+            ssh_username="jinpeng",
+            remote_bind_address=('rr-uf6247jo85269bp6e.mysql.rds.aliyuncs.com', 3306))
+        server.start()
+        connection = pymysql.connect(host="127.0.0.1",
+                                          port=server.local_bind_port,
+                                          user="sigma",
+                                          password="sigmaLOVE2017",
+                                          db=MYSQL_NAME,
+                                          charset='utf8mb4',
+                                          cursorclass=pymysql.cursors.DictCursor)
+    else:
+        connection = pymysql.connect(host=MYSQL_HOST,
+                                     port=MYSQL_PORT,
+                                     user=MYSQL_USER,
+                                     password=MYSQL_PASSWORD,
+                                     db=MYSQL_NAME,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
 @worker_process_shutdown.connect
 def shutdown_worker(**kwargs):
     global connection
     if connection:
         print('Closing database connectionn for worker.')
         connection.close()
-        server.stop()
+        if DEBUG:
+            server.stop()
 
 class PerDaySubTask_IMAGES(BaseTask):
     def __init__(self):
@@ -79,7 +92,6 @@ class PerDaySubTask_IMAGES(BaseTask):
 
     def run(self):
         date_range = self._date_range("class_channel_exercise_images_per_day_begin_time")  # 时间分段
-        # date_range = [("2018-03-01","2018-03-02")]
         self._exercise_images(date_range)
 
     def _exercise_images(self, date_range):
@@ -88,7 +100,6 @@ class PerDaySubTask_IMAGES(BaseTask):
         :param date_range:
         :return:
         """
-        print (date_range)
         for one_date in date_range:
 
             q_exercise_images = select([

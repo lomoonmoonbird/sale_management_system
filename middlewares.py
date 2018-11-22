@@ -32,10 +32,10 @@ async def error_handle_middleware(request, handler):
 
             if hasattr(e, 'http_code'):
                 http_code = e.http_code.value
-            resp = json_response({'code': code.value, 'msg': error_info, 'data': {}}, status=http_code)
+            resp = json_response({'code': code.value, 'message': error_info, 'data': {}}, status=http_code)
         else:
             logger.warning(error_info)
             resp = json_response(
-                {'code': ErrorCode.INTERNALERROR.value, 'msg': 'An unexpected exception ' + error_info, 'data': {}}, status=200)
+                {'code': ErrorCode.INTERNALERROR.value, 'message': 'An unexpected exception ' + error_info, 'data': {}}, status=200)
 
     return resp

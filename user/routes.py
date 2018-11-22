@@ -1,5 +1,4 @@
-import demo.demo_api
-import demo.model
+
 from aiohttp.web import UrlDispatcher
 
 from user.api import User

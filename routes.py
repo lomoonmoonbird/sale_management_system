@@ -3,7 +3,6 @@ aapi.routes
 ~~~~~~~~~~~
 Include all routes here.
 """
-import demo.routes
 import statistics.routes
 import user.routes
 import school.routes
@@ -21,8 +20,7 @@ def setup_routes(app: Application):
     3. add a logger
     """
     logger.debug('Setup routes.')
-    demo.routes.register(app.router)  # Add routes. Step-2
-    logger.debug('Success register demo.routes')  # Add logger. Step-3
+
     # statistics.school.routes.register(app.router)
     # logger.debug('Success register stastictis.school.routes')
     user.routes.register(app.router)
