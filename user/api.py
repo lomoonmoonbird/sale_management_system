@@ -543,7 +543,8 @@ class User(BaseHandler):
                         if area_id == str(area['_id']):
                             channel['area_info'] = {"area_id": area_id, "area_name": area['name']}
 
-
+                        else:
+                            channel['area_info'] = {"area_id": "", "area_name": ""}
 
         except:
             import traceback
