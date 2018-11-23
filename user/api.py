@@ -314,7 +314,7 @@ class User(BaseHandler):
         request_data = await get_json(request)
 
         channels_counts = await request.app['mongodb'][self.db][self.instance_coll].count_documents({"parent_id": request_data['area_id'],
-                                                                                        "role": Roles.CHANNEL.value})
+                                                                                        "role": Roles.CHANNEL.value, "status": 1})
         if channels_counts > 0:
             raise DELETEERROR("Area has channels")
         await request.app['mongodb'][self.db][self.instance_coll].update_many({"_id": ObjectId(request_data['area_id'])},

@@ -87,6 +87,7 @@ class GlobalExportReport(BaseHandler):
         old_ids = [item['old_id'] for item in channels]
 
         items = await self._list_month(request, old_ids)
+        print(json.dumps(items, indent=4, cls=CustomEncoder))
         template_path = os.path.dirname(__file__) + "/templates/global_month_template.xlsx"
         sheet = await request.app.loop.run_in_executor(self.thread_pool,
                                                        self.sheet,
