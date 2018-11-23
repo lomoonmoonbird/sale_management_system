@@ -67,8 +67,6 @@ class AreaList(BaseHandler):
         from collections import defaultdict
         area_compact_data = defaultdict(dict)
 
-
-
         for item in items:
             item['contest_coverage_ratio'] = 0
             item['contest_average_per_person'] = 0
@@ -113,9 +111,6 @@ class AreaList(BaseHandler):
 
             area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
                 'contest_average_per_person', []).append(item['contest_average_per_person'])
-
-
-
 
 
             item["area_info"] = areas_map.get(channels_map.get(item['_id'], 0), {})

@@ -257,7 +257,7 @@ class User(BaseHandler):
         page = int(request_param['page'])
         per_page = 100
         areas = request.app['mongodb'][self.db][self.instance_coll].find({"role": Roles.AREA.value, "status": 1}).skip(page*per_page).limit(per_page)
-        users = request.app['mongodb'][self.db][self.user_coll].find({"instance_role_id": Roles.AREA.value})
+        users = request.app['mongodb'][self.db][self.user_coll].find({"instance_role_id": Roles.AREA.value, "status": 1})
         areas = await areas.to_list(10000)
         users = await users.to_list(10000)
         data = []
@@ -337,8 +337,8 @@ class User(BaseHandler):
         :return:
         """
         request_data = await get_json(request)
-
-        await request.app['mongodb'][self.db][self.instance_coll].update_one({"user_id": request_data['user_id'],
+        user_id = str(request_data['user_id'])
+        await request.app['mongodb'][self.db][self.user_coll].update_one({"user_id": user_id,
                                                                         "status": 1}, {"$set": {"status": 0}})
 
         return self.reply_ok({})
@@ -513,10 +513,8 @@ class User(BaseHandler):
                         res = await cur.fetchall()
 
                 old_ids = [item['id'] for item in res]
-
                 channels = request.app['mongodb'][self.db][self.instance_coll].find({"old_id": {"$in": old_ids}, "role": Roles.CHANNEL.value, "status": 1})
                 channels = await channels.to_list(10000)
-                print(channels)
                 parent_ids = list(set([ObjectId(item['parent_id']) for item in channels]))
                 area_info = request.app['mongodb'][self.db][self.instance_coll].find(
                     {"_id": {"$in": parent_ids}, "status": 1})
@@ -529,13 +527,11 @@ class User(BaseHandler):
                 for user in users:
                     users_map[user['channel_id']].append({"user_id": user['user_id'], "nickname": user['nickname'],
                                                           "username": user['username'], 'phone': user['phone']})
-
                 channels_oid_map = {}
                 channels_id_map = {}
                 for channel in channels:
                     channels_oid_map[channel['old_id']] = channel
                     channels_id_map[str(channel['_id'])] = channel
-
                 for channel in res:
                     area_id = ''
                     channel['channel_info'] = {

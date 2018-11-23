@@ -268,7 +268,7 @@ class GlobalExportReport(BaseHandler):
         spare = 1
         summary_map = defaultdict(list)
         row1 = sheet[1]
-
+        print (len(area_dimesion_items))
         #todo
         if report_type == 'week':
             last_week = self.last_week()
