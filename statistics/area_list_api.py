@@ -89,6 +89,8 @@ class AreaList(BaseHandler):
                 'total_pay_amount', []).append(item['total_pay_amount'])
 
             area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
+                'total_valid_reading_number', []).append(item['total_valid_reading_number'])
+            area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
                 'total_valid_exercise_number', []).append(item['total_valid_exercise_number'])
 
             area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
@@ -129,6 +131,7 @@ class AreaList(BaseHandler):
                     "total_valid_word_number": sum(item['total_valid_word_number']),
                     "total_exercise_image_number": sum(item['total_exercise_image_number']),
                     "total_word_image_number": sum(item['total_word_image_number']),
+                    "total_valid_reading_number": sum(item['total_valid_reading_number']),
                     "pay_ratio": sum(item['pay_ratio']),
                     "bind_ratio": sum(item['bind_ratio']),
                     "contest_coverage_ratio": sum(item['contest_coverage_ratio']),
@@ -136,10 +139,9 @@ class AreaList(BaseHandler):
                     "area_info": areas_map.get(area_id, {})
                 }
             )
-
         channel_compact_data = {}
         for item in items:
-            channel_compact_data[str(item['area_info']['_id'])] = item
+            channel_compact_data[str(item['area_info'].get('_id', ""))] = item
         items = []
         for area in areas:
             if channel_compact_data.get(str(area['_id'])):
@@ -156,6 +158,7 @@ class AreaList(BaseHandler):
                     "total_valid_word_number": 0,
                     "total_exercise_image_number": 0,
                     "total_word_image_number": 0,
+                    "total_valid_reading_number": 0,
                     "pay_ratio": 0,
                     "bind_ratio": 0,
                     "contest_coverage_ratio": 0,
@@ -197,6 +200,8 @@ class AreaList(BaseHandler):
                         "guardian_count": 1,
                         "pay_number": 1,
                         "pay_amount": 1,
+                        "valid_reading_count": {"$cond": [{"$and": [{"$lt": ["$day", yesterday_str]}, {
+                            "$gte": ["$day", yesterday_before_30day_str]}]}, "$valid_reading_count", 0]},
                         "valid_exercise_count": {"$cond": [{"$and": [{"$lt": ["$day", yesterday_str]}, {
                             "$gte": ["$day", yesterday_before_30day_str]}]}, "$valid_exercise_count", 0]},
                         "e_image_c": {"$cond": [{"$and": [{"$lt": ["$day", yesterday_str]}, {
@@ -217,6 +222,7 @@ class AreaList(BaseHandler):
                             "total_guardian_number": {"$sum": "$guardian_count"},
                             "total_pay_number": {"$sum": "$pay_number"},
                             "total_pay_amount": {"$sum": "$pay_amount"},
+                            "total_valid_reading_number": {"$sum": "$valid_reading_count"},
                             "total_valid_exercise_number": {"$sum": "$valid_exercise_count"},
                             "total_valid_word_number": {"$sum": "$valid_word_count"},
                             "total_exercise_image_number": {"$sum": "$e_image_c"},
@@ -232,6 +238,7 @@ class AreaList(BaseHandler):
                         "total_guardian_number": 1,
                         "total_pay_number": 1,
                         "total_pay_amount": 1,
+                        "total_valid_reading_number": 1,
                         "total_valid_exercise_number": 1,
                         "total_valid_word_number": 1,
                         "total_exercise_image_number": 1,

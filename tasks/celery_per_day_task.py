@@ -1327,8 +1327,8 @@ class PerDayTask_VALIDREADING(BaseTask):
     """
     def __init__(self):
         super(PerDayTask_VALIDREADING, self).__init__()
-
         self.mongo = pymongo.MongoClient(MONGODB_CONN_URL).sales
+        self.reading_delta_record_coll = "record_reading_delta"
 
     def _query(self, query):
         """
@@ -1348,7 +1348,7 @@ class PerDayTask_VALIDREADING(BaseTask):
     def run(self):
         try:
             date_range = self._date_range("valid_reading_begin_time") #时间分段
-            date_range =[("2018-09-15", "2018-09-16")]
+            # date_range =[("2018-09-15", "2018-09-16")]
             self._reading_number(date_range) #有效阅读
 
         except Exception as e:
@@ -1374,7 +1374,7 @@ class PerDayTask_VALIDREADING(BaseTask):
                        )
 
             readings = self._query(q_reading_in_date)
-
+            reading_uids = [item['reading_uid'] for item in readings]
             print(readings)
             user_ids = list(set([item['student_id'] for item in readings]))
 
@@ -1428,9 +1428,19 @@ class PerDayTask_VALIDREADING(BaseTask):
             # print(json.dumps(usergroup_single_map, indent=4, cls=CustomEncoder))
             # print(json.dumps(school_channel_map, indent=4, cls=CustomEncoder))
 
+            history_reading_delta = self.mongo[self.reading_delta_record_coll].find({"reading_uid": {"$in": reading_uids}})
+            history_reading_delta_uid_map = defaultdict(dict)
+            for history in history_reading_delta:
+                history_reading_delta_uid_map[history['reading_uid']]['n'] = history.get("n", 0)
+                history_reading_delta_uid_map[history['reading_uid']]['last_day'] = history.get("last_day", 0)
+                history_reading_delta_uid_map[history['reading_uid']]['students'] = history.get("students", [])
+                history_reading_delta_uid_map[history['reading_uid']]['status'] = history.get("status", 0)
+
+
             class_reading_defaultdict = defaultdict(list)
             grade_reading_defaultdict = defaultdict(list)
             channel_reading_defaultdict = defaultdict(list)
+            reading_student_count_per_day_defaultdict = defaultdict(lambda: defaultdict(dict))
             for reading in readings:
                 multi_user_group = usergroup_map.get(reading['student_id'], [])
                 print(multi_user_group)
@@ -1440,32 +1450,144 @@ class PerDayTask_VALIDREADING(BaseTask):
                 grade_reading_defaultdict[single_user_group.get("grade", -1)].append(1)
                 channel_reading_defaultdict[school_channel_map.get(single_user_group.get("school_id", -1), -1)].append(1)
 
-            print(json.dumps(class_reading_defaultdict, indent=4, cls=CustomEncoder))
+                if reading_student_count_per_day_defaultdict[reading['reading_uid']]['students']:
+                    reading_student_count_per_day_defaultdict[reading['reading_uid']]['students'].append(reading['student_id'])
+                else:
+                    reading_student_count_per_day_defaultdict[reading['reading_uid']]['students'] = [reading['student_id']]
+
+            # print(json.dumps(class_reading_defaultdict, indent=4, cls=CustomEncoder))
             # print(json.dumps(grade_reading_defaultdict, indent=4, cls=CustomEncoder))
             # print(json.dumps(channel_reading_defaultdict, indent=4, cls=CustomEncoder))
+            # print(json.dumps(reading_student_count_per_day_defaultdict, indent=4, cls=CustomEncoder))
+
+            print(json.dumps(usergroup_map, indent=4, cls=CustomEncoder))
+            print(json.dumps(usergroup_single_map, indent=4, cls=CustomEncoder))
+            print(json.dumps(usergroup_map_class_key, indent=4, cls=CustomEncoder))
+            print(json.dumps(usergroup_map_grade_key, indent=4, cls=CustomEncoder))
 
 
+            upadte_reading_delta_bulk = []
             class_reading_bulk_update = []
-            for k, v in class_reading_defaultdict.items():
-                # k 是班级  v是数量
-                if sum(v) >= 10:  # 有效阅读
-                    exercise_schema = {
-                        # "school_id": usergroup_map_class_key.get(k, {}).get("school_id", -1),
-                        # "channel": school_channel_map.get(usergroup_map_grade_key.get(k, {}).get("school_id", -1)),
-                        # "grade": usergroup_map_class_key.get(k, {}).get("grade", -1),
-                        # "valid_exercise_count": sum(v)
-                    }
-                    class_reading_bulk_update.append(
-                        UpdateOne({"channel": k, "day": one_date[0]},
-                                  { "$inc": {"valid_word_count": 1}}, upsert=True))
+            grade_reading_bulk_update = []
+            channel_reading_bulk_update = []
+            for reading in readings:
+                if history_reading_delta_uid_map.get(reading['reading_uid'], {}).get("n", 0) >= 10:  # 已经是有效的话
+                    reading_uid = reading['reading_uid']
+                    n = history_reading_delta_uid_map.get(reading_uid, {}).get("n")
+                    students = list(history_reading_delta_uid_map.get(reading_uid, {}).get("students", []))
+                    now_students = list(set(
+                        students + reading_student_count_per_day_defaultdict.get(reading['reading_uid'], {}).get(
+                            "students", [])))
+                    now_n = len(now_students)
+                    upadte_reading_delta_bulk.append(
+                        UpdateOne({"reading_uid": reading_uid},
+                                  {"$set": {"n": now_n, "students": now_students, "last_day": one_date[0],
+                                            'status': 1}}, upsert=True))
+                elif history_reading_delta_uid_map.get(reading['reading_uid'], {}).get("n", 0) < 10:  # 还不是有效
+                    reading_uid = reading['reading_uid']
+                    n = history_reading_delta_uid_map.get(reading_uid, {}).get("n")
+                    students = list(history_reading_delta_uid_map.get(reading_uid, {}).get("students", []))
+                    now_students = list(set(students + reading_student_count_per_day_defaultdict.get(reading['reading_uid'], {}).get("students", [])))
+                    now_n = len(now_students)
+                    if now_n < 10:#今天还没到有效
+                        print('12312222321321321321321321321321321321312')
+                        upadte_reading_delta_bulk.append(
+                                    UpdateOne({"reading_uid": reading_uid},
+                                              { "$set": {"n": now_n, "students": now_students, "last_day": one_date[0], "status": 0}}, upsert=True))
+                    elif now_n >= 10: #成为有效
+                        print('*(&)()*(!*@#()*(@!*#()@!*#)(@!*#(!@*#(@!*@!@!')
+                        upadte_reading_delta_bulk.append(
+                            UpdateOne({"reading_uid": reading_uid},
+                                      {"$set": {"n": now_n, "students": now_students, "last_day": one_date[0], 'status': 1}}, upsert=True))
 
+                        if history_reading_delta_uid_map.get(reading['reading_uid'], {}).get("status") ==0 : #可以更新
+                            last_day = history_reading_delta_uid_map.get(reading['reading_uid'], {}).get("last_day", one_date[0])
+                            class_schema = {
+                                "school_id": usergroup_single_map.get(reading['student_id'], {}).get("school_id", -1),
+                                "channel": school_channel_map.get(usergroup_single_map.get(reading['student_id'], {}).get("school_id", -1), -1),
+                                "grade": usergroup_single_map.get(reading['student_id'], {}).get("grade", -1),
+                            }
+                            class_reading_bulk_update.append(
+                                        UpdateOne({"group_id": usergroup_single_map.get(reading['student_id'], {}).get("group_id", -1),
+                                                   "day": last_day},
+                                                  { "$inc": {"valid_reading_count": 1}, "$set": class_schema}, upsert=True))
+                            grade_schema = {
+                                "school_id": usergroup_single_map.get(reading['student_id'], {}).get("school_id", -1),
+                                "channel": school_channel_map.get(
+                                    usergroup_single_map.get(reading['student_id'], {}).get("school_id", -1), -1),
+                            }
+
+                            grade_reading_bulk_update.append(
+                                UpdateOne(
+                                    {"grade": usergroup_single_map.get(reading['student_id'], {}).get("grade", -1),
+                                     "day": last_day},
+                                    {"$inc": {"valid_reading_count": 1}, "$set": grade_schema}, upsert=True))
+
+
+
+                            channel_reading_bulk_update.append(
+                                UpdateOne(
+                                    {"channel": school_channel_map.get(
+                                    usergroup_single_map.get(reading['student_id'], {}).get("school_id", -1), -1),
+                                     "day": last_day},
+                                    {"$inc": {"valid_reading_count": 1}}, upsert=True))
+
+
+                        else:#不可以更新
+                            pass
+            print(len(upadte_reading_delta_bulk), '--------------------')
+            print(upadte_reading_delta_bulk, '================================')
+            if upadte_reading_delta_bulk:
+                try:
+                    bulk_update_ret = self.mongo[self.reading_delta_record_coll].bulk_write(upadte_reading_delta_bulk)
+                    print(bulk_update_ret.bulk_api_result)
+                except BulkWriteError as bwe:
+                    print(bwe.details)
             if class_reading_bulk_update:
                 try:
                     bulk_update_ret = self.mongo.class_per_day.bulk_write(class_reading_bulk_update)
                     # print(bulk_update_ret.bulk_api_result)
                 except BulkWriteError as bwe:
                     print(bwe.details)
-            self._set_time_threadshold("valid_exercise_word_begin_time", datetime.datetime.strptime(one_date[1], "%Y-%m-%d"))
+
+            if grade_reading_bulk_update:
+                try:
+                    bulk_update_ret = self.mongo.grade_per_day.bulk_write(grade_reading_bulk_update)
+                    # print(bulk_update_ret.bulk_api_result)
+                except BulkWriteError as bwe:
+                    print(bwe.details)
+
+            if channel_reading_bulk_update:
+                try:
+                    bulk_update_ret = self.mongo.channel_per_day.bulk_write(channel_reading_bulk_update)
+                    # print(bulk_update_ret.bulk_api_result)
+                except BulkWriteError as bwe:
+                    print(bwe.details)
+
+            self._set_time_threadshold("valid_reading_begin_time", datetime.datetime.strptime(one_date[1], "%Y-%m-%d"))
+
+
+            # class_reading_bulk_update = []
+            # for k, v in class_reading_defaultdict.items():
+            #     # k 是班级  v是数量
+            #     if sum(v) >= 10:  # 有效阅读
+            #         exercise_schema = {
+            #             # "school_id": usergroup_map_class_key.get(k, {}).get("school_id", -1),
+            #             # "channel": school_channel_map.get(usergroup_map_grade_key.get(k, {}).get("school_id", -1)),
+            #             # "grade": usergroup_map_class_key.get(k, {}).get("grade", -1),
+            #             # "valid_exercise_count": sum(v)
+            #         }
+            #         class_reading_bulk_update.append(
+            #             UpdateOne({"channel": k, "day": one_date[0]},
+            #                       { "$inc": {"valid_word_count": 1}}, upsert=True))
+            #
+            # if class_reading_bulk_update:
+            #     try:
+            #         bulk_update_ret = self.mongo.class_per_day.bulk_write(class_reading_bulk_update)
+            #         # print(bulk_update_ret.bulk_api_result)
+            #     except BulkWriteError as bwe:
+            #         print(bwe.details)
+            # self._set_time_threadshold("valid_exercise_word_begin_time", datetime.datetime.strptime(one_date[1], "%Y-%m-%d"))
 
 
         return

@@ -713,6 +713,8 @@ class QueryMixin(BaseHandler):
                         "guardian_count": 1,
                         "pay_number": 1,
                         "pay_amount": 1,
+                        "valid_reading_count": {"$cond": [{"$and": [{"$lt": ["$day", yesterday_str]}, {
+                            "$gte": ["$day", yesterday_before_30day_str]}]}, "$valid_reading_count", 0]},
                         "valid_exercise_count": {"$cond": [{"$and": [{"$lt": ["$day", yesterday_str]}, {
                             "$gte": ["$day", yesterday_before_30day_str]}]}, "$valid_exercise_count", 0]},
                         "e_image_c": {"$cond": [{"$and": [{"$lt": ["$day", yesterday_str]}, {
@@ -733,6 +735,7 @@ class QueryMixin(BaseHandler):
                             "total_guardian_number": {"$sum": "$guardian_count"},
                             "total_pay_number": {"$sum": "$pay_number"},
                             "total_pay_amount": {"$sum": "$pay_amount"},
+                            "total_valid_reading_number": {"$sum": "$valid_reading_count"},
                             "total_valid_exercise_number": {"$sum": "$valid_exercise_count"},
                             "total_valid_word_number": {"$sum": "$valid_word_count"},
                             "total_exercise_image_number": {"$sum": "$e_image_c"},
@@ -748,6 +751,7 @@ class QueryMixin(BaseHandler):
                         "total_guardian_number": 1,
                         "total_pay_number": 1,
                         "total_pay_amount": 1,
+                        "total_valid_reading_number": 1,
                         "total_valid_exercise_number": 1,
                         "total_valid_word_number": 1,
                         "total_exercise_image_number": 1,
@@ -798,6 +802,8 @@ class QueryMixin(BaseHandler):
                         "guardian_count": 1,
                         "pay_number": 1,
                         "pay_amount": 1,
+                        "valid_reading_count": {"$cond": [{"$and": [{"$lt": ["$day", yesterday_str]}, {
+                            "$gte": ["$day", yesterday_before_30day_str]}]}, "$valid_reading_count", 0]},
                         "valid_exercise_count": {"$cond": [{"$and": [{"$lt": ["$day", yesterday_str]}, {
                             "$gte": ["$day", yesterday_before_30day_str]}]}, "$valid_exercise_count", 0]},
                         "e_image_c": {"$cond": [{"$and": [{"$lt": ["$day", yesterday_str]}, {
@@ -818,6 +824,7 @@ class QueryMixin(BaseHandler):
                             "total_guardian_number": {"$sum": "$guardian_count"},
                             "total_pay_number": {"$sum": "$pay_number"},
                             "total_pay_amount": {"$sum": "$pay_amount"},
+                            "total_valid_reading_number": {"$sum": "$valid_reading_count"},
                             "total_valid_exercise_number": {"$sum": "$valid_exercise_count"},
                             "total_valid_word_number": {"$sum": "$valid_word_count"},
                             "total_exercise_image_number": {"$sum": "$e_image_c"},
@@ -833,6 +840,7 @@ class QueryMixin(BaseHandler):
                         "total_guardian_number": 1,
                         "total_pay_number": 1,
                         "total_pay_amount": 1,
+                        "total_valid_reading_number": 1,
                         "total_valid_exercise_number": 1,
                         "total_valid_word_number": 1,
                         "total_exercise_image_number": 1,
@@ -1100,6 +1108,9 @@ class ChannelDetail(QueryMixin):
                 'total_pay_amount', []).append(item['total_pay_amount'])
 
             channel_campact_data.setdefault(school_market_map.get(item['_id'], {}).get("user_id", ""), {}).setdefault(
+                'total_valid_reading_number', []).append(item['total_valid_reading_number'])
+
+            channel_campact_data.setdefault(school_market_map.get(item['_id'], {}).get("user_id", ""), {}).setdefault(
                 'total_valid_exercise_number', []).append(item['total_valid_exercise_number'])
 
             channel_campact_data.setdefault(school_market_map.get(item['_id'], {}).get("user_id", ""), {}).setdefault(
@@ -1139,6 +1150,7 @@ class ChannelDetail(QueryMixin):
                     "total_guardian_number": sum(item['total_guardian_number']),
                     "total_pay_number": sum(item['total_pay_number']),
                     "total_pay_amount": sum(item['total_pay_amount']),
+                    "total_valid_reading_number": sum(item['total_valid_reading_number']),
                     "total_valid_exercise_number": sum(item['total_valid_exercise_number']),
                     "total_valid_word_number": sum(item['total_valid_word_number']),
                     "total_exercise_image_number": sum(item['total_exercise_image_number']),

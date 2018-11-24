@@ -105,6 +105,8 @@ class ChannelList(BaseHandler):
                         "guardian_count": 1,
                         "pay_number": 1,
                         "pay_amount": 1,
+                        "valid_reading_count": {"$cond": [{"$and": [{"$lt": ["$day", yesterday_str]}, {
+                            "$gte": ["$day", yesterday_before_30day_str]}]}, "$valid_reading_count", 0]},
                         "valid_exercise_count": {"$cond": [{"$and": [{"$lt": ["$day", yesterday_str]}, {
                             "$gte": ["$day", yesterday_before_30day_str]}]}, "$valid_exercise_count", 0]},
                         "e_image_c": {"$cond": [{"$and": [{"$lt": ["$day", yesterday_str]}, {
@@ -125,6 +127,7 @@ class ChannelList(BaseHandler):
                             "total_guardian_number": {"$sum": "$guardian_count"},
                             "total_pay_number": {"$sum": "$pay_number"},
                             "total_pay_amount": {"$sum": "$pay_amount"},
+                            "total_valid_reading_number": {"$sum": "$valid_reading_count"},
                             "total_valid_exercise_number": {"$sum": "$valid_exercise_count"},
                             "total_valid_word_number": {"$sum": "$valid_word_count"},
                             "total_exercise_image_number": {"$sum": "$e_image_c"},
@@ -140,6 +143,7 @@ class ChannelList(BaseHandler):
                         "total_guardian_number": 1,
                         "total_pay_number": 1,
                         "total_pay_amount": 1,
+                        "total_valid_reading_number": 1,
                         "total_valid_exercise_number": 1,
                         "total_valid_word_number": 1,
                         "total_exercise_image_number": 1,

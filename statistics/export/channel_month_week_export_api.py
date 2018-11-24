@@ -161,6 +161,7 @@ class ChannelExportReport(BaseHandler, ExportBase):
                         "guardian_count": 1,
                         "pay_number": 1,
                         "pay_amount": 1,
+                        "valid_reading_count": 1,
                         "valid_exercise_count":1,
                         "valid_word_count": 1,
                         "e_image_c": 1,
@@ -193,6 +194,13 @@ class ChannelExportReport(BaseHandler, ExportBase):
                         "pay_amount_last_month": {"$cond": [{"$and": [{"$lte": ["$day", last_last_month_last_day]}, {
                             "$gte": ["$day", last_last_month_first_day]}]}, "$pay_amount", 0]},
 
+                        "valid_reading_count_curr_month": {
+                            "$cond": [{"$and": [{"$lte": ["$day", last_month_last_day]}, {
+                                "$gte": ["$day", last_month_first_day]}]}, "$valid_reading_count", 0]},
+                        "valid_reading_count_last_month": {
+                            "$cond": [{"$and": [{"$lte": ["$day", last_last_month_last_day]}, {
+                                "$gte": ["$day", last_last_month_first_day]}]}, "$valid_reading_count", 0]},
+
                         "valid_exercise_count_curr_month": {"$cond": [{"$and": [{"$lte": ["$day", last_month_last_day]}, {
                             "$gte": ["$day", last_month_first_day]}]}, "$valid_exercise_count", 0]},
                         "valid_exercise_count_last_month": {"$cond": [{"$and": [{"$lte": ["$day", last_last_month_last_day]}, {
@@ -224,6 +232,7 @@ class ChannelExportReport(BaseHandler, ExportBase):
                 },
 
                 {"$group": {"_id": "$school_id",
+                            "valid_reading_count": {"$sum": "$valid_reading_count"},
                             "valid_exercise_count": {"$sum": "$valid_exercise_count"},
                             "valid_word_count": {"$sum": "$valid_word_count"},
                             "e_image_c": {"$sum": "$e_image_c"},
@@ -244,6 +253,8 @@ class ChannelExportReport(BaseHandler, ExportBase):
                             "pay_number_last_month": {"$sum": "$pay_number_last_month"},
                             "pay_amount_curr_month": {"$sum": "$pay_amount_curr_month"},
                             "pay_amount_last_month": {"$sum": "$pay_amount_last_month"},
+                            "valid_reading_count_curr_month": {"$sum": "$valid_reading_count_curr_month"},
+                            "valid_reading_count_last_month": {"$sum": "$valid_reading_count_last_month"},
                             "valid_exercise_count_curr_month": {"$sum": "$valid_exercise_count_curr_month"},
                             "valid_exercise_count_last_month": {"$sum": "$valid_exercise_count_last_month"},
                             "valid_word_count_curr_month": {"$sum": "$valid_word_count_curr_month"},
@@ -262,6 +273,7 @@ class ChannelExportReport(BaseHandler, ExportBase):
                         "total_guardian_number": 1,
                         "total_pay_number": 1,
                         "total_pay_amount": 1,
+                        "valid_reading_count": 1,
                         "valid_exercise_count": 1,
                         "valid_word_count": 1,
                         "e_image_c": 1,
@@ -276,6 +288,8 @@ class ChannelExportReport(BaseHandler, ExportBase):
                         "pay_number_last_month": 1,
                         "pay_amount_curr_month": 1,
                         "pay_amount_last_month": 1,
+                        "valid_reading_count_curr_month": 1,
+                        "valid_reading_count_last_month": 1,
                         "valid_exercise_count_curr_month": 1,
                         "valid_exercise_count_last_month": 1,
                         "valid_word_count_curr_month": 1,
@@ -331,6 +345,7 @@ class ChannelExportReport(BaseHandler, ExportBase):
                         "guardian_count": 1,
                         "pay_number": 1,
                         "pay_amount": 1,
+                        "valid_reading_count": 1,
                         "valid_exercise_count":1,
                         "valid_word_count": 1,
                         "e_image_c": 1,
@@ -361,6 +376,13 @@ class ChannelExportReport(BaseHandler, ExportBase):
                             "$gte": ["$day", last_week_first_day]}]}, "$pay_amount", 0]},
                         "pay_amount_last_month": {"$cond": [{"$and": [{"$lte": ["$day", last_last_week_last_day]}, {
                             "$gte": ["$day", last_last_week_first_day]}]}, "$pay_amount", 0]},
+
+                        "valid_reading_count_curr_month": {
+                            "$cond": [{"$and": [{"$lte": ["$day", last_week_last_day]}, {
+                                "$gte": ["$day", last_week_first_day]}]}, "$valid_reading_count", 0]},
+                        "valid_reading_count_last_month": {
+                            "$cond": [{"$and": [{"$lte": ["$day", last_last_week_last_day]}, {
+                                "$gte": ["$day", last_last_week_first_day]}]}, "$valid_reading_count", 0]},
 
                         "valid_exercise_count_curr_month": {"$cond": [{"$and": [{"$lte": ["$day", last_week_last_day]}, {
                             "$gte": ["$day", last_week_first_day]}]}, "$valid_exercise_count", 0]},
@@ -393,6 +415,7 @@ class ChannelExportReport(BaseHandler, ExportBase):
                 },
 
                 {"$group": {"_id": "$school_id",
+                            "valid_reading_count": {"$sum": "$valid_reading_count"},
                             "valid_exercise_count": {"$sum": "$valid_exercise_count"},
                             "valid_word_count": {"$sum": "$valid_word_count"},
                             "e_image_c": {"$sum": "$e_image_c"},
@@ -412,6 +435,8 @@ class ChannelExportReport(BaseHandler, ExportBase):
                             "pay_number_last_month": {"$sum": "$pay_number_last_month"},
                             "pay_amount_curr_month": {"$sum": "$pay_amount_curr_month"},
                             "pay_amount_last_month": {"$sum": "$pay_amount_last_month"},
+                            "valid_reading_count_curr_month": {"$sum": "$valid_reading_count_curr_month"},
+                            "valid_reading_count_last_month": {"$sum": "$valid_reading_count_last_month"},
                             "valid_exercise_count_curr_month": {"$sum": "$valid_exercise_count_curr_month"},
                             "valid_exercise_count_last_month": {"$sum": "$valid_exercise_count_last_month"},
                             "valid_word_count_curr_month": {"$sum": "$valid_word_count_curr_month"},
@@ -430,6 +455,7 @@ class ChannelExportReport(BaseHandler, ExportBase):
                         "total_guardian_number": 1,
                         "total_pay_number": 1,
                         "total_pay_amount": 1,
+                        "valid_reading_count": 1,
                         "valid_exercise_count": 1,
                         "valid_word_count": 1,
                         "e_image_c": 1,
@@ -444,6 +470,8 @@ class ChannelExportReport(BaseHandler, ExportBase):
                         "pay_number_last_month": 1,
                         "pay_amount_curr_month": 1,
                         "pay_amount_last_month": 1,
+                        "valid_reading_count_curr_month": 1,
+                        "valid_reading_count_last_month": 1,
                         "valid_exercise_count_curr_month": 1,
                         "valid_exercise_count_last_month": 1,
                         "valid_word_count_curr_month": 1,
@@ -571,14 +599,19 @@ class ChannelExportReport(BaseHandler, ExportBase):
             summary_map[22].append(row[22].value)
             summary_map[23].append(mom)
             # 新增阅读数量
-            row[24].value = "暂无功能"
-            row[25].value = "暂无功能"
-            row[26].value = "暂无功能"
-            row[27].value = "暂无功能"
-            summary_map[24].append(0)
-            summary_map[25].append(0)
-            summary_map[26].append(0)
-            summary_map[27].append(0)
+            valid_reading_count = school_data.get("valid_reading_count", 0)
+            valid_reading_count_curr_month = school_data.get("valid_reading_count_curr_month", 0)
+            valid_reading_count_last_month = school_data.get("valid_reading_count_last_month", 0)
+            mom = (valid_reading_count_curr_month - valid_reading_count_last_month) / valid_reading_count_last_month \
+                if valid_reading_count_last_month else 0
+            row[24].value = valid_reading_count
+            row[25].value = valid_reading_count_last_month
+            row[26].value = valid_reading_count_curr_month
+            row[27].value = self.percentage(mom)
+            summary_map[24].append(row[24].value)
+            summary_map[25].append(row[25].value)
+            summary_map[26].append(row[26].value)
+            summary_map[27].append(mom)
             # 新增家长数量
             total_guardian_number = school_data.get("total_guardian_number", 0)
             guardian_number_curr_month = school_data.get("guardian_number_curr_month", 0)
