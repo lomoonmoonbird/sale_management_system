@@ -55,23 +55,27 @@ class AreaExportReport(BaseHandler):
     async def month(self, request: Request):
         """
         导出表格
+        {
+            "area_id": ""
+        }
         :param request:
         :return:
         """
-        channels = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": request['user_info']['area_id'],
+        request_param = await get_params(request)
+        area_id = request_param.get('area_id', "")
+        channels = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": area_id,
                                                                              "role": Roles.CHANNEL.value,
                                                                              "status": 1})
 
         channels = await channels.to_list(100000)
-        print(channels, 'channles')
         channel_ids = [str(item['_id'] for item in channels)]
         channel_users = request.app['mongodb'][self.db][self.user_coll].find({"channel_id": {"$in": channel_ids},
                                                                            "instance_role_id": Roles.CHANNEL.value,
                                                                           "status": 1})
         channel_users = await channel_users.to_list(10000)
-
-
+        sheet = b''
         old_ids = [item['old_id'] for item in channels]
+        area_name = ""
         if old_ids:
             sql = "select id, name from sigma_account_us_user where available = 1 and id in (%s) " % \
                   ','.join([str(id) for id in old_ids])
@@ -79,43 +83,50 @@ class AreaExportReport(BaseHandler):
                 async with conn.cursor(DictCursor) as cur:
                     await cur.execute(sql)
                     real_channels = await cur.fetchall()
-        real_channels_map = {}
-        for real in real_channels:
-            real_channels_map[real['id']] = real
-        channel_id_map = {}
-        channel_oid_map = {}
-        for channel in channels:
-            channel_id_map[str(channel['_id'])] = real_channels_map.get(channel['old_id'])
-            channel_oid_map[channel['old_id']] = real_channels_map.get(channel['old_id'])
+            real_channels_map = {}
+            for real in real_channels:
+                real_channels_map[real['id']] = real
+            channel_id_map = {}
+            channel_oid_map = {}
+            for channel in channels:
+                channel_id_map[str(channel['_id'])] = real_channels_map.get(channel['old_id'])
+                channel_oid_map[channel['old_id']] = real_channels_map.get(channel['old_id'])
 
-        for user in channel_users:
-            user['channel_info'] = channel_id_map.get(user['channel_id'], {})
+            for user in channel_users:
+                user['channel_info'] = channel_id_map.get(user['channel_id'], {})
 
-        print(old_ids, 'old_ids')
-        items = await self._list_month(request, old_ids)
-        template_path = os.path.dirname(__file__) + "/templates/area_month_template.xlsx"
-        print(json.dumps(items, indent=4, cls=CustomEncoder), 'items')
-        sheet = await request.app.loop.run_in_executor(self.thread_pool,
-                                                       self.sheet,
-                                                       template_path,
-                                                       items,
-                                                       real_channels_map,
-                                                       channel_users,
-                                                       "month")
+            area_info = await request.app['mongodb'][self.db][self.instance_coll].find_one({"_id": ObjectId(area_id), "status": 1})
+            area_name = area_info.get("name", "")
+            items = await self._list_month(request, old_ids)
+            template_path = os.path.dirname(__file__) + "/templates/area_month_template.xlsx"
+            print(json.dumps(items, indent=4, cls=CustomEncoder), 'items')
+            sheet = await request.app.loop.run_in_executor(self.thread_pool,
+                                                           self.sheet,
+                                                           template_path,
+                                                           items,
+                                                           real_channels_map,
+                                                           channel_users,
+                                                           "month",
+                                                           area_name)
 
 
 
-        return await self.replay_stream(sheet, "大区月报-"+datetime.now().strftime("%Y-%m-%d"), request)
+        return await self.replay_stream(sheet, area_name+"大区月报-"+datetime.now().strftime("%Y-%m-%d"), request)
 
     @validate_permission()
     async def week(self, request: Request):
         """
         导出表格
+        {
+            "area_id": ""
+        }
         :param request:
         :return:
         """
+        request_param = await get_params(request)
+        area_id = request_param.get('area_id', "")
         channels = request.app['mongodb'][self.db][self.instance_coll].find(
-            {"parent_id": request['user_info']['area_id'],
+            {"parent_id": area_id,
              "role": Roles.CHANNEL.value,
              "status": 1})
 
@@ -128,6 +139,7 @@ class AreaExportReport(BaseHandler):
         channel_users = await channel_users.to_list(10000)
 
         old_ids = [item['old_id'] for item in channels]
+        sheet = b''
         if old_ids:
             sql = "select id, name from sigma_account_us_user where available = 1 and id in (%s) " % \
                   ','.join([str(id) for id in old_ids])
@@ -135,56 +147,52 @@ class AreaExportReport(BaseHandler):
                 async with conn.cursor(DictCursor) as cur:
                     await cur.execute(sql)
                     real_channels = await cur.fetchall()
-        real_channels_map = {}
-        for real in real_channels:
-            real_channels_map[real['id']] = real
-        channel_id_map = {}
-        channel_oid_map = {}
-        for channel in channels:
-            channel_id_map[str(channel['_id'])] = real_channels_map.get(channel['old_id'])
-            channel_oid_map[channel['old_id']] = real_channels_map.get(channel['old_id'])
+            real_channels_map = {}
+            for real in real_channels:
+                real_channels_map[real['id']] = real
+            channel_id_map = {}
+            channel_oid_map = {}
+            for channel in channels:
+                channel_id_map[str(channel['_id'])] = real_channels_map.get(channel['old_id'])
+                channel_oid_map[channel['old_id']] = real_channels_map.get(channel['old_id'])
 
-        for user in channel_users:
-            user['channel_info'] = channel_id_map.get(user['channel_id'], {})
+            for user in channel_users:
+                user['channel_info'] = channel_id_map.get(user['channel_id'], {})
 
-        print(old_ids, 'old_ids')
-        items = await self._list_week(request, old_ids)
-        template_path = os.path.dirname(__file__) + "/templates/area_week_template.xlsx"
-        print(json.dumps(items, indent=4, cls=CustomEncoder), 'items')
-        sheet = await request.app.loop.run_in_executor(self.thread_pool,
-                                                       self.sheet,
-                                                       template_path,
-                                                       items,
-                                                       real_channels_map,
-                                                       channel_users,
-                                                       "month")
+            print(old_ids, 'old_ids')
+            items = await self._list_week(request, old_ids)
+            template_path = os.path.dirname(__file__) + "/templates/area_week_template.xlsx"
+            print(json.dumps(items, indent=4, cls=CustomEncoder), 'items')
+            sheet = await request.app.loop.run_in_executor(self.thread_pool,
+                                                           self.sheet,
+                                                           template_path,
+                                                           items,
+                                                           real_channels_map,
+                                                           channel_users,
+                                                           "month")
 
         return await self.replay_stream(sheet, "大区周报-" + datetime.now().strftime("%Y-%m-%d"), request)
 
 
 
-    def sheet(self, template, items, channel_map, users, report_type):
+    def sheet(self, template, items, channel_map, users, report_type, area_name):
         file = load_workbook(template)
         sheet_names = file.sheetnames
         sheet = file[sheet_names[0]]
 
         area_dimesion_items = {}
 
-        # print(json.dumps(area_dimesion_items, indent=4, cls=CustomEncoder))
-        channel_number = len(items)
-        total_cell_begin_position = channel_number
-        spare = 1
         summary_map = defaultdict(list)
         row1 = sheet[1]
 
         #todo
         if report_type == 'week':
             last_week = self.last_week()
-            row1[0].value = "全局市场_" + last_week[0] + "-" + last_week[6] + "周报数据"
+            row1[0].value =area_name+ "大区_" + last_week[0] + "-" + last_week[6] + "周报数据"
         elif report_type == 'month':
             _, _, last_month, _, _, _ = self._curr_and_last_and_last_last_month()
             month = datetime.strptime(last_month, "%Y-%m-%d").timetuple()[1]
-            row1[0].value = "全局市场" + str(month) + "月报数据"
+            row1[0].value = area_name+" 大区" + str(month) + "月报数据"
 
 
         for index, item in enumerate(items):
@@ -316,24 +324,27 @@ class AreaExportReport(BaseHandler):
 
 
 
-        print(summary_map)
-        for index, cell in enumerate(sheet[total_cell_begin_position+spare+3]):
-            print(index ,' - ', cell)
+        total_offset = len(items) + 4
+        divider = len(items)
+        for index, cell in enumerate(sheet[total_offset]):
             if index == 0:
                 cell.value = "总计"
                 continue
             if index in (4, 8, 12, 16, 23, 30, 34,  38): #平均值
-                cell.value = self.percentage(sum((summary_map.get(index, [0]))) / channel_number if channel_number > 0 else 0)
+                cell.value = self.percentage(sum((summary_map.get(index, [0]))) / divider if divider > 0 else 0)
             else:
                 cell.value = self.rounding(sum(summary_map.get(index,[0])))
-        # sheet[total_cell_begin_position + spare + 3 + 1 +1][0].merge_cells("A1:AM")
-        top = Border(top=self._border().top)
-        sheet[total_cell_begin_position + spare + 3 + 1 +1][0].value = "分析啊啊啊"
-        sheet[total_cell_begin_position + spare + 3 + 1 + 1][0].fill = self._fill()
-        sheet[total_cell_begin_position + spare + 3 + 1 + 1][0].border =sheet[total_cell_begin_position + spare + 3 + 1 + 1][0].border + top
+        row = sheet[total_offset + 2]
+        row[0].value = "分析"
+
+        # top = Border(top=self._border().top)
+        # sheet[total_cell_begin_position + spare + 3 + 1 +1][0].value = "分析啊啊啊"
+        # sheet[total_cell_begin_position + spare + 3 + 1 + 1][0].fill = self._fill()
+        # sheet[total_cell_begin_position + spare + 3 + 1 + 1][0].border =sheet[total_cell_begin_position + spare + 3 + 1 + 1][0].border + top
+        #分析
         # notifications = self._analyze(area_dimesion_items, users)
         # for index, notify in enumerate(notifications):
-        #     row = sheet[total_cell_begin_position+spare + 4 + 3]
+        #     row = sheet[total_offset + 3]
         #     row[0].value = notify['user'].get("area_info", {}).get("name")
         #     row[1].value = notify['info']
 

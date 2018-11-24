@@ -88,6 +88,16 @@ ob_exercisemeta = Table('sigma_exercise_re_exercisemeta', metadata,
                 Column('time_modify', DateTime) #修改时间
                 )
 
+#reading 阅读
+ob_reading = Table('sigma_graded_reading_student_history', metadata,
+                Column('id', Integer, primary_key=True), #阅读主键id
+                Column('uid', String(128)), #阅读uid
+                Column('student_id', Integer), #学生id
+                Column('reading_uid', String(128),), #阅读文章uid
+                Column('available', Boolean, default=1), #是否可用
+                Column('time_create', DateTime), #创建时间
+                Column('time_modify', DateTime) #修改时间
+                )
 
 #wechat 微信绑定关系
 ob_wechat = Table('sigma_account_ob_wechat', metadata, 

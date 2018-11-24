@@ -9,7 +9,7 @@ import json
 from celery import Task
 from models.mysql.centauri import ob_school, us_user, re_userwechat, ob_group, \
 ob_groupuser, ob_exercise, as_hermes, ob_order, re_userwechat, Roles, StageEnum, \
-    StudentRelationEnum, ExerciseTypeEnum, ob_exercisemeta, st_location
+    StudentRelationEnum, ExerciseTypeEnum, ob_exercisemeta, st_location, ob_reading
 import pymysql
 import pymongo
 from pymongo import InsertOne, DeleteMany, ReplaceOne, UpdateOne
@@ -1071,20 +1071,12 @@ class PerDayTask_VALIADCONTEST(BaseTask):
         try:
             date_range = self._date_range("valid_exercise_word_begin_time") #时间分段
             self._exercise_number(date_range) #有效考试 有效词汇
-            cursor.close()
-            connection.close()
-            server.stop()
-
 
         except Exception as e:
             import traceback
             traceback.print_exc()
 
             raise self.retry(exc=e, countdown=30, max_retries=5)
-
-
-
-
 
     def _exercise_number(self, date_range):
         """
@@ -1099,9 +1091,7 @@ class PerDayTask_VALIADCONTEST(BaseTask):
                             ob_exercise.c.time_create >= one_date[0],
                             ob_exercise.c.time_create < one_date[1]
                             )
-                       ).\
-                order_by(asc(ob_exercise.c.time_create))
-
+                       ).order_by(ob_exercise.c.time_create)
             exercises_words = self._query(q_exercise_in_date)
 
             exercise_ids = list(set([item['id'] for item in exercises_words]))
@@ -1329,194 +1319,156 @@ class PerDayTask_VALIADCONTEST(BaseTask):
                     # print(bulk_update_ret.bulk_api_result)
                 except BulkWriteError as bwe:
                     print(bwe.details)
-
-
-
-
-
-
             self._set_time_threadshold("valid_exercise_word_begin_time", datetime.datetime.strptime(one_date[1], "%Y-%m-%d"))
 
-            # valid_exercise_defaultdict = defaultdict(lambda: defaultdict(dict))
-            # valid_word_default = defaultdict(lambda: defaultdict(dict))
-            # exercise_user_map = {}
-            # for e_w_image in exercise_word_images:
-            #     exercise_user_map[e_w_image['exercise_id']] = usergroup_single_map.get(e_w_image.get("student_id", {}))
-            #     if e_w_image['exercise_id'] in word_exercise_ids:  # 单词
-            #         if valid_word_default[e_w_image['exercise_id']]['n']:
-            #             valid_word_default[e_w_image['exercise_id']]['n'].append(1)
-            #         else:
-            #             valid_word_default[e_w_image['exercise_id']]['n'] = [1]
-            #
-            #         if valid_word_default[e_w_image['exercise_id']]['time']:
-            #             valid_word_default[e_w_image['exercise_id']]['time'].append(e_w_image['time_create'])
-            #         else:
-            #             valid_word_default[e_w_image['exercise_id']]['time_create'] = [e_w_image['time_create']]
-            #
-            #     else:  # 考试
-            #         if valid_exercise_defaultdict[e_w_image['exercise_id']]['n']:
-            #
-            #             valid_exercise_defaultdict[e_w_image['exercise_id']]['n'].append(1)
-            #         else:
-            #             valid_exercise_defaultdict[e_w_image['exercise_id']]['n'] = [1]
-            #
-            #         if valid_exercise_defaultdict[e_w_image['exercise_id']]['time']:
-            #             valid_exercise_defaultdict[e_w_image['exercise_id']]['time'].append(e_w_image['time_create'])
-            #         else:
-            #             valid_exercise_defaultdict[e_w_image['exercise_id']]['time'] = [e_w_image['time_create']]
-            #
-            # exercise_begin_time_map = {}
-            # class_valid_exervise_number_defaultdict = defaultdict(list)
-            # grade_valid_exervise_number_defaultdict = defaultdict(list)
-            # channel_valid_exervise_number_defaultdict = defaultdict(list)
-            #
-            # class_valid_word_number_defaultdict = defaultdict(list)
-            # grade_valid_word_number_defaultdict = defaultdict(list)
-            # channel_valid_word_number_defaultdict = defaultdict(list)
-            #
-            # for e_w_image in exercise_word_images:
-            #     if e_w_image['exercise_id'] in word_exercise_ids: #单词
-            #         pass
-            #     else: #考试
-            #
-            #         total = sum(valid_exercise_defaultdict.get(e_w_image['exercise_id'], {})['n'])
-            #         if total>= 10:
-            #             exercise_begin_time_map["exercise_id"] = \
-            #             sorted(valid_exercise_defaultdict.get(e_w_image['exercise_id'], {})['time'])[0] \
-            #                 if valid_exercise_defaultdict.get(e_w_image['exercise_id'], {})['time'] else e_w_image[
-            #                 'time_create']
-            #             # 班级
-            #             for u in usergroup_map.get(e_w_image['student_id'], []):
-            #                 class_valid_exervise_number_defaultdict[u.get("group_id", -1)].append(1)
-            #
-            #             #年级
-            #             grade_valid_exervise_number_defaultdict[usergroup_single_map.get(e_w_image['student_id'], {}).get("grade", -1)].append(1)
-            #             #渠道
-            #             channel_valid_exervise_number_defaultdict[school_channel_map.get( usergroup_single_map.get(e_w_image['student_id'], {}).get("school_id", -1) ,-1)].append(1)
-            #
-            #             # 班级
-            #             for u in usergroup_map.get(e_w_image['student_id'], []):
-            #                 class_valid_word_number_defaultdict[u.get("group_id", -1)].append(1)
-            #
-            #             # 年级
-            #             grade_valid_word_number_defaultdict[
-            #                 usergroup_single_map.get(e_w_image['student_id'], {}).get("grade", -1)].append(1)
-            #             # 渠道
-            #             channel_valid_word_number_defaultdict[school_channel_map.get(
-            #                 usergroup_single_map.get(e_w_image['student_id'], {}).get("school_id", -1), -1)].append(1)
-            #
-            #
-            #
-            # class_valid_exercise_number_bulk = []
-            # grade_valid_exercise_number_bulk = []
-            # channel_valid_exercise_number_bulk = []
-            #
-            # class_valid_word_number_bulk = []
-            # grade_valid_word_number_bulk = []
-            # channel_valid_word_number_bulk = []
-            # for k, v in class_valid_exervise_number_defaultdict.items():
-            #     exercise_schema = {
-            #         "school_id": usergroup_map_class_key.get(k, {}).get("school_id", -1),
-            #         "channel": usergroup_map_class_key.get(k, {}).get("channel", -1),
-            #         "grade": usergroup_map_class_key.get(k, {}).get("grade", -1),
-            #         "valid_exercise_count": sum(v)
-            #     }
-            #     class_valid_exercise_number_bulk.append(
-            #         UpdateOne({"group_id": k, "day": one_date[0]}, {'$set': exercise_schema}, upsert=True))
-            #
-            # for k, v in grade_valid_exervise_number_defaultdict.items():
-            #     exercise_schema = {
-            #         "school_id": usergroup_map_class_key.get(k, {}).get("school_id", -1),
-            #         "channel": usergroup_map_class_key.get(k, {}).get("channel", -1),
-            #         "valid_exercise_count": sum(v)
-            #     }
-            #     grade_valid_exercise_number_bulk.append(
-            #         UpdateOne({"grade": k, "day": one_date[0]}, {'$set': exercise_schema}, upsert=True))
-            #
-            # for k, v in channel_valid_exervise_number_defaultdict.items():
-            #     exercise_schema = {
-            #         "valid_exercise_count": sum(v)
-            #     }
-            #     channel_valid_exercise_number_bulk.append(
-            #         UpdateOne({"channel": k, "day": one_date[0]}, {'$set': exercise_schema}, upsert=True))
-            #
-            #
-            # for k, v in class_valid_word_number_defaultdict.items():
-            #     exercise_schema = {
-            #         "school_id": usergroup_map_class_key.get(k, {}).get("school_id", -1),
-            #         "channel": usergroup_map_class_key.get(k, {}).get("channel", -1),
-            #         "grade": usergroup_map_class_key.get(k, {}).get("grade", -1),
-            #         "valid_exercise_count": sum(v)
-            #     }
-            #     class_valid_word_number_bulk.append(
-            #         UpdateOne({"group_id": k, "day": one_date[0]}, {'$set': exercise_schema}, upsert=True))
-            #
-            #
-            # for k, v in grade_valid_word_number_defaultdict.items():
-            #     exercise_schema = {
-            #         "school_id": usergroup_map_class_key.get(k, {}).get("school_id", -1),
-            #         "channel": usergroup_map_class_key.get(k, {}).get("channel", -1),
-            #         "valid_exercise_count": sum(v)
-            #     }
-            #     grade_valid_word_number_bulk.append(
-            #         UpdateOne({"grade": k, "day": one_date[0]}, {'$set': exercise_schema}, upsert=True))
-            #
-            #
-            # for k, v in channel_valid_word_number_defaultdict.items():
-            #     exercise_schema = {
-            #         "valid_exercise_count": sum(v)
-            #     }
-            #     channel_valid_word_number_bulk.append(
-            #         UpdateOne({"channel": k, "day": one_date[0]}, {'$set': exercise_schema}, upsert=True))
-            #
-            #
-            # if class_valid_exercise_number_bulk:
-            #     try:
-            #         bulk_update_ret = self.mongo.class_per_day.bulk_write(class_valid_exercise_number_bulk)
-            #         # print(bulk_update_ret.bulk_api_result)
-            #     except BulkWriteError as bwe:
-            #         print(bwe.details)
-            #
-            # if grade_valid_exercise_number_bulk:
-            #     try:
-            #         bulk_update_ret = self.mongo.grade_per_day.bulk_write(grade_valid_exercise_number_bulk)
-            #         # print(bulk_update_ret.bulk_api_result)
-            #     except BulkWriteError as bwe:
-            #         print(bwe.details)
-            #
-            # if channel_valid_exercise_number_bulk:
-            #     try:
-            #         bulk_update_ret = self.mongo.channel_per_day.bulk_write(channel_valid_exercise_number_bulk)
-            #         # print(bulk_update_ret.bulk_api_result)
-            #     except BulkWriteError as bwe:
-            #         print(bwe.details)
-            #
-            #
-            # if class_valid_word_number_bulk:
-            #     try:
-            #         bulk_update_ret = self.mongo.class_per_day.bulk_write(class_valid_word_number_bulk)
-            #         # print(bulk_update_ret.bulk_api_result)
-            #     except BulkWriteError as bwe:
-            #         print(bwe.details)
-            #
-            # if grade_valid_word_number_bulk:
-            #     try:
-            #         bulk_update_ret = self.mongo.grade_per_day.bulk_write(grade_valid_word_number_bulk)
-            #         # print(bulk_update_ret.bulk_api_result)
-            #     except BulkWriteError as bwe:
-            #         print(bwe.details)
-            #
-            # if channel_valid_word_number_bulk:
-            #     try:
-            #         bulk_update_ret = self.mongo.channel_per_day.bulk_write(channel_valid_word_number_bulk)
-            #         # print(bulk_update_ret.bulk_api_result)
-            #     except BulkWriteError as bwe:
-            #         print(bwe.details)
-            #
-            # self._set_time_threadshold("valid_exercise_word_begin_time", datetime.datetime.strptime(one_date[1], "%Y-%m-%d"))
+class PerDayTask_VALIDREADING(BaseTask):
+    """
+    有效阅读
+    """
+    def __init__(self):
+        super(PerDayTask_VALIDREADING, self).__init__()
+
+        self.mongo = pymongo.MongoClient(MONGODB_CONN_URL).sales
+
+    def _query(self, query):
+        """
+        执行查询 返回数据库结果
+        """
+
+        cursor = connection.cursor()
+        # logger.debug(
+        #     query.compile(dialect=mysql.dialect(), compile_kwargs={"literal_binds": True}).string.replace("%%", "%"))
+
+        cursor.execute(
+            query.compile(dialect=mysql.dialect(), compile_kwargs={"literal_binds": True}).string.replace("%%", "%"))
+        ret = cursor.fetchall()
+        return ret
 
 
+    def run(self):
+        try:
+            date_range = self._date_range("valid_reading_begin_time") #时间分段
+            date_range =[("2018-09-15", "2018-09-16")]
+            self._reading_number(date_range) #有效阅读
 
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            print('error')
+            raise self.retry(exc=e, countdown=10, max_retries=10)
+
+
+    def _reading_number(self, date_range):
+        """
+        有效阅读
+        :param date_range:
+        :return:
+        """
+        for one_date in date_range:
+            print(one_date[0], one_date[1])
+            q_reading_in_date = select([ob_reading])\
+                .where(and_(ob_reading.c.available == 1,
+                            ob_reading.c.time_create >= one_date[0],
+                            ob_reading.c.time_create < one_date[1]
+                            )
+                       )
+
+            readings = self._query(q_reading_in_date)
+
+            print(readings)
+            user_ids = list(set([item['student_id'] for item in readings]))
+
+            q_usergroup = select([ob_groupuser]).where(and_(
+                ob_groupuser.c.available == 1,
+                ob_groupuser.c.user_id.in_(user_ids),
+            ))
+
+            usergroup = self._query(q_usergroup)
+
+            group_ids = list(set([item['group_id'] for item in usergroup]))
+
+            q_group = select([ob_group]).where(and_(
+                ob_group.c.available == 1,
+                ob_group.c.id.in_(group_ids),
+            ))
+
+            group = self._query(q_group)
+
+            school_ids = list(set([item['school_id'] for item in group]))
+            q_school = select([ob_school.c.owner_id, ob_school.c.id]).where(and_(
+                ob_school.c.available == 1,
+                ob_school.c.id.in_(school_ids),
+            ))
+
+            schools = self._query(q_school)
+            school_channel_map = {}
+            for s_c in schools:
+                school_channel_map[s_c['id']] = s_c['owner_id']
+
+            group_map = {}
+            for g in group:
+                group_map[g['id']] = g
+
+            usergroup_map = defaultdict(list)
+            usergroup_single_map = {}
+            usergroup_map_class_key = {}
+            usergroup_map_grade_key = {}
+            for u_g in usergroup:
+                u_g.update(group_map.get(u_g['group_id'], {}))
+                if usergroup_map[u_g['user_id']]:
+                    usergroup_map[u_g['user_id']].append(u_g)
+                else:
+                    usergroup_map[u_g['user_id']] = [u_g]
+                usergroup_single_map[u_g['user_id']] = u_g
+                usergroup_map_class_key[u_g['group_id']] = u_g
+                usergroup_map_grade_key[u_g.get("grade", -1)] = u_g
+
+            # print(json.dumps(usergroup_map, indent=4, cls=CustomEncoder))
+            # print(json.dumps(usergroup_map_grade_key, indent=4, cls=CustomEncoder))
+            # print(json.dumps(usergroup_single_map, indent=4, cls=CustomEncoder))
+            # print(json.dumps(school_channel_map, indent=4, cls=CustomEncoder))
+
+            class_reading_defaultdict = defaultdict(list)
+            grade_reading_defaultdict = defaultdict(list)
+            channel_reading_defaultdict = defaultdict(list)
+            for reading in readings:
+                multi_user_group = usergroup_map.get(reading['student_id'], [])
+                print(multi_user_group)
+                for m_u_g in multi_user_group:
+                    class_reading_defaultdict[m_u_g.get("group_id", -1)].append(1)
+                single_user_group = usergroup_single_map.get(reading['student_id'], {})
+                grade_reading_defaultdict[single_user_group.get("grade", -1)].append(1)
+                channel_reading_defaultdict[school_channel_map.get(single_user_group.get("school_id", -1), -1)].append(1)
+
+            print(json.dumps(class_reading_defaultdict, indent=4, cls=CustomEncoder))
+            # print(json.dumps(grade_reading_defaultdict, indent=4, cls=CustomEncoder))
+            # print(json.dumps(channel_reading_defaultdict, indent=4, cls=CustomEncoder))
+
+
+            class_reading_bulk_update = []
+            for k, v in class_reading_defaultdict.items():
+                # k 是班级  v是数量
+                if sum(v) >= 10:  # 有效阅读
+                    exercise_schema = {
+                        # "school_id": usergroup_map_class_key.get(k, {}).get("school_id", -1),
+                        # "channel": school_channel_map.get(usergroup_map_grade_key.get(k, {}).get("school_id", -1)),
+                        # "grade": usergroup_map_class_key.get(k, {}).get("grade", -1),
+                        # "valid_exercise_count": sum(v)
+                    }
+                    class_reading_bulk_update.append(
+                        UpdateOne({"channel": k, "day": one_date[0]},
+                                  { "$inc": {"valid_word_count": 1}}, upsert=True))
+
+            if class_reading_bulk_update:
+                try:
+                    bulk_update_ret = self.mongo.class_per_day.bulk_write(class_reading_bulk_update)
+                    # print(bulk_update_ret.bulk_api_result)
+                except BulkWriteError as bwe:
+                    print(bwe.details)
+            self._set_time_threadshold("valid_exercise_word_begin_time", datetime.datetime.strptime(one_date[1], "%Y-%m-%d"))
+
+
+        return
 
 class PerDayTask(BaseTask):
     def __init__(self):
@@ -1529,12 +1481,13 @@ class PerDayTask(BaseTask):
         try:
             print ('begin')
             from tasks.celery_init import sales_celery
-            sales_celery.send_task("tasks.celery_task_user.PerDaySubTask_IMAGES") #考试 单词图片数
-            sales_celery.send_task("tasks.celery_task_user.PerDaySubTask_GUARDIAN") #家长数也为绑定数
-            sales_celery.send_task("tasks.celery_task_user.PerDaySubTask_PAYMENTS") #付费数 付费额
-            sales_celery.send_task("tasks.celery_task_user.PerDaySubTask_USERS") #学生数 老师数
-            sales_celery.send_task("tasks.celery_task_user.PerDayTask_SCHOOL") #学校数
-            sales_celery.send_task("tasks.celery_task_user.PerDayTask_VALIADCONTEST") #有效考试 有效单词
+            # sales_celery.send_task("tasks.celery_per_day_task.PerDaySubTask_IMAGES") #考试 单词图片数
+            # sales_celery.send_task("tasks.celery_per_day_task.PerDaySubTask_GUARDIAN") #家长数也为绑定数
+            # sales_celery.send_task("tasks.celery_per_day_task.PerDaySubTask_PAYMENTS") #付费数 付费额
+            # sales_celery.send_task("tasks.celery_per_day_task.PerDaySubTask_USERS") #学生数 老师数
+            # sales_celery.send_task("tasks.celery_per_day_task.PerDayTask_SCHOOL") #学校数
+            # sales_celery.send_task("tasks.celery_per_day_task.PerDayTask_VALIADCONTEST") #有效考试 有效单词
+            sales_celery.send_task("tasks.celery_per_day_task.PerDayTask_VALIDREADING")  # 有效阅读
 
             print ('finished.......')
             # self.server.stop()

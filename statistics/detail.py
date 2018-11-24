@@ -926,18 +926,21 @@ class AreaDetail(QueryMixin):
         渠道列表
         {
             "area_id": ""
+            "page": ""
         }
         :param request:
         :return:
         """
         request_param = await get_params(request)
         area_id = request_param.get("area_id", "")
+        page = int(request_param.get("page", 0))
+        per_page = 100
         if not area_id:
             return self.reply_ok([])
 
         channels = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": area_id,
                                                                              "role": Roles.CHANNEL.value,
-                                                                             "status": 1})
+                                                                             "status": 1}).skip(page*per_page).limit(per_page)
         channels = await channels.to_list(10000)
 
         old_ids = [item['old_id'] for item in channels]
@@ -1044,12 +1047,15 @@ class ChannelDetail(QueryMixin):
         市场列表
         {
             "area_id": ""
+            "page": ""
         }
         :param request:
         :return:
         """
         request_param = await get_params(request)
         channel_id = request_param.get("channel_id", "")
+        page = int(request_param.get("page", 0))
+        per_page = 100
         if not channel_id:
             return self.reply_ok([])
         schools = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": channel_id, "role": Roles.SCHOOL.value, "status": 1})
@@ -1058,7 +1064,7 @@ class ChannelDetail(QueryMixin):
         market_users = request.app['mongodb'][self.db][self.user_coll].find({"channel_id": channel_id, "instance_role_id": Roles.MARKET.value, "status": 1})
         market_users = await market_users.to_list(10000)
         market_users_user_ids = [item['user_id'] for item in market_users]
-        users = request.app['mongodb'][self.db][self.user_coll].find({"user_id": {"$in": market_users_user_ids}})
+        users = request.app['mongodb'][self.db][self.user_coll].find({"user_id": {"$in": market_users_user_ids}}).skip(page*per_page).limit(per_page)
         users = await users.to_list(10000)
 
         market_users_map = {}

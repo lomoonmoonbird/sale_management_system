@@ -40,6 +40,7 @@ class Overview(BaseHandler):
         :param request:
         :return:
         """
+
         if request['user_info']['instance_role_id'] == Roles.GLOBAL.value:
             pay_total, pay_curr_week_new_number, pay_last_week_new_number = await self._pay_number(request)
 
