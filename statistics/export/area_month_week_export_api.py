@@ -141,6 +141,7 @@ class AreaExportReport(BaseHandler, ExportBase):
 
         old_ids = [item['old_id'] for item in channels]
         sheet = b''
+        area_name = ""
         if old_ids:
             sql = "select id, name from sigma_account_us_user where available = 1 and id in (%s) " % \
                   ','.join([str(id) for id in old_ids])
@@ -159,7 +160,9 @@ class AreaExportReport(BaseHandler, ExportBase):
 
             for user in channel_users:
                 user['channel_info'] = channel_id_map.get(user['channel_id'], {})
-
+            area_info = await request.app['mongodb'][self.db][self.instance_coll].find_one(
+                {"_id": ObjectId(area_id), "status": 1})
+            area_name = area_info.get("name", "")
             print(old_ids, 'old_ids')
             items = await self._list_week(request, old_ids)
             template_path = os.path.dirname(__file__) + "/templates/area_week_template.xlsx"
@@ -170,7 +173,8 @@ class AreaExportReport(BaseHandler, ExportBase):
                                                            items,
                                                            real_channels_map,
                                                            channel_users,
-                                                           "month")
+                                                           "month",
+                                                           area_name)
 
         return await self.replay_stream(sheet, "大区周报-" + datetime.now().strftime("%Y-%m-%d"), request)
 

@@ -314,7 +314,7 @@ class PerDaySubTask_GUARDIAN(BaseTask):
 
     def run(self):
         date_range = self._date_range("class_grade_channel_guardian_per_day_begin_time")  # 时间分段
-        # date_range = [("2018-1-1","2018-1-2")]
+        # date_range = [("2018-07-1","2018-07-02")]
         self._guardian_info(date_range)
 
     def _guardian_info(self, date_range):
@@ -330,7 +330,7 @@ class PerDaySubTask_GUARDIAN(BaseTask):
                 re_userwechat.c.time_create,
             ], and_(
                 re_userwechat.c.available == 1,
-                re_userwechat.c.relationship > StudentRelationEnum.sich.value,
+                # re_userwechat.c.relationship > StudentRelationEnum.sich.value,
                 re_userwechat.c.time_create >= one_date[0],
                 re_userwechat.c.time_create < one_date[1]
             )
@@ -348,7 +348,7 @@ class PerDaySubTask_GUARDIAN(BaseTask):
             usergroup = self._query(q_usergroup)
 
             group_ids = list(set([item['group_id'] for item in usergroup]))
-
+            print(group_ids)
             q_group = select([ob_group]).where(and_(
                 ob_group.c.available == 1,
                 ob_group.c.id.in_(group_ids),
@@ -357,6 +357,7 @@ class PerDaySubTask_GUARDIAN(BaseTask):
             group = self._query(q_group)
 
             school_ids = list(set([item['school_id'] for item in group]))
+            print(school_ids)
             q_school = select([ob_school.c.owner_id, ob_school.c.id]).where(and_(
                 ob_school.c.available == 1,
                 ob_school.c.id.in_(school_ids),
@@ -394,14 +395,14 @@ class PerDaySubTask_GUARDIAN(BaseTask):
             channel_guardian_default_dict = defaultdict(lambda: defaultdict(dict))
 
             for guardian in guardians:
-                if class_guardian_default_dict[guardian['user_id']]['n']:
-                    class_guardian_default_dict[guardian['user_id']]['n'].append(1)
+                if class_guardian_default_dict[usergroup_map.get(guardian['user_id'], {}).get("group_id", -1)]['n']:
+                    class_guardian_default_dict[usergroup_map.get(guardian['user_id'], {}).get("group_id", -1)]['n'].append(1)
                 else:
-                    class_guardian_default_dict[guardian['user_id']]['n'] = [1]
-                if class_guardian_default_dict[guardian['user_id']]['wechats']:
-                    class_guardian_default_dict[guardian['user_id']]['wechats'].append(guardian['wechat_id'])
+                    class_guardian_default_dict[usergroup_map.get(guardian['user_id'], {}).get("group_id", -1)]['n'] = [1]
+                if class_guardian_default_dict[usergroup_map.get(guardian['user_id'], {}).get("group_id", -1)]['wechats']:
+                    class_guardian_default_dict[usergroup_map.get(guardian['user_id'], {}).get("group_id", -1)]['wechats'].append(guardian['wechat_id'])
                 else:
-                    class_guardian_default_dict[guardian['user_id']]['wechats'] = [guardian['wechat_id']]
+                    class_guardian_default_dict[usergroup_map.get(guardian['user_id'], {}).get("group_id", -1)]['wechats'] = [guardian['wechat_id']]
 
                 if grade_guardian_default_dict[usergroup_map.get(guardian['user_id'], {}).get("grade", -1)]['n']:
                     grade_guardian_default_dict[usergroup_map.get(guardian['user_id'], {}).get("grade", -1)]['n'].append(1)
@@ -427,17 +428,16 @@ class PerDaySubTask_GUARDIAN(BaseTask):
                     channel_guardian_default_dict[
                         school_channel_map.get(usergroup_map.get(guardian['user_id'], {}).get("school_id", -1))]['wechats'] = [guardian['wechat_id']]
 
-                class_guardian_default_dict[guardian['user_id']]['group_info'] = usergroup_map.get(guardian['user_id'], {})
-                grade_guardian_default_dict[guardian['user_id']]['group_info'] = usergroup_map.get(guardian['user_id'],{})
-                channel_guardian_default_dict[guardian['user_id']]['group_info'] = usergroup_map.get(guardian['user_id'],{})
-
+                class_guardian_default_dict[usergroup_map.get(guardian['user_id'], {}).get("group_id", -1)]['group_info'] = usergroup_map.get(guardian['user_id'], {})
+                grade_guardian_default_dict[usergroup_map.get(guardian['user_id'], {}).get("grade", -1)]['group_info'] = usergroup_map.get(guardian['user_id'],{})
+                channel_guardian_default_dict[school_channel_map.get(usergroup_map.get(guardian['user_id'], {}).get("school_id", -1))]['group_info'] = usergroup_map.get(guardian['user_id'],{})
             class_bulk_update = []
             for k, v in class_guardian_default_dict.items():
 
                 guardian_schema = {
-                    "school_id": usergroup_map.get(k, {}).get("school_id", -1),
-                    "channel": school_channel_map.get(usergroup_map.get(k, {}).get("school_id", -1), -1),
-                    "grade": usergroup_map.get(k, {}).get("grade", -1),
+                    "school_id": v.get("group_info", {}).get("school_id", -1),
+                    "channel": school_channel_map.get(v.get("group_info", {}).get("school_id", -1), -1),
+                    "grade": v.get("group_info", {}).get("grade", -1),
                     "guardian_count":len(v['n']),
                     "wechats": v['wechats'],
                 }
@@ -445,12 +445,13 @@ class PerDaySubTask_GUARDIAN(BaseTask):
                                              {'$set': guardian_schema}, upsert=True))
 
             grade_bulk_update = []
+
             for k, v in grade_guardian_default_dict.items():
 
-                # print(json.dumps(usergroup_map, indent=4, cls=CustomEncoder))
+
                 guardian_schema = {
-                    "school_id": usergroup_map.get(k, {}).get("school_id", -1),
-                    "channel": school_channel_map.get(usergroup_map.get(k, {}).get("school_id", -1), -1),
+                    "school_id": v.get("group_info", {}).get("school_id", -1),
+                    "channel": school_channel_map.get(v.get("group_info", {}).get("school_id", -1), -1),
                     "guardian_count": len(v['n']),
                     "wechats": v['wechats'],
                 }
@@ -1084,7 +1085,22 @@ class PerDayTask_VALIADCONTEST(BaseTask):
         :param date_range:
         :return:
         """
+
         for one_date in date_range:
+            q_hermes = select([as_hermes.c.exercise_id,
+                               as_hermes.c.student_id,
+                               as_hermes.c.time_create])\
+                .where(and_(as_hermes.c.available == 1,
+                            as_hermes.c.time_create >= one_date[0],
+                            as_hermes.c.time_create < one_date[1]
+                            )
+                       )
+            hermes_images = self._query(q_hermes)
+
+
+
+
+
 
             q_exercise_in_date = select([ob_exercise])\
                 .where(and_(ob_exercise.c.available == 1,
@@ -1603,11 +1619,11 @@ class PerDayTask(BaseTask):
         try:
             print ('begin')
             from tasks.celery_init import sales_celery
-            # sales_celery.send_task("tasks.celery_per_day_task.PerDaySubTask_IMAGES") #考试 单词图片数
-            # sales_celery.send_task("tasks.celery_per_day_task.PerDaySubTask_GUARDIAN") #家长数也为绑定数
-            # sales_celery.send_task("tasks.celery_per_day_task.PerDaySubTask_PAYMENTS") #付费数 付费额
-            # sales_celery.send_task("tasks.celery_per_day_task.PerDaySubTask_USERS") #学生数 老师数
-            # sales_celery.send_task("tasks.celery_per_day_task.PerDayTask_SCHOOL") #学校数
+            sales_celery.send_task("tasks.celery_per_day_task.PerDaySubTask_IMAGES") #考试 单词图片数
+            sales_celery.send_task("tasks.celery_per_day_task.PerDaySubTask_GUARDIAN") #家长数也为绑定数
+            sales_celery.send_task("tasks.celery_per_day_task.PerDaySubTask_PAYMENTS") #付费数 付费额
+            sales_celery.send_task("tasks.celery_per_day_task.PerDaySubTask_USERS") #学生数 老师数
+            sales_celery.send_task("tasks.celery_per_day_task.PerDayTask_SCHOOL") #学校数
             # sales_celery.send_task("tasks.celery_per_day_task.PerDayTask_VALIADCONTEST") #有效考试 有效单词
             sales_celery.send_task("tasks.celery_per_day_task.PerDayTask_VALIDREADING")  # 有效阅读
 

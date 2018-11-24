@@ -65,11 +65,11 @@ class Config():
     task_default_queue = 'sale_defult_queue'
     task_queues = (
         Queue('user_per_day', Exchange('user_per_day'), routing_key="user_per_day"),
-        # Queue('per_day_pay', Exchange('per_day_pay'), routing_key="per_day_pay"),
-        # Queue('per_day_images', Exchange('per_day_images'), routing_key="per_day_images"),
-        # Queue('per_day_guardian', Exchange('per_day_guardian'), routing_key="per_day_guardian"),
-        # Queue('per_day_user', Exchange('per_day_user'), routing_key="per_day_user"),
-        # Queue('per_day_school', Exchange('per_day_school'), routing_key="per_day_school"),
+        Queue('per_day_pay', Exchange('per_day_pay'), routing_key="per_day_pay"),
+        Queue('per_day_images', Exchange('per_day_images'), routing_key="per_day_images"),
+        Queue('per_day_guardian', Exchange('per_day_guardian'), routing_key="per_day_guardian"),
+        Queue('per_day_user', Exchange('per_day_user'), routing_key="per_day_user"),
+        Queue('per_day_school', Exchange('per_day_school'), routing_key="per_day_school"),
         # Queue('per_day_validcontest', Exchange('per_day_validcontest'), routing_key="per_day_validcontest"),
         Queue('per_day_validreading', Exchange('per_day_validreading'), routing_key="per_day_validreading"),
 
@@ -80,26 +80,26 @@ class Config():
             'queue': 'user_per_day',
             'routing_key': 'user_per_day'
         },
-        # 'tasks.celery_per_day_task.PerDaySubTask_PAYMENTS': {
-        #     'queue': 'per_day_pay',
-        #     'routing_key': 'per_day_pay'
-        # },
-        # 'tasks.celery_per_day_task.PerDaySubTask_IMAGES': {
-        #     'queue': 'per_day_images',
-        #     'routing_key': 'per_day_images'
-        # },
-        # 'tasks.celery_per_day_task.PerDaySubTask_GUARDIAN': {
-        #     'queue': 'per_day_guardian',
-        #     'routing_key': 'per_day_guardian'
-        # },
-        # 'tasks.celery_per_day_task.PerDaySubTask_USERS': {
-        #     'queue': 'per_day_user',
-        #     'routing_key': 'per_day_user'
-        # },
-        # 'tasks.celery_per_day_task.PerDayTask_SCHOOL': {
-        #     'queue': 'per_day_school',
-        #     'routing_key': 'per_day_school'
-        # },
+        'tasks.celery_per_day_task.PerDaySubTask_PAYMENTS': {
+            'queue': 'per_day_pay',
+            'routing_key': 'per_day_pay'
+        },
+        'tasks.celery_per_day_task.PerDaySubTask_IMAGES': {
+            'queue': 'per_day_images',
+            'routing_key': 'per_day_images'
+        },
+        'tasks.celery_per_day_task.PerDaySubTask_GUARDIAN': {
+            'queue': 'per_day_guardian',
+            'routing_key': 'per_day_guardian'
+        },
+        'tasks.celery_per_day_task.PerDaySubTask_USERS': {
+            'queue': 'per_day_user',
+            'routing_key': 'per_day_user'
+        },
+        'tasks.celery_per_day_task.PerDayTask_SCHOOL': {
+            'queue': 'per_day_school',
+            'routing_key': 'per_day_school'
+        },
         # 'tasks.celery_per_day_task.PerDayTask_VALIADCONTEST': {
         #     'queue': 'per_day_validcontest',
         #     'routing_key': 'per_day_validcontest'
@@ -143,20 +143,20 @@ per_day_task = PerDayTask()
 sales_celery.register_task(per_day_task)
 sales_celery.send_task('tasks.celery_per_day_task.PerDayTask')
 
-# per_day_exercise_images = PerDaySubTask_IMAGES()
-# sales_celery.register_task(per_day_exercise_images)
+per_day_exercise_images = PerDaySubTask_IMAGES()
+sales_celery.register_task(per_day_exercise_images)
 # #
-# per_data_guardian = PerDaySubTask_GUARDIAN()
-# sales_celery.register_task(per_data_guardian)
+per_data_guardian = PerDaySubTask_GUARDIAN()
+sales_celery.register_task(per_data_guardian)
 #
-# per_day_payments = PerDaySubTask_PAYMENTS()
-# sales_celery.register_task(per_day_payments)
+per_day_payments = PerDaySubTask_PAYMENTS()
+sales_celery.register_task(per_day_payments)
 #
-# per_day_schools = PerDayTask_SCHOOL()
-# sales_celery.register_task(per_day_schools)
+per_day_schools = PerDayTask_SCHOOL()
+sales_celery.register_task(per_day_schools)
 #
-# per_day_users_number = PerDaySubTask_USERS()
-# sales_celery.register_task(per_day_users_number)
+per_day_users_number = PerDaySubTask_USERS()
+sales_celery.register_task(per_day_users_number)
 #
 # per_day_valid_exercise_word = PerDayTask_VALIADCONTEST()
 # sales_celery.register_task(per_day_valid_exercise_word)

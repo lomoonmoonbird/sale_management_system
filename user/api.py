@@ -24,7 +24,7 @@ from aiomysql.cursors import DictCursor
 from pymongo import UpdateOne, DeleteMany
 from bson import ObjectId
 from enumconstant import Roles, PermissionRole
-
+from utils import CustomEncoder
 
 
 class User(BaseHandler):
@@ -514,8 +514,10 @@ class User(BaseHandler):
                         res = await cur.fetchall()
 
                 old_ids = [item['id'] for item in res]
+                print('old_ids', old_ids)
                 channels = request.app['mongodb'][self.db][self.instance_coll].find({"old_id": {"$in": old_ids}, "role": Roles.CHANNEL.value, "status": 1})
                 channels = await channels.to_list(10000)
+                print("channels", json.dumps(channels,indent=4, cls=CustomEncoder))
                 parent_ids = list(set([ObjectId(item['parent_id']) for item in channels]))
                 area_info = request.app['mongodb'][self.db][self.instance_coll].find(
                     {"_id": {"$in": parent_ids}, "status": 1})
