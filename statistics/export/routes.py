@@ -16,4 +16,4 @@ def register(router: UrlDispatcher):
     router.add_get('/api/stat/report/area/month', area_export.month)
     router.add_get('/api/stat/report/area/week', area_export.week)
     router.add_get('/api/stat/report/channel/month', channel_export.month)
-    router.add_get('/api/stat/report/channel/week', channel_export.month)
+    router.add_get('/api/stat/report/channel/week', channel_export.week)

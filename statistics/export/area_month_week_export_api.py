@@ -31,6 +31,7 @@ from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Border, Side, PatternFill, Font, GradientFill, Alignment
 from bson import ObjectId
 from concurrent.futures import ThreadPoolExecutor
+from statistics.export.export_base import ExportBase
 
 class CustomEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -41,7 +42,7 @@ class CustomEncoder(json.JSONEncoder):
 
         return json.JSONEncoder.default(self, obj)
 
-class AreaExportReport(BaseHandler):
+class AreaExportReport(BaseHandler, ExportBase):
     def __init__(self):
         self.db = 'sales'
         self.user_coll = 'sale_user'
