@@ -971,7 +971,7 @@ class AreaDetail(QueryMixin):
             for item in items:
                 item['contest_coverage_ratio'] = 0
                 item['contest_average_per_person'] = 0
-                item['area_info'] = channel_id_map.get(item['_id'], {})
+                item['channel_info'] = channel_id_map.get(item['_id'], {})
 
         return self.reply_ok(items)
 
