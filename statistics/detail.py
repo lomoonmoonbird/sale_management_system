@@ -866,7 +866,7 @@ class AreaDetail(QueryMixin):
     def __init__(self):
         super(AreaDetail, self).__init__()
 
-
+    @validate_permission()
     async def overview(self, request: Request):
         """
         大区详情总览
@@ -929,6 +929,7 @@ class AreaDetail(QueryMixin):
                               "guardian_last_week_new_number": guardian_last_week_new_number
                               })
 
+    @validate_permission()
     async def channel_list(self, request: Request):
         """
         渠道列表
@@ -983,6 +984,7 @@ class ChannelDetail(QueryMixin):
     def __init__(self):
         super(ChannelDetail, self).__init__()
 
+    @validate_permission()
     async def overview(self, request: Request):
         """
         渠道详情总览
@@ -1050,6 +1052,7 @@ class ChannelDetail(QueryMixin):
         # raise ChannelNotExist("Channel not exist")
         return self.reply_ok([])
 
+    @validate_permission()
     async def market_list(self, request: Request):
         """
         市场列表

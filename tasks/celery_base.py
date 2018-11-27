@@ -22,12 +22,14 @@ from datetime import timedelta
 from collections import defaultdict
 import json
 from sshtunnel import SSHTunnelForwarder
+from bson import ObjectId
 
 class CustomEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, (datetime.datetime)):
             return str(obj)
-
+        if isinstance(obj, (ObjectId)):
+            return str(obj)
         return json.JSONEncoder.default(self, obj)
 
 class BaseTask(Task):
@@ -65,7 +67,7 @@ class BaseTask(Task):
 
 
     def _date_range(self, field):
-        self.time_threshold_table = self.mongo[self.coll_time_threshold].find_one({"name": "sale_time_threshold"}) or {}
+        self.time_threshold_table = self.mongo[self.coll_time_threshold].find_one({"_id": "sale_time_threshold"}) or {}
 
         start_date = self.time_threshold_table.get(field, self.start_time) if self.time_threshold_table.get(field, self.start_time) else self.start_time
         end_date = datetime.datetime.now()
@@ -81,4 +83,4 @@ class BaseTask(Task):
         return date_range
 
     def _set_time_threadshold(self, field, value):
-        self.mongo[self.coll_time_threshold].update({"name": "sale_time_threshold"}, {"$set": {field: value}}, upsert=True)
+        self.mongo[self.coll_time_threshold].update({"_id": "sale_time_threshold"}, {"$set": {field: value}}, upsert=True)

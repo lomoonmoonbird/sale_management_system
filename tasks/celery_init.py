@@ -14,7 +14,8 @@ from tasks.celery_task_summary import SummaryTask
 from tasks.celery_task_school_backup import SchoolTask
 from tasks.celery_task_student import StudentTask
 from tasks.celery_per_day_task import  PerDayTask, PerDaySubTask_IMAGES,PerDaySubTask_GUARDIAN,\
-    PerDaySubTask_PAYMENTS, PerDaySubTask_USERS, PerDayTask_SCHOOL, PerDayTask_VALIADCONTEST, PerDayTask_VALIDREADING
+    PerDaySubTask_PAYMENTS, PerDaySubTask_USERS, PerDayTask_SCHOOL, PerDayTask_VALIDCONTEST, PerDayTask_VALIDREADING,\
+    PerDayTask_SCHOOLSTAGE
 from tasks.celery_test import TestTask
 from tasks.celery_task_school import PerDayTask_SCHOOL_NUMBER
 
@@ -53,11 +54,15 @@ class Config():
         #     "schedule": 10
         # },
         # "per_day_validcontest": {
-        #     "task": "tasks.celery_per_day_task.PerDayTask_VALIADCONTEST",
+        #     "task": "tasks.celery_per_day_task.PerDayTask_VALIDCONTEST",
         #     "schedule": 10
         # },
         # "per_day_validreading": {
         #     "task": "tasks.celery_per_day_task.PerDayTask_VALIDREADING",
+        #     "schedule": 10
+        # },
+        # "per_day_schoolstage": {
+        #     "task": "tasks.celery_per_day_task.PerDayTask_SCHOOLSTAGE",
         #     "schedule": 10
         # },
 
@@ -70,8 +75,9 @@ class Config():
         Queue('per_day_guardian', Exchange('per_day_guardian'), routing_key="per_day_guardian"),
         Queue('per_day_user', Exchange('per_day_user'), routing_key="per_day_user"),
         Queue('per_day_school', Exchange('per_day_school'), routing_key="per_day_school"),
-        # Queue('per_day_validcontest', Exchange('per_day_validcontest'), routing_key="per_day_validcontest"),
+        Queue('per_day_validcontest', Exchange('per_day_validcontest'), routing_key="per_day_validcontest"),
         Queue('per_day_validreading', Exchange('per_day_validreading'), routing_key="per_day_validreading"),
+        Queue('per_day_schoolstage', Exchange('per_day_schoolstage'), routing_key="per_day_schoolstage"),
 
     )
 
@@ -100,14 +106,19 @@ class Config():
             'queue': 'per_day_school',
             'routing_key': 'per_day_school'
         },
-        # 'tasks.celery_per_day_task.PerDayTask_VALIADCONTEST': {
-        #     'queue': 'per_day_validcontest',
-        #     'routing_key': 'per_day_validcontest'
-        # },
-        'tasks.celery_per_day_task.PerDayTask_VALIADREADING': {
+        'tasks.celery_per_day_task.PerDayTask_VALIDCONTEST': {
+            'queue': 'per_day_validcontest',
+            'routing_key': 'per_day_validcontest'
+        },
+        'tasks.celery_per_day_task.PerDayTask_VALIDREADING': {
             'queue': 'per_day_validreading',
             'routing_key': 'per_day_validreading'
-        }
+        },
+        'tasks.celery_per_day_task.PerDayTask_SCHOOLSTAGE': {
+            'queue': 'per_day_schoostage',
+            'routing_key': 'per_day_schoolstage'
+        },
+
 
     }
 
@@ -143,23 +154,28 @@ per_day_task = PerDayTask()
 sales_celery.register_task(per_day_task)
 sales_celery.send_task('tasks.celery_per_day_task.PerDayTask')
 
+
 per_day_exercise_images = PerDaySubTask_IMAGES()
 sales_celery.register_task(per_day_exercise_images)
-# #
+
 per_data_guardian = PerDaySubTask_GUARDIAN()
 sales_celery.register_task(per_data_guardian)
-#
+
 per_day_payments = PerDaySubTask_PAYMENTS()
 sales_celery.register_task(per_day_payments)
-#
+
 per_day_schools = PerDayTask_SCHOOL()
 sales_celery.register_task(per_day_schools)
-#
+
 per_day_users_number = PerDaySubTask_USERS()
 sales_celery.register_task(per_day_users_number)
-#
-# per_day_valid_exercise_word = PerDayTask_VALIADCONTEST()
-# sales_celery.register_task(per_day_valid_exercise_word)
+
+per_day_valid_exercise_word = PerDayTask_VALIDCONTEST()
+sales_celery.register_task(per_day_valid_exercise_word)
+# sales_celery.send_task('tasks.celery_per_day_task.PerDayTask_VALIADCONTEST')
 
 per_day_valid_reading = PerDayTask_VALIDREADING()
 sales_celery.register_task(per_day_valid_reading)
+
+per_day_school_stage = PerDayTask_SCHOOLSTAGE()
+sales_celery.register_task(per_day_school_stage)
