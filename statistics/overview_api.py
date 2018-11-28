@@ -55,6 +55,8 @@ class Overview(BaseHandler):
 
             guardian_total, guardian_curr_week_new_number, guardian_last_week_new_number = await self._guardian_number(request)
 
+            contest_total, contest_curr_week_new_number, contest_last_week_new_number = await self._valid_contest_number(request)
+
             return self.reply_ok({"pay_total": pay_total,
                                   "pay_curr_week_new_number": pay_curr_week_new_number,
                                   "pay_last_week_new_number": pay_last_week_new_number,
@@ -75,7 +77,10 @@ class Overview(BaseHandler):
                                   "image_last_week_new_number": image_last_week_new_number,
                                   "guardian_total": guardian_total,
                                   "guardian_curr_week_new_number": guardian_curr_week_new_number,
-                                  "guardian_last_week_new_number": guardian_last_week_new_number
+                                  "guardian_last_week_new_number": guardian_last_week_new_number,
+                                  "contest_total": contest_total,
+                                  "contest_curr_week_new_number": contest_curr_week_new_number,
+                                  "contest_last_week_new_number": contest_last_week_new_number
                                   })
         elif request['user_info']['instance_role_id'] == Roles.AREA.value:
 
@@ -103,6 +108,9 @@ class Overview(BaseHandler):
             guardian_total, guardian_curr_week_new_number, guardian_last_week_new_number = await self._guardian_number_area(
                 request, old_ids)
 
+            contest_total, contest_curr_week_new_number, contest_last_week_new_number = await self._valid_contest_number_area(
+                request, old_ids)
+
             return self.reply_ok({"pay_total": pay_total,
                                   "pay_curr_week_new_number": pay_curr_week_new_number,
                                   "pay_last_week_new_number": pay_last_week_new_number,
@@ -123,9 +131,98 @@ class Overview(BaseHandler):
                                   "image_last_week_new_number": image_last_week_new_number,
                                   "guardian_total": guardian_total,
                                   "guardian_curr_week_new_number": guardian_curr_week_new_number,
-                                  "guardian_last_week_new_number": guardian_last_week_new_number
+                                  "guardian_last_week_new_number": guardian_last_week_new_number,
+                                  "contest_total": contest_total,
+                                  "contest_curr_week_new_number": contest_curr_week_new_number,
+                                  "contest_last_week_new_number": contest_last_week_new_number
                                   })
 
+    async def _valid_contest_number(self, request:Request):
+        """
+        有效测评书
+        :param request:
+        :return:
+        """
+        coll = request.app['mongodb'][self.db][self.class_per_day_coll]
+        total_guardian_count_list = []
+        current_week_new_guardian_count_list = []
+        last_week_new_guardian_count_list = []
+        if request['user_info']['instance_role_id'] == Roles.GLOBAL.value:
+            current_week = self.current_week()
+            last_week = self.last_week()
+            total_guardian_count = coll.aggregate(
+                [
+                    {
+                        "$match": {"channel": {"$nin": ['null', None]}}
+                    },
+                    {
+                        "$project": {
+                            "total": {"$sum": ["$valid_exercise_count", "$valid_word_count", "$valid_reading_count"]}
+                        }
+                    },
+
+                    {"$group": {"_id": None,
+                                "total": {"$sum": "$total"},
+                                }
+                     },
+
+                ])
+            current_week_new_guardian_count = coll.aggregate(
+                [
+                    {
+                        "$match": {
+                            "day": {"$gte": current_week[0],
+                                    "$lte": current_week[6]}
+                        }
+                    },
+                    {
+                        "$project": {
+                            "total": {"$sum": ["$valid_exercise_count", "$valid_word_count", "$valid_reading_count"]}
+                        }
+                    },
+
+                    {"$group": {"_id": None,
+                                "total": {"$sum": "$total"},
+                                }
+                     },
+
+                ])
+
+            last_week_new_guardian_count = coll.aggregate(
+                [
+                    {
+                        "$match": {
+                            "day": {"$gte": last_week[0],
+                                    "$lte": last_week[6]}
+                        }
+                    },
+                    {
+                        "$project": {
+                            "total": {"$sum": ["$valid_exercise_count", "$valid_word_count", "$valid_reading_count"]}
+                        }
+                    },
+
+                    {"$group": {"_id": None,
+                                "total": {"$sum": "$total"},
+
+                                }
+                     },
+
+                ])
+
+            async for amount in current_week_new_guardian_count:
+                current_week_new_guardian_count_list.append(amount)
+
+            async for amount in last_week_new_guardian_count:
+                last_week_new_guardian_count_list.append(amount)
+
+            async for amount in total_guardian_count:
+                total_guardian_count_list.append(amount)
+
+        total = total_guardian_count_list[0]['total'] if total_guardian_count_list else 0
+        current_week = current_week_new_guardian_count_list[0]['total'] if current_week_new_guardian_count_list else 0
+        last_week = last_week_new_guardian_count_list[0]['total'] if last_week_new_guardian_count_list else 0
+        return total, current_week, last_week
 
     async def _guardian_number(self, request:Request):
         """
@@ -751,6 +848,96 @@ class Overview(BaseHandler):
         return total,current_week,last_week
 
 
+
+    async def _valid_contest_number_area(self, request:Request, channle_ids=[]):
+        """
+        有效测评书
+        :param request:
+        :return:
+        """
+        coll = request.app['mongodb'][self.db][self.channel_per_day_coll]
+        total_guardian_count_list = []
+        current_week_new_guardian_count_list = []
+        last_week_new_guardian_count_list = []
+        if request['user_info']['instance_role_id'] == Roles.GLOBAL.value:
+            current_week = self.current_week()
+            last_week = self.last_week()
+            total_guardian_count = coll.aggregate(
+                [
+                    {
+                        "$match": {"channel": {"$in": channle_ids}}
+                    },
+                    {
+                        "$project": {
+                            "total": {"$sum": ["$valid_exercise_count", "$valid_word_count", "$valid_reading_count"]}
+                        }
+                    },
+
+                    {"$group": {"_id": None,
+                                "total": {"$sum": "$total"},
+                                }
+                     },
+
+                ])
+            current_week_new_guardian_count = coll.aggregate(
+                [
+                    {
+                        "$match": {
+                            "day": {"$gte": current_week[0],
+                                    "$lte": current_week[6]},
+                            "channel": {"$in": channle_ids}
+                        }
+                    },
+                    {
+                        "$project": {
+                            "total": {"$sum": ["$valid_exercise_count", "$valid_word_count", "$valid_reading_count"]}
+                        }
+                    },
+
+                    {"$group": {"_id": None,
+                                "total": {"$sum": "$total"},
+                                }
+                     },
+
+                ])
+
+            last_week_new_guardian_count = coll.aggregate(
+                [
+                    {
+                        "$match": {
+                            "day": {"$gte": last_week[0],
+                                    "$lte": last_week[6]},
+                            "channel": {"$in": channle_ids}
+                        }
+                    },
+                    {
+                        "$project": {
+                            "total": {"$sum": ["$valid_exercise_count", "$valid_word_count", "$valid_reading_count"]}
+                        }
+                    },
+
+                    {"$group": {"_id": None,
+                                "total": {"$sum": "$total"},
+
+                                }
+                     },
+
+                ])
+
+            async for amount in current_week_new_guardian_count:
+                current_week_new_guardian_count_list.append(amount)
+
+            async for amount in last_week_new_guardian_count:
+                last_week_new_guardian_count_list.append(amount)
+
+            async for amount in total_guardian_count:
+                total_guardian_count_list.append(amount)
+
+        total = total_guardian_count_list[0]['total'] if total_guardian_count_list else 0
+        current_week = current_week_new_guardian_count_list[0]['total'] if current_week_new_guardian_count_list else 0
+        last_week = last_week_new_guardian_count_list[0]['total'] if last_week_new_guardian_count_list else 0
+        return total, current_week, last_week
+
     async def _guardian_number_area(self, request:Request, channle_ids=[]):
         """
         家长数
@@ -826,7 +1013,6 @@ class Overview(BaseHandler):
 
                 {"$group": {"_id": None,
                             "total": {"$sum": "$guardian_count"},
-                            # "pp": {"$push": {"$cond": [{"$gte": ["$day",current_week[0]]}, {"aaaa": "$class_pay_amount" },0 ] }}
                             }
                  },
 
