@@ -139,7 +139,7 @@ class ChannelExportReport(BaseHandler, ExportBase):
         :return:
         """
 
-        coll = request.app['mongodb'][self.db][self.grade_per_day_coll]
+        coll = request.app['mongodb'][self.db][self.class_per_day_coll]
         items = []
 
         last_last_month_first_day, last_last_month_last_day, last_month_first_day, last_month_last_day,\
@@ -322,7 +322,7 @@ class ChannelExportReport(BaseHandler, ExportBase):
         :param channel_ids:
         :return:
         """
-        coll = request.app['mongodb'][self.db][self.grade_per_day_coll]
+        coll = request.app['mongodb'][self.db][self.class_per_day_coll]
         items = []
         current_week = self.current_week()
         last_week = self.last_week()

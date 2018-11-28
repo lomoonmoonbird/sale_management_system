@@ -75,7 +75,7 @@ class BaseTask(Task):
         delta = end_date - start_date  # timedelta
 
         date_range = []
-        for i in range(1, delta.days ):
+        for i in range(1, delta.days + 1):
             # print(datetime.datetime.strftime((start_date + timedelta(i)), "%Y-%m-%d"))
             date_range.append((datetime.datetime.strftime((start_date + timedelta(i-1)), "%Y-%m-%d"),
                                datetime.datetime.strftime((start_date + timedelta(i)), "%Y-%m-%d")))
@@ -84,3 +84,4 @@ class BaseTask(Task):
 
     def _set_time_threadshold(self, field, value):
         self.mongo[self.coll_time_threshold].update({"_id": "sale_time_threshold"}, {"$set": {field: value}}, upsert=True)
+

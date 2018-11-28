@@ -91,7 +91,7 @@ class PerDaySubTask_IMAGES(BaseTask):
         return ret
 
     def run(self):
-        date_range = self._date_range("class_channel_exercise_images_per_day_begin_time")  # 时间分段
+        date_range = self._date_range("class_grade_channel_exercise_images_per_day_begin_time")  # 时间分段
         self._exercise_images(date_range)
 
     def _exercise_images(self, date_range):
@@ -175,7 +175,6 @@ class PerDaySubTask_IMAGES(BaseTask):
                 u_g.update(group_map.get(u_g['group_id'], {}))
                 usergroup_map[u_g['user_id']] = u_g
                 usergroup_map_class_key[u_g['group_id']] = u_g
-                print (json.dumps(u_g,indent=4,cls=CustomEncoder))
                 usergroup_map_grade_key[u_g.get("grade", -1)] = u_g
 
             # print (json.dumps(usergroup_map_grade_key, indent=4 , cls=CustomEncoder))
@@ -199,7 +198,7 @@ class PerDaySubTask_IMAGES(BaseTask):
                         school_channel_map.get(usergroup_map.get(image['student_id'], {}).get("school_id", -1),
                                                -1)].append(1)
 
-                    grade_w_image_default_dict[usergroup_map.get(image['student_id'], {}).get("grade", -1)].append(1)
+                    grade_w_image_default_dict[str(usergroup_map.get(image['student_id'], {}).get("school_id", -1)) + "@"+str(usergroup_map.get(image['student_id'], {}).get("grade", -1))].append(1)
                     school_w_image_default_dict[usergroup_map.get(image['student_id'], {}).get("school_id", -1)].append(1)
 
                 else:
@@ -208,7 +207,7 @@ class PerDaySubTask_IMAGES(BaseTask):
                         school_channel_map.get(usergroup_map.get(image['student_id'], {}).get("school_id", -1),
                                                -1)].append(1)
 
-                    grade_e_image_default_dict[usergroup_map.get(image['student_id'], {}).get("grade", -1)].append(1)
+                    grade_e_image_default_dict[str(usergroup_map.get(image['student_id'], {}).get("school_id", -1)) + "@" + str(usergroup_map.get(image['student_id'], {}).get("grade", -1))].append(1)
                     school_e_image_default_dict[usergroup_map.get(image['student_id'], {}).get("school_id", -1)].append(1)
 
             #班级
@@ -238,24 +237,24 @@ class PerDaySubTask_IMAGES(BaseTask):
 
             for k, v in grade_e_image_default_dict.items():
                 channel_image_counts_schema = {
-                    "school_id": usergroup_map_grade_key.get(k, {}).get("school_id", -1),
-                    "channel": school_channel_map.get(usergroup_map_grade_key.get(k, {}).get("school_id", -1), -1),
+                    "school_id": int(k.split('@')[0]),
+                    "channel": school_channel_map.get(int(k.split('@')[0]), -1),
                     "e_image_c": sum(v),
                     "day": one_date[0]
                 }
                 grade_bulk_update.append(
-                    UpdateOne({"grade": k, "day": one_date[0]}, {'$set': channel_image_counts_schema}, upsert=True))
+                    UpdateOne({"grade": k.split("@")[1], "school_id": int(k.split('@')[0]), "day": one_date[0]}, {'$set': channel_image_counts_schema}, upsert=True))
 
 
             for k, v in grade_w_image_default_dict.items():
                 channel_image_counts_schema = {
-                    "school_id": usergroup_map_grade_key.get(k, {}).get("school_id", -1),
-                    "channel": school_channel_map.get(usergroup_map_grade_key.get(k, {}).get("school_id", -1), -1),
+                    "school_id": int(k.split('@')[0]),
+                    "channel": school_channel_map.get(int(k.split('@')[0]), -1),
                     "w_image_c": sum(v),
                     "day": one_date[0]
                 }
                 grade_bulk_update.append(
-                    UpdateOne({"grade": k, "day": one_date[0]}, {'$set': channel_image_counts_schema}, upsert=True))
+                    UpdateOne({"grade": k.split("@")[1], "school_id": int(k.split("@")[0]), "day": one_date[0]}, {'$set': channel_image_counts_schema}, upsert=True))
 
 
             #学校
@@ -387,7 +386,6 @@ class PerDaySubTask_GUARDIAN(BaseTask):
             usergroup = self._query(q_usergroup)
 
             group_ids = list(set([item['group_id'] for item in usergroup]))
-            print(group_ids)
             q_group = select([ob_group]).where(and_(
                 ob_group.c.available == 1,
                 ob_group.c.id.in_(group_ids),
@@ -396,7 +394,6 @@ class PerDaySubTask_GUARDIAN(BaseTask):
             group = self._query(q_group)
 
             school_ids = list(set([item['school_id'] for item in group]))
-            print(school_ids)
             q_school = select([ob_school.c.owner_id, ob_school.c.id]).where(and_(
                 ob_school.c.available == 1,
                 ob_school.c.id.in_(school_ids),
@@ -439,16 +436,16 @@ class PerDaySubTask_GUARDIAN(BaseTask):
                     class_guardian_default_dict[usergroup_map.get(guardian['user_id'], {}).get("group_id", -1)]['wechats'] = [guardian['wechat_id']]
 
                 # 年级
-                if grade_guardian_default_dict[usergroup_map.get(guardian['user_id'], {}).get("grade", -1)]['n']:
-                    grade_guardian_default_dict[usergroup_map.get(guardian['user_id'], {}).get("grade", -1)]['n'].append(1)
+                if grade_guardian_default_dict[str(usergroup_map.get(guardian['user_id'], {}).get("school_id", -1))+"@"+str(usergroup_map.get(guardian['user_id'], {}).get("grade", -1))]['n']:
+                    grade_guardian_default_dict[str(usergroup_map.get(guardian['user_id'], {}).get("school_id", -1))+"@"+str(usergroup_map.get(guardian['user_id'], {}).get("grade", -1))]['n'].append(1)
                 else:
-                    grade_guardian_default_dict[usergroup_map.get(guardian['user_id'], {}).get("grade", -1)]['n'] = [1]
+                    grade_guardian_default_dict[str(usergroup_map.get(guardian['user_id'], {}).get("school_id", -1))+"@"+str(usergroup_map.get(guardian['user_id'], {}).get("grade", -1))]['n'] = [1]
 
 
-                if grade_guardian_default_dict[usergroup_map.get(guardian['user_id'], {}).get("grade", -1)]['wechats']:
-                    grade_guardian_default_dict[usergroup_map.get(guardian['user_id'], {}).get("grade", -1)]['wechats'].append(guardian['wechat_id'])
+                if grade_guardian_default_dict[str(usergroup_map.get(guardian['user_id'], {}).get("school_id", -1))+"@"+str(usergroup_map.get(guardian['user_id'], {}).get("grade", -1))]['wechats']:
+                    grade_guardian_default_dict[str(usergroup_map.get(guardian['user_id'], {}).get("school_id", -1))+"@"+str(usergroup_map.get(guardian['user_id'], {}).get("grade", -1))]['wechats'].append(guardian['wechat_id'])
                 else:
-                    grade_guardian_default_dict[usergroup_map.get(guardian['user_id'], {}).get("grade", -1)]['wechats'] = [guardian['wechat_id']]
+                    grade_guardian_default_dict[str(usergroup_map.get(guardian['user_id'], {}).get("school_id", -1))+"@"+str(usergroup_map.get(guardian['user_id'], {}).get("grade", -1))]['wechats'] = [guardian['wechat_id']]
 
                 #学校
                 if school_guardian_default_dict[usergroup_map.get(guardian['user_id'], {}).get("school_id", -1)]['n']:
@@ -477,7 +474,7 @@ class PerDaySubTask_GUARDIAN(BaseTask):
                         school_channel_map.get(usergroup_map.get(guardian['user_id'], {}).get("school_id", -1))]['wechats'] = [guardian['wechat_id']]
 
                 class_guardian_default_dict[usergroup_map.get(guardian['user_id'], {}).get("group_id", -1)]['group_info'] = usergroup_map.get(guardian['user_id'], {})
-                grade_guardian_default_dict[usergroup_map.get(guardian['user_id'], {}).get("grade", -1)]['group_info'] = usergroup_map.get(guardian['user_id'],{})
+                grade_guardian_default_dict[str(usergroup_map.get(guardian['user_id'], {}).get("school_id", -1))+"@"+str(usergroup_map.get(guardian['user_id'], {}).get("grade", -1))]['group_info'] = usergroup_map.get(guardian['user_id'],{})
                 channel_guardian_default_dict[school_channel_map.get(usergroup_map.get(guardian['user_id'], {}).get("school_id", -1))]['group_info'] = usergroup_map.get(guardian['user_id'],{})
             # 班级
             class_bulk_update = []
@@ -501,13 +498,13 @@ class PerDaySubTask_GUARDIAN(BaseTask):
 
 
                 guardian_schema = {
-                    "school_id": v.get("group_info", {}).get("school_id", -1),
-                    "channel": school_channel_map.get(v.get("group_info", {}).get("school_id", -1), -1),
+                    "school_id": int(k.split("@")[0]),
+                    "channel": school_channel_map.get(int(k.split("@")[0]), -1),
                     "guardian_count": len(v['n']),
                     "wechats": v['wechats'],
                 }
                 grade_bulk_update.append(
-                    UpdateOne({"grade": v['group_info'].get('grade', -1), "day": one_date[0]},
+                    UpdateOne({"grade": k.split("@")[1], "school_id": int(k.split("@")[0]), "day": one_date[0]},
                               {'$set': guardian_schema}, upsert=True))
             # 学校
             school_bulk_update = []
@@ -668,15 +665,15 @@ class PerDaySubTask_PAYMENTS(BaseTask):
                         "pay_amount"] = [payment['coupon_amount']]
 
                 #年级
-                if grade_payment_default_dict[usergroup_map.get(payment['user_id'], {}).get("grade", -1)]['pay_n']:
-                    grade_payment_default_dict[usergroup_map.get(payment['user_id'], {}).get("grade", -1)]['pay_n'].append(1)
+                if grade_payment_default_dict[str(usergroup_map.get(payment['user_id'], {}).get("school_id", -1))+"@"+str(usergroup_map.get(payment['user_id'], {}).get("grade", -1))]['pay_n']:
+                    grade_payment_default_dict[str(usergroup_map.get(payment['user_id'], {}).get("school_id", -1))+"@"+str(usergroup_map.get(payment['user_id'], {}).get("grade", -1))]['pay_n'].append(1)
                 else:
-                    grade_payment_default_dict[usergroup_map.get(payment['user_id'], {}).get("grade", -1)]['pay_n'] = [1]
+                    grade_payment_default_dict[str(usergroup_map.get(payment['user_id'], {}).get("school_id", -1))+"@"+str(usergroup_map.get(payment['user_id'], {}).get("grade", -1))]['pay_n'] = [1]
 
-                if grade_payment_default_dict[usergroup_map.get(payment['user_id'], {}).get("grade", -1)]['pay_amount']:
-                    grade_payment_default_dict[usergroup_map.get(payment['user_id'], {}).get("grade", -1)]['pay_amount'].append(payment['coupon_amount'])
+                if grade_payment_default_dict[str(usergroup_map.get(payment['user_id'], {}).get("school_id", -1))+"@"+str(usergroup_map.get(payment['user_id'], {}).get("grade", -1))]['pay_amount']:
+                    grade_payment_default_dict[str(usergroup_map.get(payment['user_id'], {}).get("school_id", -1))+"@"+str(usergroup_map.get(payment['user_id'], {}).get("grade", -1))]['pay_amount'].append(payment['coupon_amount'])
                 else:
-                    grade_payment_default_dict[usergroup_map.get(payment['user_id'], {}).get("grade", -1)]['pay_amount'] = [payment['coupon_amount']]
+                    grade_payment_default_dict[str(usergroup_map.get(payment['user_id'], {}).get("school_id", -1))+"@"+str(usergroup_map.get(payment['user_id'], {}).get("grade", -1))]['pay_amount'] = [payment['coupon_amount']]
 
                 #学校
                 if school_payment_default_dict[usergroup_map.get(payment['user_id'], {}).get("school_id", -1)]['pay_n']:
@@ -727,13 +724,13 @@ class PerDaySubTask_PAYMENTS(BaseTask):
             grade_bulk_update = []
             for k, v in grade_payment_default_dict.items():
                 pay_amount_schema = {
-                    "school_id": usergroup_map_grade_key.get(k, {}).get("school_id", -1),
-                    "channel": school_channel_map.get(usergroup_map_grade_key.get(k, {}).get("school_id", -1), -1),
+                    "school_id": int(k.split("@")[0]),
+                    "channel": school_channel_map.get(int(k.split("@")[0]), -1),
                     "pay_number": len(v['pay_n']),
                     "pay_amount": sum(v['pay_amount'])
                 }
 
-                grade_bulk_update.append(UpdateOne({"grade": k, "day": one_date[0]},
+                grade_bulk_update.append(UpdateOne({"grade": k.split("@")[1], "school_id": int(k.split("@")[0]), "day": one_date[0]},
                                              {'$set': pay_amount_schema}, upsert=True))
 
             # 学校
@@ -796,6 +793,7 @@ class PerDayTask_SCHOOL(BaseTask):
         super(PerDayTask_SCHOOL, self).__init__()
 
         self.mongo = pymongo.MongoClient(MONGODB_CONN_URL).sales
+        self.schoolstage_delta_record_coll = "record_schoolstage_delta"
 
     def _query(self, query):
         """
@@ -810,9 +808,21 @@ class PerDayTask_SCHOOL(BaseTask):
         ret = cursor.fetchall()
         return ret
 
+    def _execute_raw(self, query):
+        cursor = connection.cursor()
+        cursor.execute(query)
+        ret = cursor.fetchall()
+        return ret
+
     def run(self):
         date_range = self._date_range("school_number_per_day_begin_time")  # 时间分段
+        print('stage stage stage')
         self._school(date_range) #学校数
+        date_range = self._date_range("school_stage_begin_time")  # 时间分段
+        # date_range =[("2018-05-27", "2018-05-28")]
+        print('stage2 stage2 stage2')
+        self._schools(date_range)  # 学校
+
 
     def _school(self, date_range):
         """
@@ -890,6 +900,40 @@ class PerDayTask_SCHOOL(BaseTask):
 
             self._set_time_threadshold("school_number_per_day_begin_time",
                                        datetime.datetime.strptime(one_date[1], "%Y-%m-%d"))
+
+
+
+    def _schools(self, date_range):
+        """
+        学校阶段
+        :param date_range:
+        :return:
+        """
+        for one_date in date_range:
+            q_school = select([ob_school]) \
+                .where(and_(ob_school.c.available == 1,
+                            ob_school.c.time_create >= one_date[0],
+                            ob_school.c.time_create < one_date[1]
+                            )
+                       )
+            schools = self._query(q_school)
+            update_school_bulk = []
+
+            for school in schools:
+                school_schema = {
+                    "open_time": school['time_create'],
+                    "stage": StageEnum.Register.value
+                }
+                update_school_bulk.append(UpdateOne({"school_id": school['id']}, {"$set": school_schema}, upsert=True))
+
+            if update_school_bulk:
+                try:
+                    bulk_update_ret = self.mongo.school.bulk_write(update_school_bulk)
+                    # print(bulk_update_ret.bulk_api_result)
+                except BulkWriteError as bwe:
+                    print(bwe.details)
+
+            self._set_time_threadshold("school_stage_begin_time", datetime.datetime.strptime(one_date[1], "%Y-%m-%d"))
 
 class PerDaySubTask_USERS(BaseTask):
     def __init__(self):
@@ -995,11 +1039,11 @@ class PerDaySubTask_USERS(BaseTask):
                     else:
                         class_teacher_number_defaultdict[u_g['group_id']]['n'] = [1]
                     #年级
-                    grade_teacher_number_defaultdict[u_g.get('group_info', {}).get('grade', -1)]['user_info'] = u_g
-                    if grade_teacher_number_defaultdict[u_g.get('group_info', {}).get('grade', -1)]['n']:
-                        grade_teacher_number_defaultdict[u_g.get('group_info', {}).get('grade', -1)]['n'].append(1)
+                    grade_teacher_number_defaultdict[str(u_g['user_info'].get('school_id', -1))+"@"+str(u_g.get('group_info', {}).get('grade', -1))]['user_info'] = u_g
+                    if grade_teacher_number_defaultdict[str(u_g['user_info'].get('school_id', -1))+"@"+str(u_g.get('group_info', {}).get('grade', -1))]['n']:
+                        grade_teacher_number_defaultdict[str(u_g['user_info'].get('school_id', -1))+"@"+str(u_g.get('group_info', {}).get('grade', -1))]['n'].append(1)
                     else:
-                        grade_teacher_number_defaultdict[u_g.get('group_info', {}).get('grade', -1)]['n'] = [1]
+                        grade_teacher_number_defaultdict[str(u_g['user_info'].get('school_id', -1))+"@"+str(u_g.get('group_info', {}).get('grade', -1))]['n'] = [1]
 
                     #学校
                     school_teacher_number_defaultdict[u_g['user_info'].get('school_id', -1)]['user_info'] = u_g
@@ -1022,11 +1066,11 @@ class PerDaySubTask_USERS(BaseTask):
                     else:
                         class_student_number_defaultdict[u_g['group_id']]['n'] = [1]
                     #年级
-                    grade_student_number_defaultdict[u_g.get('group_info', {}).get('grade', -1)]['user_info'] = u_g
-                    if grade_student_number_defaultdict[u_g.get('group_info', {}).get('grade', -1)]['n']:
-                        grade_student_number_defaultdict[u_g.get('group_info', {}).get('grade', -1)]['n'].append(1)
+                    grade_student_number_defaultdict[str(u_g['user_info'].get('school_id', -1))+"@"+str(u_g.get('group_info', {}).get('grade', -1))]['user_info'] = u_g
+                    if grade_student_number_defaultdict[str(u_g['user_info'].get('school_id', -1))+"@"+str(u_g.get('group_info', {}).get('grade', -1))]['n']:
+                        grade_student_number_defaultdict[str(u_g['user_info'].get('school_id', -1))+"@"+str(u_g.get('group_info', {}).get('grade', -1))]['n'].append(1)
                     else:
-                        grade_student_number_defaultdict[u_g.get('group_info', {}).get('grade', -1)]['n'] = [1]
+                        grade_student_number_defaultdict[str(u_g['user_info'].get('school_id', -1))+"@"+str(u_g.get('group_info', {}).get('grade', -1))]['n'] = [1]
 
                     # 学校
                     school_student_number_defaultdict[u_g['user_info'].get('school_id', -1)]['user_info'] = u_g
@@ -1069,13 +1113,13 @@ class PerDaySubTask_USERS(BaseTask):
             grade_teacher_number_bulk_update = []
             for k, v in grade_teacher_number_defaultdict.items():
                 user_number_schema = {
-                    "school_id": v['user_info'].get("group_info", {}).get("school_id", -1),
+                    "school_id": int(k.split("@")[0]),
                     # "grade": v['user_info'].get("group_info", {}).get("grade", -1),
-                    "channel": v['user_info'].get("channel", -1),
+                    "channel": school_channel_map.get(int(k.split("@")[0]), -1),
                     "teacher_number": sum(v['n']),
                 }
 
-                grade_teacher_number_bulk_update.append(UpdateOne({"grade": k, "day": one_date[0]},
+                grade_teacher_number_bulk_update.append(UpdateOne({"grade": k.split("@")[1], "school_id": int(k.split("@")[1]), "day": one_date[0]},
                                                                   {'$set': user_number_schema}, upsert=True))
             #学校
             school_teacher_number_bulk_update = []
@@ -1115,13 +1159,13 @@ class PerDaySubTask_USERS(BaseTask):
             grade_student_number_bulk_update = []
             for k, v in grade_student_number_defaultdict.items():
                 user_number_schema = {
-                    "school_id": v['user_info'].get("group_info", {}).get("school_id", -1),
+                    "school_id": int(k.split("@")[0]),
                     # "grade": v['user_info'].get("group_info", {}).get("grade", -1),
-                    "channel": v['user_info'].get("channel", -1),
+                    "channel": school_channel_map.get(int(k.split("@")[0]), -1),
                     "student_number": sum(v['n']),
                 }
 
-                grade_student_number_bulk_update.append(UpdateOne({"grade": k, "day": one_date[0]},
+                grade_student_number_bulk_update.append(UpdateOne({"grade": k.split("@")[1], "school_id": int(k.split("@")[0]),  "day": one_date[0]},
                                                                   {'$set': user_number_schema}, upsert=True))
             # 学校
             school_student_number_bulk_update = []
@@ -1349,12 +1393,12 @@ class PerDayTask_VALIDCONTEST(BaseTask):
                     else:
                         class_exercise_image_number[str(u_e_i['exercise_id']) + "@" + str(usergroup_single_map.get(u.get("user_id", -1), {}).get("group_id", -1))]['user_id'] = [u['user_id']]
                 #年级
-                if grade_exercise_image_number[str(u_e_i['exercise_id']) + "@" + str(usergroup_single_map.get(u_e_i.get("student_id", -1), {}).get("grade", -1))]['user_id']:
-                    grade_exercise_image_number[str(u_e_i['exercise_id']) + "@" + str(usergroup_single_map.get(u_e_i.get("student_id", -1), {}).get("grade", -1))]['user_id'].append(u_e_i['student_id'])
-                    grade_exercise_image_number[str(u_e_i['exercise_id']) + "@" + str(
-                        usergroup_single_map.get(u_e_i.get("student_id", -1), {}).get("grade", -1))]['user_id'] = list(set(grade_exercise_image_number[str(u_e_i['exercise_id']) + "@" + str(usergroup_single_map.get(u_e_i.get("student_id", -1), {}).get("grade", -1))]['user_id']))
+                exercise_school_grade_key = str(u_e_i['exercise_id']) +"@"+ str(usergroup_single_map.get(u_e_i.get("student_id", -1), {}).get("school_id", -1)) + "@" + str(usergroup_single_map.get(u_e_i.get("student_id", -1), {}).get("grade", -1))
+                if grade_exercise_image_number[exercise_school_grade_key]['user_id']:
+                    grade_exercise_image_number[exercise_school_grade_key]['user_id'].append(u_e_i['student_id'])
+                    grade_exercise_image_number[exercise_school_grade_key]['user_id'] = list(set(grade_exercise_image_number[exercise_school_grade_key]['user_id']))
                 else:
-                    grade_exercise_image_number[str(u_e_i['exercise_id']) + "@" + str(usergroup_single_map.get(u_e_i.get("student_id", -1), {}).get("grade", -1))]['user_id'] = [u_e_i['student_id']]
+                    grade_exercise_image_number[exercise_school_grade_key]['user_id'] = [u_e_i['student_id']]
                 #学校
                 if school_exercise_image_number[str(u_e_i['exercise_id']) + "@" + str(
                         usergroup_single_map.get(u_e_i.get("student_id", -1), {}).get("school_id", -1))]['user_id']:
@@ -1399,29 +1443,29 @@ class PerDayTask_VALIDCONTEST(BaseTask):
 
             #年级和历史比较 额外增加年级阶段的判断
             history_grade_exercise_delta_ids = list(grade_exercise_image_number.keys())
-            history_grade_exercise_delta = self.mongo.record_grade_exercise_delta.find({"exercise_grade_id": {"$in": history_grade_exercise_delta_ids}})
+            history_grade_exercise_delta = self.mongo.record_grade_exercise_delta.find({"exercise_school_grade_id": {"$in": history_grade_exercise_delta_ids}})
             history_grade_exercise_id_map = {}
             grade_exercise_bulk_update = []
             history_grade_exercise_bulk_update = []
             grade_stage_bulk_update = []
             for h in history_grade_exercise_delta:
-                history_grade_exercise_id_map[h['exercise_grade_id']] = h
+                history_grade_exercise_id_map[h['exercise_school_grade_id']] = h
 
-            for exercise_grade_id, data in grade_exercise_image_number.items():
-                history_students = history_grade_exercise_id_map.get(exercise_grade_id, {}).get("user_id", [])
+            for exercise_school_grade_id, data in grade_exercise_image_number.items():
+                history_students = history_grade_exercise_id_map.get(exercise_school_grade_id, {}).get("user_id", [])
                 today_students = data['user_id']
                 today_total_students = list(set(history_students + today_students))
-                history_grade_exercise_bulk_update.append(UpdateOne({"exercise_grade_id": exercise_grade_id}, {'$set': {"user_id": today_total_students}},upsert=True))
+                history_grade_exercise_bulk_update.append(UpdateOne({"exercise_school_grade_id": exercise_school_grade_id}, {'$set': {"user_id": today_total_students}},upsert=True))
                 if len(today_total_students) >= 10: #有效
-                    if history_grade_exercise_id_map.get(exercise_grade_id, {}).get("status", 0) == 0:
+                    if history_grade_exercise_id_map.get(exercise_school_grade_id, {}).get("status", 0) == 0:
                         grade_stage_bulk_update.append(
-                            UpdateOne({"grade": int(exercise_grade_id.split("@")[1]), "school_id": usergroup_single_map.get(today_total_students[0], {}).get("school_id", -1)},
-                                      {'$set': {"school_id": usergroup_single_map.get(today_total_students[0], {}).get("school_id"),
+                            UpdateOne({"grade": exercise_school_grade_id.split("@")[2], "school_id": usergroup_single_map.get(today_total_students[0], {}).get("school_id", -1)},
+                                      {'$set': {"school_id": usergroup_single_map.get(today_total_students[0], {}).get("school_id", -1),
                                                 "channel": school_channel_map.get(usergroup_single_map.get(today_total_students[0], {}).get("school_id", -1)),
                                                 "using_time": one_date[0],
                                                 "stage": StageEnum.Using.value}}, upsert=True))
-                        grade_exercise_bulk_update.append(UpdateOne({"grade": int(exercise_grade_id.split("@")[1]), "day": one_date[0]},{'$inc': {"valid_exercise_count": 1}}, upsert=True))
-                        history_grade_exercise_bulk_update.append(UpdateOne({"exercise_grade_id": exercise_grade_id},{'$set': {"last_day": one_date[0], "status": 1}}, upsert=True))
+                        grade_exercise_bulk_update.append(UpdateOne({"grade": exercise_school_grade_id.split("@")[2], "school_id": int(exercise_school_grade_id.split("@")[1]), "day": one_date[0]},{'$inc': {"valid_exercise_count": 1}}, upsert=True))
+                        history_grade_exercise_bulk_update.append(UpdateOne({"exercise_school_grade_id": exercise_school_grade_id},{'$set': {"last_day": one_date[0], "status": 1}}, upsert=True))
 
             # 学校和历史比较
             history_school_exercise_delta_ids = list(school_exercise_image_number.keys())
@@ -1497,23 +1541,12 @@ class PerDayTask_VALIDCONTEST(BaseTask):
                             usergroup_single_map.get(u.get("user_id", -1), {}).get("group_id", -1))][
                             'user_id'] = [u['user_id']]
                 # 年级
-                if grade_word_image_number[str(u_e_i['exercise_id']) + "@" + str(
-                        usergroup_single_map.get(u_e_i.get("student_id", -1), {}).get("grade", -1))][
-                    'user_id']:
-                    grade_word_image_number[str(u_e_i['exercise_id']) + "@" + str(
-                        usergroup_single_map.get(u_e_i.get("student_id", -1), {}).get("grade", -1))][
-                        'user_id'].append(u_e_i['student_id'])
-                    grade_word_image_number[str(u_e_i['exercise_id']) + "@" + str(
-                        usergroup_single_map.get(u_e_i.get("student_id", -1), {}).get("grade", -1))][
-                        'user_id'] = list(set(grade_word_image_number[
-                                                  str(u_e_i['exercise_id']) + "@" + str(
-                                                      usergroup_single_map.get(u_e_i.get("student_id", -1),
-                                                                               {}).get("grade", -1))][
-                                                  'user_id']))
+                exercise_school_group_key = str(u_e_i['exercise_id']) + "@"+ str(usergroup_single_map.get(u_e_i.get("student_id", -1), {}).get("school_id", -1)) +"@" + str(usergroup_single_map.get(u_e_i.get("student_id", -1), {}).get("grade", -1))
+                if grade_word_image_number[exercise_school_group_key]['user_id']:
+                    grade_word_image_number[exercise_school_group_key]['user_id'].append(u_e_i['student_id'])
+                    grade_word_image_number[exercise_school_group_key]['user_id'] = list(set(grade_word_image_number[exercise_school_group_key]['user_id']))
                 else:
-                    grade_word_image_number[str(u_e_i['exercise_id']) + "@" + str(
-                        usergroup_single_map.get(u_e_i.get("student_id", -1), {}).get("grade", -1))][
-                        'user_id'] = [u_e_i['student_id']]
+                    grade_word_image_number[exercise_school_group_key]['user_id'] = [u_e_i['student_id']]
 
                 # 学校
                 if school_word_image_number[str(u_e_i['exercise_id']) + "@" + str(
@@ -1588,28 +1621,28 @@ class PerDayTask_VALIDCONTEST(BaseTask):
             # 年级和历史比较
             history_grade_word_delta_ids = list(grade_word_image_number.keys())
             history_grade_word_delta = self.mongo.record_grade_word_delta.find(
-                {"word_grade_id": {"$in": history_grade_word_delta_ids}})
+                {"word_school_grade_id": {"$in": history_grade_word_delta_ids}})
             history_grade_word_id_map = {}
             grade_word_bulk_update = []
             history_grade_word_bulk_update = []
             for h in history_grade_word_delta:
-                history_grade_word_id_map[h['word_grade_id']] = h
+                history_grade_word_id_map[h['word_school_grade_id']] = h
 
-            for word_grade_id, data in grade_word_image_number.items():
-                history_students = history_grade_word_id_map.get(word_grade_id, {}).get("user_id",
+            for word_school_grade_id, data in grade_word_image_number.items():
+                history_students = history_grade_word_id_map.get(word_school_grade_id, {}).get("user_id",
                                                                                                 [])
                 today_students = data['user_id']
                 today_total_students = list(set(history_students + today_students))
                 history_grade_word_bulk_update.append(
-                    UpdateOne({"word_grade_id": word_grade_id},
+                    UpdateOne({"word_school_grade_id": word_school_grade_id},
                               {'$set': {"user_id": today_total_students}}, upsert=True))
                 if len(today_total_students) >= 10:  # 有效
-                    if history_grade_word_id_map.get(word_grade_id, {}).get("status", 0) == 0:
+                    if history_grade_word_id_map.get(word_school_grade_id, {}).get("status", 0) == 0:
                         grade_word_bulk_update.append(
-                            UpdateOne({"grade": int(word_grade_id.split("@")[1]), "day": one_date[0]},
+                            UpdateOne({"grade": word_school_grade_id.split("@")[2], "school_id": int(word_school_grade_id.split("@")[1]), "day": one_date[0]},
                                       {'$inc': {"valid_word_count": 1}}, upsert=True))
                         history_grade_word_bulk_update.append(
-                            UpdateOne({"word_grade_id": word_grade_id},
+                            UpdateOne({"word_grade_id": word_school_grade_id},
                                       {'$set': {"last_day": one_date[0], "status": 1}}, upsert=True))
 
             # 学校和历史比较
@@ -1668,14 +1701,6 @@ class PerDayTask_VALIDCONTEST(BaseTask):
 
 
 
-            print('------------')
-            print(json.dumps(channel_word_image_number, indent=4, cls=CustomEncoder))
-            print('-------------')
-
-
-            # print(len(user_exercise_images))
-            # print(len(word_exercise_ids))
-            # print(len(exercise_ids))
             #考试
             if grade_stage_bulk_update:
                 try:
@@ -1686,27 +1711,27 @@ class PerDayTask_VALIDCONTEST(BaseTask):
 
             if class_exercise_bulk_update:
                 try:
-                    bulk_update_ret = self.mongo.tmp_class_per_day.bulk_write(class_exercise_bulk_update)
+                    bulk_update_ret = self.mongo.class_per_day.bulk_write(class_exercise_bulk_update)
                     # print(bulk_update_ret.bulk_api_result)
                 except BulkWriteError as bwe:
                     print(bwe.details)
 
             if grade_exercise_bulk_update:
                 try:
-                    bulk_update_ret = self.mongo.tmp_grade_per_day.bulk_write(grade_exercise_bulk_update)
+                    bulk_update_ret = self.mongo.grade_per_day.bulk_write(grade_exercise_bulk_update)
                     # print(bulk_update_ret.bulk_api_result)
                 except BulkWriteError as bwe:
                     print(bwe.details)
             if school_exercise_bulk_update:
                 try:
-                    bulk_update_ret = self.mongo.tmp_school_per_day.bulk_write(school_exercise_bulk_update)
+                    bulk_update_ret = self.mongo.school_per_day.bulk_write(school_exercise_bulk_update)
                     # print(bulk_update_ret.bulk_api_result)
                 except BulkWriteError as bwe:
                     print(bwe.details)
 
             if channel_exercise_bulk_update:
                 try:
-                    bulk_update_ret = self.mongo.tmp_channel_per_day.bulk_write(channel_exercise_bulk_update)
+                    bulk_update_ret = self.mongo.channel_per_day.bulk_write(channel_exercise_bulk_update)
                     # print(bulk_update_ret.bulk_api_result)
                 except BulkWriteError as bwe:
                     print(bwe.details)
@@ -1742,28 +1767,28 @@ class PerDayTask_VALIDCONTEST(BaseTask):
             #词汇
             if class_word_bulk_update:
                 try:
-                    bulk_update_ret = self.mongo.tmp_class_per_day.bulk_write(class_word_bulk_update)
+                    bulk_update_ret = self.mongo.class_per_day.bulk_write(class_word_bulk_update)
                     # print(bulk_update_ret.bulk_api_result)
                 except BulkWriteError as bwe:
                     print(bwe.details)
 
             if grade_word_bulk_update:
                 try:
-                    bulk_update_ret = self.mongo.tmp_grade_per_day.bulk_write(grade_word_bulk_update)
+                    bulk_update_ret = self.mongo.grade_per_day.bulk_write(grade_word_bulk_update)
                     # print(bulk_update_ret.bulk_api_result)
                 except BulkWriteError as bwe:
                     print(bwe.details)
 
             if school_word_bulk_update:
                 try:
-                    bulk_update_ret = self.mongo.tmp_school_per_day.bulk_write(school_word_bulk_update)
+                    bulk_update_ret = self.mongo.school_per_day.bulk_write(school_word_bulk_update)
                     # print(bulk_update_ret.bulk_api_result)
                 except BulkWriteError as bwe:
                     print(bwe.details)
 
             if channel_word_bulk_update:
                 try:
-                    bulk_update_ret = self.mongo.tmp_channel_per_day.bulk_write(channel_word_bulk_update)
+                    bulk_update_ret = self.mongo.channel_per_day.bulk_write(channel_word_bulk_update)
                     print(bulk_update_ret.bulk_api_result)
                 except BulkWriteError as bwe:
                     print(bwe.details)
@@ -1935,10 +1960,10 @@ class PerDayTask_VALIDREADING(BaseTask):
             # print(json.dumps(channel_reading_defaultdict, indent=4, cls=CustomEncoder))
             # print(json.dumps(reading_student_count_per_day_defaultdict, indent=4, cls=CustomEncoder))
 
-            print(json.dumps(usergroup_map, indent=4, cls=CustomEncoder))
-            print(json.dumps(usergroup_single_map, indent=4, cls=CustomEncoder))
-            print(json.dumps(usergroup_map_class_key, indent=4, cls=CustomEncoder))
-            print(json.dumps(usergroup_map_grade_key, indent=4, cls=CustomEncoder))
+            # print(json.dumps(usergroup_map, indent=4, cls=CustomEncoder))
+            # print(json.dumps(usergroup_single_map, indent=4, cls=CustomEncoder))
+            # print(json.dumps(usergroup_map_class_key, indent=4, cls=CustomEncoder))
+            # print(json.dumps(usergroup_map_grade_key, indent=4, cls=CustomEncoder))
 
 
             upadte_reading_delta_bulk = []
@@ -1996,6 +2021,7 @@ class PerDayTask_VALIDREADING(BaseTask):
                             grade_reading_bulk_update.append(
                                 UpdateOne(
                                     {"grade": usergroup_single_map.get(reading['student_id'], {}).get("grade", -1),
+                                     "school_id": usergroup_single_map.get(reading['student_id'], {}).get("school_id", -1),
                                      "day": last_day},
                                     {"$inc": {"valid_reading_count": 1}, "$set": grade_schema}, upsert=True))
 
@@ -2058,361 +2084,7 @@ class PerDayTask_VALIDREADING(BaseTask):
             self._set_time_threadshold("valid_reading_begin_time", datetime.datetime.strptime(one_date[1], "%Y-%m-%d"))
 
 
-            # class_reading_bulk_update = []
-            # for k, v in class_reading_defaultdict.items():
-            #     # k 是班级  v是数量
-            #     if sum(v) >= 10:  # 有效阅读
-            #         exercise_schema = {
-            #             # "school_id": usergroup_map_class_key.get(k, {}).get("school_id", -1),
-            #             # "channel": school_channel_map.get(usergroup_map_grade_key.get(k, {}).get("school_id", -1)),
-            #             # "grade": usergroup_map_class_key.get(k, {}).get("grade", -1),
-            #             # "valid_exercise_count": sum(v)
-            #         }
-            #         class_reading_bulk_update.append(
-            #             UpdateOne({"channel": k, "day": one_date[0]},
-            #                       { "$inc": {"valid_word_count": 1}}, upsert=True))
-            #
-            # if class_reading_bulk_update:
-            #     try:
-            #         bulk_update_ret = self.mongo.class_per_day.bulk_write(class_reading_bulk_update)
-            #         # print(bulk_update_ret.bulk_api_result)
-            #     except BulkWriteError as bwe:
-            #         print(bwe.details)
-            # self._set_time_threadshold("valid_exercise_word_begin_time", datetime.datetime.strptime(one_date[1], "%Y-%m-%d"))
-
-
         return
-
-class PerDayTask_SCHOOLSTAGE(BaseTask):
-    """
-    学校阶段
-    """
-    def __init__(self):
-        super(PerDayTask_SCHOOLSTAGE, self).__init__()
-        self.mongo = pymongo.MongoClient(MONGODB_CONN_URL).sales
-        self.schoolstage_delta_record_coll = "record_schoolstage_delta"
-
-    def _query(self, query):
-        """
-        执行查询 返回数据库结果
-        """
-
-        cursor = connection.cursor()
-        # logger.debug(
-        #     query.compile(dialect=mysql.dialect(), compile_kwargs={"literal_binds": True}).string.replace("%%", "%"))
-
-        cursor.execute(
-            query.compile(dialect=mysql.dialect(), compile_kwargs={"literal_binds": True}).string.replace("%%", "%"))
-        ret = cursor.fetchall()
-        return ret
-
-    def _execute_raw(self, query):
-        cursor = connection.cursor()
-        cursor.execute(query)
-        ret = cursor.fetchall()
-        return ret
-
-    def run(self):
-        try:
-            date_range = self._date_range("school_stage_begin_time") #时间分段
-            # date_range =[("2018-05-27", "2018-05-28")]
-            print('stage stage stage')
-            self._school_stage(date_range) #学校阶段
-
-        except Exception as e:
-            import traceback
-            traceback.print_exc()
-            print('error')
-            raise self.retry(exc=e, countdown=10, max_retries=10)
-
-
-    def _school_stage(self, date_range):
-        """
-        学校阶段
-        :param date_range:
-        :return:
-        """
-        for one_date in date_range:
-            q_school = select([ob_school]) \
-                                .where(and_(ob_school.c.available == 1,
-                                            ob_school.c.time_create >= one_date[0],
-                                            ob_school.c.time_create < one_date[1]
-                                        )
-                                   )
-            schools = self._query(q_school)
-            update_school_bulk = []
-
-            for school in schools:
-                school_schema = {
-                    "open_time": school['time_create'],
-                    "stage": StageEnum.Register.value
-                }
-                update_school_bulk.append(UpdateOne({"school_id": school['id']},{"$set": school_schema}, upsert=True))
-
-
-            if update_school_bulk:
-                try:
-                    bulk_update_ret = self.mongo.school.bulk_write(update_school_bulk)
-                    # print(bulk_update_ret.bulk_api_result)
-                except BulkWriteError as bwe:
-                    print(bwe.details)
-
-            # open_schools = self.mongo.school.find({"stage": StageEnum.Register.value})
-            # update_to_using_bulk = []
-            # for o_s in open_schools:
-            #     sql = "select count(*) as img_count, exercise_id, time_create from sigma_pool_as_hermes " \
-            #           "where student_id in (select id from sigma_account_us_user where school_id = %s) " \
-            #           "and available = 1 and time_create >= '%s' and time_create <= '%s'  group by exercise_id" % (o_s['school_id'], one_date[0], one_date[1])
-            #     exercise_num_per_school = self._execute_raw(sql)
-            #     for e_n_p_s in exercise_num_per_school:
-            #         if e_n_p_s['img_count'] >= 10:
-            #
-            #             one = self._execute_raw("select time_create from sigma_pool_as_hermes where available = 1 and exercise_id = %s order by time_create asc limit 1" % e_n_p_s['exercise_id'])
-            #             school_schema = {
-            #                 "stage": StageEnum.Using.value,
-            #                 "using_time": one[0]['time_create']
-            #             }
-            #             update_to_using_bulk.append(
-            #                 UpdateOne({"school_id": o_s['school_id']}, {"$set": school_schema}, upsert=True))
-            #             break
-            # if update_to_using_bulk:
-            #     try:
-            #         bulk_update_ret = self.mongo.school.bulk_write(update_to_using_bulk)
-            #         # print(bulk_update_ret.bulk_api_result)
-            #     except BulkWriteError as bwe:
-            #         print(bwe.details)
-
-            self._set_time_threadshold("school_stage_begin_time", datetime.datetime.strptime(one_date[1], "%Y-%m-%d"))
-
-# class PerDayTask_SCHOOLSTAGE(BaseTask):
-#     """
-#     学校阶段
-#     """
-#     def __init__(self):
-#         super(PerDayTask_SCHOOLSTAGE, self).__init__()
-#         self.mongo = pymongo.MongoClient(MONGODB_CONN_URL).sales
-#         self.schoolstage_delta_record_coll = "record_schoolstage_delta"
-#
-#     def _query(self, query):
-#         """
-#         执行查询 返回数据库结果
-#         """
-#
-#         cursor = connection.cursor()
-#         # logger.debug(
-#         #     query.compile(dialect=mysql.dialect(), compile_kwargs={"literal_binds": True}).string.replace("%%", "%"))
-#
-#         cursor.execute(
-#             query.compile(dialect=mysql.dialect(), compile_kwargs={"literal_binds": True}).string.replace("%%", "%"))
-#         ret = cursor.fetchall()
-#         return ret
-#
-#
-#     def run(self):
-#         try:
-#             date_range = self._date_range("school_stage_begin_time") #时间分段
-#             # date_range =[("2018-05-27", "2018-05-28")]
-#             print('stage stage stage')
-#             self._school_stage(date_range) #学校阶段
-#
-#         except Exception as e:
-#             import traceback
-#             traceback.print_exc()
-#             print('error')
-#             raise self.retry(exc=e, countdown=10, max_retries=10)
-#
-#
-#     def _school_stage(self, date_range):
-#         """
-#         学校阶段
-#         :param date_range:
-#         :return:
-#         """
-#         for one_date in date_range:
-#             q_image_in_date = select([as_hermes.c.exercise_id, as_hermes.c.student_id,])\
-#                 .where(and_(as_hermes.c.available == 1,
-#                             as_hermes.c.sheetIndex == 1,
-#                             # func.count(distinct(as_hermes.c.student_id)).label('student_count'),
-#                             as_hermes.c.time_create >= one_date[0],
-#                             as_hermes.c.time_create < one_date[1]
-#                             )
-#                        )
-#                 # .group_by(as_hermes.c.exercise_id)
-#
-#             images_student_exercise  = self._query(q_image_in_date)
-#
-#             exercise_ids = list(set([item['exercise_id'] for item in images_student_exercise]))
-#
-#             q_exercise_meta = select([ob_exercisemeta]).where(and_(
-#                 ob_exercisemeta.c.available == 1,
-#                 ob_exercisemeta.c.exercise_id.in_(exercise_ids),
-#                 ob_exercisemeta.c.value == '"word"'
-#             ))
-#             exercise_meta = self._query(q_exercise_meta)
-#
-#             word_exercise_ids = set([item['exercise_id'] for item in exercise_meta])
-#
-#
-#             user_ids = list(set([item['student_id'] for item in images_student_exercise]))
-#
-#             q_usergroup = select([ob_groupuser]).where(and_(
-#                 ob_groupuser.c.available == 1,
-#                 ob_groupuser.c.user_id.in_(user_ids),
-#             ))
-#
-#             usergroup = self._query(q_usergroup)
-#
-#             group_ids = list(set([item['group_id'] for item in usergroup]))
-#
-#             q_group = select([ob_group]).where(and_(
-#                 ob_group.c.available == 1,
-#                 ob_group.c.id.in_(group_ids),
-#             ))
-#
-#             group = self._query(q_group)
-#
-#             school_ids = list(set([item['school_id'] for item in group]))
-#             q_school = select([ob_school.c.owner_id, ob_school.c.id, ob_school.c.time_create]).where(and_(
-#                 ob_school.c.available == 1,
-#                 ob_school.c.id.in_(school_ids),
-#             ))
-#
-#             schools = self._query(q_school)
-#             school_channel_map = {}
-#             school_id_info_map = {}
-#             for s_c in schools:
-#                 school_channel_map[s_c['id']] = s_c['owner_id']
-#                 school_id_info_map[s_c['id']] = s_c
-#             group_map = {}
-#             # print (group)
-#             for g in group:
-#                 group_map[g['id']] = g
-#             # print( json.dumps(group_map, indent=4, cls=CustomEncoder))
-#
-#             usergroup_map = {}
-#             usergroup_map_class_key = {}
-#             usergroup_map_grade_key = {}
-#             for u_g in usergroup:
-#                 u_g.update(group_map.get(u_g['group_id'], {}))
-#                 usergroup_map[u_g['user_id']] = u_g
-#                 usergroup_map_class_key[u_g['group_id']] = u_g
-#                 usergroup_map_grade_key[u_g.get("grade", -1)] = u_g
-#
-#             # print(json.dumps(usergroup_map, indent=4, cls=CustomEncoder))
-#             # print(json.dumps(usergroup_map_class_key, indent=4, cls=CustomEncoder))
-#             # print(json.dumps(usergroup_map_grade_key, indent=4, cls=CustomEncoder))
-#
-#             normal_exercise_school_map = {}
-#             school_exercise_count_defaultdict = defaultdict(lambda: defaultdict(dict))
-#             for n_e in images_student_exercise:
-#                 if n_e['exercise_id'] not in word_exercise_ids and usergroup_map.get(n_e['student_id'], {}).get("school_id"):
-#                     normal_exercise_school_map[n_e['exercise_id']] = usergroup_map.get(n_e['student_id'], {}).get("school_id")
-#
-#                     if school_exercise_count_defaultdict[str(n_e['exercise_id']) + "@"+ str(usergroup_map.get(n_e['student_id'], {}).get("school_id"))]['students']:
-#                         school_exercise_count_defaultdict[str(n_e['exercise_id']) + "@" + str(
-#                             usergroup_map.get(n_e['student_id'], {}).get("school_id"))]['students'].append(n_e['student_id'])
-#                     else:
-#                         school_exercise_count_defaultdict[str(n_e['exercise_id']) + "@" + str(
-#                             usergroup_map.get(n_e['student_id'], {}).get("school_id"))]['students'] = [n_e['student_id']]
-#
-#             # print(json.dumps(school_exercise_count_defaultdict, indent=4, cls=CustomEncoder))
-#
-#             exercise_id_school_id_list = [str(exercise_id)+"@"+str(school_id) for exercise_id,school_id in normal_exercise_school_map.items()]
-#             # print(json.dumps(school_exercise_count_defaultdict, indent=4, cls=CustomEncoder))
-#             history_school_exercise_delta_uid_map_mongo = self.mongo[self.schoolstage_delta_record_coll].find(
-#                     {"exercise_school_id": {"$in": exercise_id_school_id_list}})
-#             print(exercise_id_school_id_list)
-#             history_school_exercise_delta_uid_map = defaultdict(dict)
-#             for history in history_school_exercise_delta_uid_map_mongo:
-#                 history_school_exercise_delta_uid_map[history['exercise_school_id']]['n'] = history.get("n", 0)
-#                 history_school_exercise_delta_uid_map[history['exercise_school_id']]['last_day'] = history.get("last_day", 0)
-#                 history_school_exercise_delta_uid_map[history['exercise_school_id']]['students'] = history.get("students", [])
-#                 history_school_exercise_delta_uid_map[history['exercise_school_id']]['status'] = history.get("status", 0)
-#             print(history_school_exercise_delta_uid_map)
-#             # for exercise_school_id, students in school_exercise_count_defaultdict.items():
-#             # print(json.dumps(history_school_exercise_delta_uid_map, indent=4))
-#             upadte_reading_delta_bulk = []
-#             class_reading_bulk_update = []
-#             grade_reading_bulk_update = []
-#             channel_reading_bulk_update = []
-#             school_using_bulk_update = []
-#             for exercise_school_id, students_dict in school_exercise_count_defaultdict.items():
-#                 if history_school_exercise_delta_uid_map.get(exercise_school_id, {}).get("n", 0) >= 10:  # 已经是有效的话
-#                     exercise_school_id = exercise_school_id
-#                     n = history_school_exercise_delta_uid_map.get(exercise_school_id, {}).get("n")
-#                     students = list(history_school_exercise_delta_uid_map.get(exercise_school_id, {}).get("students", []))
-#                     now_students = list(set(
-#                         students + students_dict.get("students", [])))
-#                     now_n = len(now_students)
-#                     upadte_reading_delta_bulk.append(
-#                         UpdateOne({"exercise_school_id": exercise_school_id},
-#                                   {"$set": {"n": now_n, "students": now_students, "last_day": one_date[0],
-#                                             'status': 1}}, upsert=True))
-#                     # self.mongo[self.schoolstage_delta_record_coll].update_one({"exercise_school_id": exercise_school_id},
-#                     #               {"$set": {"n": now_n, "students": now_students, "last_day": one_date[0],
-#                     #                         'status': 1}}, upsert=True)
-#                 elif history_school_exercise_delta_uid_map.get(exercise_school_id, {}).get("n", 0) < 10:  # 还不是有效
-#                     exercise_school_id = exercise_school_id
-#                     n = history_school_exercise_delta_uid_map.get(exercise_school_id, {}).get("n")
-#                     students = list(history_school_exercise_delta_uid_map.get(exercise_school_id, {}).get("students", []))
-#                     now_students = list(set(
-#                         students + students_dict.get("students", [])))
-#                     now_n = len(now_students)
-#                     if now_n < 10:  # 今天还没到有效
-#                         # print('1111111111111111')
-#                         upadte_reading_delta_bulk.append(
-#                             UpdateOne({"exercise_school_id": exercise_school_id},
-#                                       {"$set": {"n": now_n, "students": now_students, "last_day": one_date[0],
-#                                                 "status": 0}}, upsert=True))
-#                         # self.mongo[self.schoolstage_delta_record_coll].update_one({"exercise_school_id": exercise_school_id},
-#                         #               {"$set": {"n": now_n, "students": now_students, "last_day": one_date[0],
-#                         #                         "status": 0}}, upsert=True)
-#                     elif now_n >= 10:  # 成为有效
-#                         # print('222222222222222222')
-#                         upadte_reading_delta_bulk.append(
-#                             UpdateOne({"exercise_school_id": exercise_school_id},
-#                                       {"$set": {"n": now_n, "students": now_students, "last_day": one_date[0],
-#                                                 'status': 1}}, upsert=True))
-#                         # self.mongo[self.schoolstage_delta_record_coll].update_one({"exercise_school_id": exercise_school_id},
-#                         #               {"$set": {"n": now_n, "students": now_students, "last_day": one_date[0],
-#                         #                         'status': 1}}, upsert=True)
-#                         # print(history_school_exercise_delta_uid_map.get(exercise_school_id, {}).get("status"))
-#                         # print(json.dumps(school_id_info_map, indent=4, cls=CustomEncoder))
-#                         if history_school_exercise_delta_uid_map.get(exercise_school_id, {}).get("status",0) == 0:  # 可以更新
-#                             print(history_school_exercise_delta_uid_map.get(exercise_school_id, {}))
-#                             last_day = history_school_exercise_delta_uid_map.get(exercise_school_id, {}).get("last_day", one_date[0])
-#                             # print(json.dumps(exercise_school_id.split('@'), indent=4, cls=CustomEncoder))
-#                             school_using_schema = {
-#                                 # "school_id": exercise_school_id.split('@')[1],
-#                                 "open_time": school_id_info_map.get(int(exercise_school_id.split('@')[1]), {}).get("time_create", 0),
-#                                 "using_time": last_day
-#                                 # "channel": school_channel_map.get(exercise_school_id.split('@')[1], -1),
-#                                 # "grade": usergroup_single_map.get(reading['student_id'], {}).get("grade", -1),
-#                             }
-#                             # print(exercise_school_id)
-#                             # print(333333333333333333333333333)
-#                             school_using_bulk_update.append(
-#                                 UpdateOne({"school_id": int(exercise_school_id.split('@')[1])},
-#                                           {"$set": school_using_schema}, upsert=True))
-#
-#
-#                         else:  # 不可以更新
-#                             pass
-#             if school_using_bulk_update:
-#                 try:
-#                     bulk_update_ret = self.mongo.school_tmp.bulk_write(school_using_bulk_update)
-#                     # print(bulk_update_ret.bulk_api_result)
-#                 except BulkWriteError as bwe:
-#                     print(bwe.details)
-#
-#             if upadte_reading_delta_bulk:
-#                 try:
-#                     bulk_update_ret = self.mongo[self.schoolstage_delta_record_coll].bulk_write(upadte_reading_delta_bulk)
-#                     # print(bulk_update_ret.bulk_api_result)
-#                 except BulkWriteError as bwe:
-#                     print(bwe.details)
-#
-#             self._set_time_threadshold("school_stage_begin_time", datetime.datetime.strptime(one_date[1], "%Y-%m-%d"))
 
 
 class PerDayTask(BaseTask):
@@ -2424,26 +2096,22 @@ class PerDayTask(BaseTask):
 
     def run(self):
         try:
-            print ('begin')
+            print ('begin...')
             from tasks.celery_init import sales_celery
-            # sales_celery.send_task("tasks.celery_per_day_task.PerDaySubTask_IMAGES") #考试 单词图片数
-            # sales_celery.send_task("tasks.celery_per_day_task.PerDaySubTask_GUARDIAN") #家长数也为绑定数
-            # sales_celery.send_task("tasks.celery_per_day_task.PerDaySubTask_PAYMENTS") #付费数 付费额
-            # sales_celery.send_task("tasks.celery_per_day_task.PerDaySubTask_USERS") #学生数 老师数
-            # sales_celery.send_task("tasks.celery_per_day_task.PerDayTask_SCHOOL") #学校数
-            # sales_celery.send_task("tasks.celery_per_day_task.PerDayTask_VALIADCONTEST") #有效考试 有效单词
+            sales_celery.send_task("tasks.celery_per_day_task.PerDaySubTask_IMAGES") #考试 单词图片数
+            sales_celery.send_task("tasks.celery_per_day_task.PerDaySubTask_GUARDIAN") #家长数也为绑定数
+            sales_celery.send_task("tasks.celery_per_day_task.PerDaySubTask_PAYMENTS") #付费数 付费额
+            sales_celery.send_task("tasks.celery_per_day_task.PerDaySubTask_USERS") #学生数 老师数
+            sales_celery.send_task("tasks.celery_per_day_task.PerDayTask_SCHOOL") #学校数
+            sales_celery.send_task("tasks.celery_per_day_task.PerDayTask_VALIDCONTEST") #有效考试 有效单词
             sales_celery.send_task("tasks.celery_per_day_task.PerDayTask_VALIDREADING")  # 有效阅读
-            # sales_celery.send_task("tasks.celery_per_day_task.PerDayTask_SCHOOLSTAGE")  # 学校阶段
+            sales_celery.send_task("tasks.celery_per_day_task.PerDayTask_SCHOOLSTAGE")  # 学校阶段
+            print ('finished...')
 
-            print ('finished.......')
-            # self.server.stop()
-            # self.connection.close()
-            # self.cursor.close()
         except Exception as e:
             import traceback
             traceback.print_exc()
 
-            raise self.retry(exc=e, countdown=30, max_retries=5)
-
+            # raise self.retry(exc=e, countdown=30, max_retries=5)
 
 

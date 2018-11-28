@@ -227,7 +227,7 @@ class Overview(BaseHandler):
         :param request:
         :return:
         """
-        coll = request.app['mongodb'][self.db][self.grade_per_day_coll]
+        coll = request.app['mongodb'][self.db][self.class_per_day_coll]
         total_image_count_list = []
         current_week_new_image_count_list = []
         last_week_new_image_count_list = []
@@ -311,7 +311,7 @@ class Overview(BaseHandler):
         :param request:
         :return:
         """
-        coll = request.app['mongodb'][self.db][self.grade_per_day_coll]
+        coll = request.app['mongodb'][self.db][self.channel_per_day_coll]
         total_teacher_count_list = []
         current_week_new_teacher_count_list = []
         last_week_new_teacher_count_list = []

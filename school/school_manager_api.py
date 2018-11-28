@@ -24,6 +24,9 @@ from pymongo import UpdateOne, DeleteMany
 from bson import ObjectId
 from enumconstant import Roles, PermissionRole
 from tasks.celery_base import BaseTask
+from utils import CustomEncoder
+from models.mysql.centauri import StageEnum
+from collections import defaultdict
 
 class SchoolManage(BaseHandler):
     def __init__(self):
@@ -31,8 +34,12 @@ class SchoolManage(BaseHandler):
         self.user_coll = 'sale_user'
         self.instance_coll = 'instance'
         self.school_coll = 'school'
+        self.grade_coll = 'grade'
+        self.school_per_day_coll = 'school_per_day'
+        self.grade_per_day_coll = 'grade_per_day'
         self.start_time = BaseTask().start_time
 
+    @validate_permission()
     async def get_school_list(self, request: Request):
         """
         学校列表
@@ -42,12 +49,15 @@ class SchoolManage(BaseHandler):
         request_param = await get_params(request)
         page = int(request_param.get("page", 0))
         per_page = 30
+
         sql = "select count(id) as total_school_count from sigma_account_ob_school" \
               " where available = 1 and time_create >= '%s' " \
               "and time_create <= '%s' " % (self.start_time.strftime("%Y-%m-%d"), datetime.now().strftime("%Y-%m-%d"))
-        school_page_sql = "select id,full_name  from sigma_account_ob_school" \
+        school_page_sql = "select id,full_name, time_create  from sigma_account_ob_school" \
               " where available = 1 and time_create >= '%s' " \
               "and time_create <= '%s' limit %s,%s" % (self.start_time.strftime("%Y-%m-%d"), datetime.now().strftime("%Y-%m-%d"), per_page*page, per_page)
+
+
         async with request.app['mysql'].acquire() as conn:
             async with conn.cursor(DictCursor) as cur:
                 await cur.execute(sql)
@@ -55,9 +65,244 @@ class SchoolManage(BaseHandler):
                 await cur.execute(school_page_sql)
                 schools = await cur.fetchall()
         total_school_count = total_school[0]['total_school_count']
-        print(schools)
+
+        school_ids = [item['id'] for item in schools]
+        grades = []
+        if school_ids:
+            grade_sql = "select grade, school_id, time_create from sigma_account_ob_group where available = 1 and school_id in (%s) group by school_id, grade" % ",".join([str(id) for id in school_ids])
+            async with request.app['mysql'].acquire() as conn:
+                async with conn.cursor(DictCursor) as cur:
+                    await cur.execute(grade_sql)
+                    grades = await cur.fetchall()
+
+        stage_school = request.app['mongodb'][self.db][self.school_coll].find({"school_id": {"$in": school_ids}})
+        stage_school = await stage_school.to_list(10000)
 
 
+        stage_grade = request.app['mongodb'][self.db][self.grade_coll].find({"school_id": {"$in": school_ids}})
+        stage_grade = await stage_grade.to_list(10000)
+
+        stage_grade_union_map = {}
+        for s_g in stage_grade:
+            stage_grade_union_map[str(s_g['school_id']) + "@" + s_g['grade']] = s_g
+
+        stage_grade_union_map2 = {}
+        school_grade_union_defaultdict = defaultdict(list)
+        for grade in grades:
+            union_id = str(grade['school_id']) + "@" + grade['grade']
+            default = {
+                "stage": StageEnum.Register.value,
+                "using_time": 0
+            }
+            grade['school_grade'] = union_id
+            grade.update(stage_grade_union_map.get(union_id, default))
+            stage_grade_union_map2[union_id] = grade
+            school_grade_union_defaultdict[grade['school_id']].append(union_id)
+
+        school_item = await self._stat_school(request, school_ids)
+        school_item_map = {}
+        for s_i in school_item:
+            school_item_map[s_i['_id']] = s_i
+        grade_item = await self._stat_grade(request, school_ids)
+        grade_item_map = {}
+        for g_i in grade_item:
+            grade_item_map[str(g_i['_id']['school_id']) + "@" + g_i['_id']['grade']] = g_i
+
+        for school in schools:
+            default = {
+            "total_teacher_number": 0,
+            "total_student_number": 0,
+            "total_guardian_number": 0,
+            "total_pay_number": 0,
+            "total_pay_amount": 0,
+            "total_valid_reading_number": 0,
+            "total_valid_exercise_number": 0,
+            "total_valid_word_number": 0,
+            "total_exercise_image_number": 0,
+            "total_word_image_number": 0,
+            "pay_ratio": 0.0,
+            "bind_ratio": 0.0
+             }
+            school['stat_info'] = school_item_map.get(school['id'], default)
+            school['grade_info'] = []
+            stage = []
+            for school_grade in school_grade_union_defaultdict.get(school['id'], []):
+                g_info = grade_item_map.get(school_grade, {})
+                if g_info:
+                    g_info.update(stage_grade_union_map2.get(school_grade, {}))
+                    school['grade_info'].append(g_info)
+                    stage.append(stage_grade_union_map2.get(school_grade, {}).get("stage", StageEnum.Register.value))
+
+            school['stage'] = StageEnum.Register.value if not stage else min(stage)
+
+        return self.reply_ok({"school_list": schools}, extra={"total":total_school_count, "number_per_page": per_page, "curr_page": page})
 
 
-        return self.reply_ok({})
+    async def _stat_grade(self, request: Request, school_id):
+        """
+        年级统计
+        """
+        coll = request.app['mongodb'][self.db][self.grade_per_day_coll]
+        items = []
+        yesterday = datetime.now() - timedelta(1)
+        yesterday_before_30day = yesterday - timedelta(30)
+        yesterday_str = yesterday.strftime("%Y-%m-%d")
+        yesterday_before_30day_str = yesterday_before_30day.strftime("%Y-%m-%d")
+
+
+        item_count = coll.aggregate(
+            [
+                {
+                    "$match": {
+                        "school_id": {"$in": school_id}
+                    }
+                },
+                {
+                    "$project": {
+                        "channel": 1,
+                        "school_id": 1,
+                        "grade": 1,
+                        "teacher_number": 1,
+                        "student_number": 1,
+                        "guardian_count": 1,
+                        "pay_number": 1,
+                        "pay_amount": 1,
+                        "valid_reading_count": {"$cond": [{"$and": [{"$lt": ["$day", yesterday_str]}, {
+                            "$gte": ["$day", yesterday_before_30day_str]}]}, "$valid_reading_count", 0]},
+                        "valid_exercise_count": {"$cond": [{"$and": [{"$lt": ["$day", yesterday_str]}, {
+                            "$gte": ["$day", yesterday_before_30day_str]}]}, "$valid_exercise_count", 0]},
+                        "e_image_c": {"$cond": [{"$and": [{"$lt": ["$day", yesterday_str]}, {
+                            "$gte": ["$day", yesterday_before_30day_str]}]}, "$e_image_c", 0]},
+                        "valid_word_count": {"$cond": [{"$and": [{"$lt": ["$day", yesterday_str]}, {
+                            "$gte": ["$day", yesterday_before_30day_str]}]}, "$valid_word_count", 0]},
+                        "w_image_c": {"$cond": [{"$and": [{"$lt": ["$day", yesterday_str]}, {
+                            "$gte": ["$day", yesterday_before_30day_str]}]}, "$w_image_c", 0]},
+
+                        "day": 1
+                    }
+                },
+
+                {"$group": {"_id": {"school_id": "$school_id", "grade": "$grade"},
+                            "total_teacher_number": {"$sum": "$teacher_number"},
+                            "total_student_number": {"$sum": "$student_number"},
+                            "total_guardian_number": {"$sum": "$guardian_count"},
+                            "total_pay_number": {"$sum": "$pay_number"},
+                            "total_pay_amount": {"$sum": "$pay_amount"},
+                            "total_valid_reading_number": {"$sum": "$valid_reading_count"},
+                            "total_valid_exercise_number": {"$sum": "$valid_exercise_count"},
+                            "total_valid_word_number": {"$sum": "$valid_word_count"},
+                            "total_exercise_image_number": {"$sum": "$e_image_c"},
+                            "total_word_image_number": {"$sum": "$w_image_c"}
+                            }
+                 },
+                {
+                    "$project": {
+                        "_id": 1,
+                        "total_teacher_number": 1,
+                        "total_student_number": 1,
+                        "total_guardian_number": 1,
+                        "total_pay_number": 1,
+                        "total_pay_amount": 1,
+                        "total_valid_reading_number": 1,
+                        "total_valid_exercise_number": 1,
+                        "total_valid_word_number": 1,
+                        "total_exercise_image_number": 1,
+                        "total_word_image_number": 1,
+
+                        "pay_ratio": {"$cond": [{"$eq": ["$total_student_number", 0]}, 0, {"$divide": ["$total_pay_number", "$total_student_number"]}]},
+                        "bind_ratio": {"$cond": [{"$eq": ["$total_student_number", 0]}, 0,
+                                                {"$divide": ["$total_guardian_number", "$total_student_number"]}]},
+                    }
+
+                }
+
+            ])
+
+        async for item in item_count:
+            items.append(item)
+
+        return items
+
+    async def _stat_school(self, request: Request, school_id):
+        """
+        学校统计
+        """
+        coll = request.app['mongodb'][self.db][self.school_per_day_coll]
+        items = []
+        yesterday = datetime.now() - timedelta(1)
+        yesterday_before_30day = yesterday - timedelta(30)
+        yesterday_str = yesterday.strftime("%Y-%m-%d")
+        yesterday_before_30day_str = yesterday_before_30day.strftime("%Y-%m-%d")
+
+
+        item_count = coll.aggregate(
+            [
+                {
+                    "$match": {
+                        "school_id": {"$in": school_id}
+                    }
+                },
+                {
+                    "$project": {
+                        "channel": 1,
+                        "school_id": 1,
+                        "teacher_number": 1,
+                        "student_number": 1,
+                        "guardian_count": 1,
+                        "pay_number": 1,
+                        "pay_amount": 1,
+                        "valid_reading_count": {"$cond": [{"$and": [{"$lt": ["$day", yesterday_str]}, {
+                            "$gte": ["$day", yesterday_before_30day_str]}]}, "$valid_reading_count", 0]},
+                        "valid_exercise_count": {"$cond": [{"$and": [{"$lt": ["$day", yesterday_str]}, {
+                            "$gte": ["$day", yesterday_before_30day_str]}]}, "$valid_exercise_count", 0]},
+                        "e_image_c": {"$cond": [{"$and": [{"$lt": ["$day", yesterday_str]}, {
+                            "$gte": ["$day", yesterday_before_30day_str]}]}, "$e_image_c", 0]},
+                        "valid_word_count": {"$cond": [{"$and": [{"$lt": ["$day", yesterday_str]}, {
+                            "$gte": ["$day", yesterday_before_30day_str]}]}, "$valid_word_count", 0]},
+                        "w_image_c": {"$cond": [{"$and": [{"$lt": ["$day", yesterday_str]}, {
+                            "$gte": ["$day", yesterday_before_30day_str]}]}, "$w_image_c", 0]},
+
+                        "day": 1
+                    }
+                },
+
+                {"$group": {"_id": "$school_id",
+                            "total_teacher_number": {"$sum": "$teacher_number"},
+                            "total_student_number": {"$sum": "$student_number"},
+                            "total_guardian_number": {"$sum": "$guardian_count"},
+                            "total_pay_number": {"$sum": "$pay_number"},
+                            "total_pay_amount": {"$sum": "$pay_amount"},
+                            "total_valid_reading_number": {"$sum": "$valid_reading_count"},
+                            "total_valid_exercise_number": {"$sum": "$valid_exercise_count"},
+                            "total_valid_word_number": {"$sum": "$valid_word_count"},
+                            "total_exercise_image_number": {"$sum": "$e_image_c"},
+                            "total_word_image_number": {"$sum": "$w_image_c"}
+                            }
+                 },
+                {
+                    "$project": {
+                        "_id": 1,
+                        "total_teacher_number": 1,
+                        "total_student_number": 1,
+                        "total_guardian_number": 1,
+                        "total_pay_number": 1,
+                        "total_pay_amount": 1,
+                        "total_valid_reading_number": 1,
+                        "total_valid_exercise_number": 1,
+                        "total_valid_word_number": 1,
+                        "total_exercise_image_number": 1,
+                        "total_word_image_number": 1,
+
+                        "pay_ratio": {"$cond": [{"$eq": ["$total_student_number", 0]}, 0, {"$divide": ["$total_pay_number", "$total_student_number"]}]},
+                        "bind_ratio": {"$cond": [{"$eq": ["$total_student_number", 0]}, 0,
+                                                {"$divide": ["$total_guardian_number", "$total_student_number"]}]},
+                    }
+
+                }
+
+            ])
+
+        async for item in item_count:
+            items.append(item)
+
+        return items
