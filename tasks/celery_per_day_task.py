@@ -32,6 +32,21 @@ from configs import DEBUG, MONGODB_CONN_URL, MYSQL_NAME, MYSQL_USER, MYSQL_PASSW
 
 connection = None
 server = None
+server = SSHTunnelForwarder(
+            ssh_address_or_host=('139.196.77.128', 5318),  # 跳板机
+
+            ssh_password="PengKim@89527",
+            ssh_username="jinpeng",
+            remote_bind_address=('rr-uf6247jo85269bp6e.mysql.rds.aliyuncs.com', 3306))
+server.start()
+connection = pymysql.connect(host="127.0.0.1",
+                                  port=server.local_bind_port,
+                                  user="sigma",
+                                  password="sigmaLOVE2017",
+                                  db=MYSQL_NAME,
+                                  charset='utf8mb4',
+                                  cursorclass=pymysql.cursors.DictCursor)
+
 @worker_process_init.connect
 def init_worker(**kwargs):
     global connection
@@ -924,7 +939,7 @@ class PerDayTask_SCHOOL(BaseTask):
                     "open_time": school['time_create'],
                     "stage": StageEnum.Register.value
                 }
-                update_school_bulk.append(UpdateOne({"school_id": school['id']}, {"$set": school_schema}, upsert=True))
+                update_school_bulk.append(UpdateOne({"school_id": school['id'],"stage": {"$in": [StageEnum.Register.value, StageEnum.Using.value]}}, {"$set": school_schema}, upsert=True))
 
             if update_school_bulk:
                 try:
@@ -1252,8 +1267,9 @@ class PerDaySubTask_USERS(BaseTask):
 class PerDayTask_VALIDCONTEST(BaseTask):
     def __init__(self):
         super(PerDayTask_VALIDCONTEST, self).__init__()
-
         self.mongo = pymongo.MongoClient(MONGODB_CONN_URL).sales
+        self.grade_coll = "grade"
+        self.school_coll = "school"
 
     def _query(self, query):
         """
@@ -1458,6 +1474,7 @@ class PerDayTask_VALIDCONTEST(BaseTask):
                 history_grade_exercise_bulk_update.append(UpdateOne({"exercise_school_grade_id": exercise_school_grade_id}, {'$set': {"user_id": today_total_students}},upsert=True))
                 if len(today_total_students) >= 10: #有效
                     if history_grade_exercise_id_map.get(exercise_school_grade_id, {}).get("status", 0) == 0:
+                        self.check_school_stage(usergroup_single_map.get(today_total_students[0], {}).get("school_id", -1), one_date[0])
                         grade_stage_bulk_update.append(
                             UpdateOne({"grade": exercise_school_grade_id.split("@")[2], "school_id": usergroup_single_map.get(today_total_students[0], {}).get("school_id", -1)},
                                       {'$set': {"school_id": usergroup_single_map.get(today_total_students[0], {}).get("school_id", -1),
@@ -1823,6 +1840,36 @@ class PerDayTask_VALIDCONTEST(BaseTask):
 
             self._set_time_threadshold("valid_exercise_word_begin_time",
                                        datetime.datetime.strptime(one_date[1], "%Y-%m-%d"))
+    def check_school_stage(self, school_id, date):
+        """
+        检查并修改学校阶段
+        :param self:
+        :param school_id:
+        :return:
+        """
+        q_grade  = select([ob_group.c.grade, ob_group.c.school_id])\
+                .where(and_(ob_group.c.available == 1,
+                            ob_group.c.school_id == school_id
+                            )
+                       ).group_by(ob_group.c.school_id).group_by(ob_group.c.grade)
+
+        grades_mysql = self._query(q_grade)
+        grades = self.mongo[self.grade_coll].find({"school_id": school_id})
+        grade_map = {}
+        for g in grades:
+            grade_map[g['grade']] = g
+        stage = []
+        for grade in grades_mysql:
+            stage.append(grade_map.get(grade['grade'], {}).get('stage', StageEnum.Register.value))
+        final_stage = StageEnum.Register.value if not stage else min(stage)
+        if final_stage >= 1:
+            schema = {
+                "stage": final_stage, "using_time": date
+            }
+
+            self.mongo[self.school_coll].update_one({"school_id": school_id,
+                                                 "stage": {"$in": [StageEnum.Register.value, StageEnum.Using.value]}},
+                                                {"$set": schema}, upsert=True)
 
 class PerDayTask_VALIDREADING(BaseTask):
     """

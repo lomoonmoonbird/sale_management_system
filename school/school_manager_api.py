@@ -43,6 +43,12 @@ class SchoolManage(BaseHandler):
     async def get_school_list(self, request: Request):
         """
         学校列表
+        {
+            "page":"",
+            "school_name":"",
+            "stage": "",
+            "open_time_range":
+        }
         :param request:
         :return:
         """
@@ -50,22 +56,58 @@ class SchoolManage(BaseHandler):
         page = int(request_param.get("page", 0))
         per_page = 30
 
-        sql = "select count(id) as total_school_count from sigma_account_ob_school" \
-              " where available = 1 and time_create >= '%s' " \
-              "and time_create <= '%s' " % (self.start_time.strftime("%Y-%m-%d"), datetime.now().strftime("%Y-%m-%d"))
-        school_page_sql = "select id,full_name, time_create  from sigma_account_ob_school" \
-              " where available = 1 and time_create >= '%s' " \
-              "and time_create <= '%s' limit %s,%s" % (self.start_time.strftime("%Y-%m-%d"), datetime.now().strftime("%Y-%m-%d"), per_page*page, per_page)
+        school_page_sql = ''
+        total_sql = ''
+        total_school_count = 0
+        if not request_param.get('school_name') and not request_param.get('stage') and not request_param.get('open_time_range'): #全部
+            print('alll')
+            school_page_sql = "select id,full_name, time_create  from sigma_account_ob_school" \
+                  " where available = 1 and time_create >= '%s' " \
+                  "and time_create <= '%s' limit %s,%s" % (self.start_time.strftime("%Y-%m-%d"), datetime.now().strftime("%Y-%m-%d"), per_page*page, per_page)
+            total_sql = "select count(id) as total_school_count from sigma_account_ob_school" \
+                        " where available = 1 and time_create >= '%s' " \
+                        "and time_create <= '%s' " % (
+                            self.start_time.strftime("%Y-%m-%d"), datetime.now().strftime("%Y-%m-%d"))
+
+        elif request_param.get('school_name'): #单个学校
+            print('single school')
+            school_page_sql = "select id,full_name, time_create  from sigma_account_ob_school" \
+                              " where available = 1 and full_name like '%s'" % "%"+request_param['school_name'] +"%"
+
+        elif not request_param.get('school_name'):
+            stage = [StageEnum.Register.value, StageEnum.Using.value, StageEnum.Binding.value, StageEnum.Pay.value]
+            request_stage = request_param.get('stage', -1)
+            if request_stage != -1 and int(request_stage) not in stage:
+                request_stage = stage
+            else:
+                stage = [int(request_stage)]
+            query = {
+                "stage": {"$in": stage},
+            }
+            date_range = ""
+            if request_param.get('date_range', ''):
+                date_range = request_param.get('date_range').split(',')
+                query.update({"open_time": {"$gte": date_range[0], "$lte": date_range[1]}})
+            condition_schools = request.app['mongodb'][self.db][self.school_coll].find(query)
+            condition_schools = await condition_schools.to_list(10000)
+            condition_school_ids = [item['school_id'] for item in condition_schools]
+            school_page_sql = "select id,full_name, time_create  from sigma_account_ob_school" \
+                              " where available = 1 and id in (%s) limit %s,%s" % (','.join(['"'+str(id)+'"' for id in condition_school_ids]), per_page*page, per_page)
+            total_sql = "select count(id) as total_school_count from sigma_account_ob_school" \
+                        " where available = 1 and time_create >= '%s' " \
+                        "and time_create <= '%s' and id in (%s) " % (
+                            self.start_time.strftime("%Y-%m-%d"), datetime.now().strftime("%Y-%m-%d"),','.join(['"'+str(id)+'"' for id in condition_school_ids]))
+        else:
+            pass
 
 
         async with request.app['mysql'].acquire() as conn:
             async with conn.cursor(DictCursor) as cur:
-                await cur.execute(sql)
+                await cur.execute(total_sql)
                 total_school = await cur.fetchall()
                 await cur.execute(school_page_sql)
                 schools = await cur.fetchall()
         total_school_count = total_school[0]['total_school_count']
-
         school_ids = [item['id'] for item in schools]
         grades = []
         if school_ids:
@@ -134,9 +176,44 @@ class SchoolManage(BaseHandler):
                     stage.append(stage_grade_union_map2.get(school_grade, {}).get("stage", StageEnum.Register.value))
 
             school['stage'] = StageEnum.Register.value if not stage else min(stage)
+        return self.reply_ok({"school_list": schools, "extra": {"total":total_school_count, "number_per_page": per_page, "curr_page": page}})
 
-        return self.reply_ok({"school_list": schools}, extra={"total":total_school_count, "number_per_page": per_page, "curr_page": page})
+    @validate_permission()
+    async def update_grade_stage(self, request: Request):
+        """
+        更新年级状态
+        {
+            "school_id": "",
+            "grade": "",
+            "stage":"",
+            "begin_time": ""
+        }
+        :param request:
+        :return:
+        """
+        request_data = await get_json(request)
+        school_id = int(request_data.get("school_id"))
+        grade = request_data.get("grade")
+        stage = int(request_data.get("stage"))
+        begin_time = request_data.get("begin_time")
+        if not school_id or not grade or not stage:
+            raise RequestError("paramter should not be empty")
+        if stage == StageEnum.Binding.value:
+            # grade_of_school_sql = "select grade, school_id, time_create from sigma_account_ob_group where available = 1 and school_id = %s group by school_id, grade" % school_id
+            # async with request.app['mysql'].acquire() as conn:
+            #     async with conn.cursor(DictCursor) as cur:
+            #         await cur.execute(grade_of_school_sql)
+            #         school_grade = await cur.fetchall()
+            await request.app['mongodb'][self.db][self.grade_coll].update_one({"school_id": school_id, "grade": grade},
+                                                                        {"$set": {"stage": stage, "binding_time": begin_time}})
+        elif stage == StageEnum.Pay.value:
+            await request.app['mongodb'][self.db][self.grade_coll].update_one({"school_id": school_id, "grade": grade},
+                                                                        {"$set": {"stage": stage,
+                                                                                  "pay_time": begin_time}})
+        else:
+            pass
 
+        return self.reply_ok({})
 
     async def _stat_grade(self, request: Request, school_id):
         """

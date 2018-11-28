@@ -31,7 +31,7 @@ class Config():
     beat_schedule= {
         "per_day_task": {
             "task": "tasks.celery_per_day_task.PerDayTask",
-            "schedule": crontab(hour=12, minute=45)
+            "schedule": crontab(hour=20, minute=10)
         },
         # "per_day_pay": {
         #     "task": "tasks.celery_per_day_task.PerDaySubTask_PAYMENTS",
@@ -149,8 +149,8 @@ sales_celery.register_task(per_day_task)
 per_day_exercise_images = PerDaySubTask_IMAGES()
 sales_celery.register_task(per_day_exercise_images)
 
-per_data_guardian = PerDaySubTask_GUARDIAN()
-sales_celery.register_task(per_data_guardian)
+per_day_guardian = PerDaySubTask_GUARDIAN()
+sales_celery.register_task(per_day_guardian)
 
 per_day_payments = PerDaySubTask_PAYMENTS()
 sales_celery.register_task(per_day_payments)
