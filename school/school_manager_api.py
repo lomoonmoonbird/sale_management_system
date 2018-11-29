@@ -85,18 +85,23 @@ class SchoolManage(BaseHandler):
             if request_stage != -1 and int(request_stage) not in stage:
                 query["stage"] = {"$in": stage}
             elif request_stage != -1 and int(request_stage) in stage:
-                query["stage"] = request_stage
+                query["stage"] = int(request_stage)
             else:
                 pass
-            date_range = request_param.get('date_range', '')
+            date_range = request_param.get('open_time_range', '')
+
             if date_range:
-                date_range = request_param.get('date_range').split(',')
-                query.update({"open_time": {"$gte": date_range[0], "$lte": date_range[1]}})
+                date_range = request_param.get('open_time_range').split(',')
+                query.update({"open_time": {"$gte": datetime.strptime(date_range[0], "%Y-%m-%d"), "$lte": datetime.strptime(date_range[1], "%Y-%m-%d")}})
             else:
                 date_range = [self.start_time.strftime("%Y-%m-%d"), datetime.now().strftime("%Y-%m-%d")]
-
-            condition_schools = request.app['mongodb'][self.db][self.school_coll].find(query)
+                query.update({"open_time": {"$gte": datetime.strptime(date_range[0], "%Y-%m-%d"), "$lte": datetime.strptime(date_range[1], "%Y-%m-%d")}})
+            print('query', query)
+            condition_schools = request.app['mongodb'][self.db][self.school_coll].find(query).skip(per_page*page).limit(per_page)
             condition_schools = await condition_schools.to_list(10000)
+            print('condition_schools', condition_schools)
+            if not condition_schools:
+                return self.reply_ok({})
             condition_school_ids = [item['school_id'] for item in condition_schools]
             school_page_sql = "select id,full_name, time_create  from sigma_account_ob_school" \
                               " where available = 1 and id in (%s) limit %s,%s" % (','.join(['"'+str(id)+'"' for id in condition_school_ids]), per_page*page, per_page)
@@ -104,6 +109,8 @@ class SchoolManage(BaseHandler):
                         " where available = 1 and time_create >= '%s' " \
                         "and time_create <= '%s' and id in (%s) " % (
                 date_range[0], date_range[1],','.join(['"'+str(id)+'"' for id in condition_school_ids]))
+            print('school_page_sql', school_page_sql)
+            print('total_sql', total_sql)
         else:
             pass
         total_school_count = 1
@@ -117,7 +124,7 @@ class SchoolManage(BaseHandler):
                     total_school_count = total_school[0]['total_school_count']
                 await cur.execute(school_page_sql)
                 schools = await cur.fetchall()
-
+        print(schools)
         school_ids = [item['id'] for item in schools]
         grades = []
         if school_ids:
