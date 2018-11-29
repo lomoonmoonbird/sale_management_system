@@ -637,7 +637,7 @@ class PerDaySubTask_PAYMENTS(BaseTask):
             q_payments = select([ob_order.c.user_id, ob_order.c.coupon_amount])\
                 .where(and_(ob_order.c.available == 1,
                             ob_order.c.status == 3,
-                            ob_order.c.time_create > one_date[0],
+                            ob_order.c.time_create >= one_date[0],
                             ob_order.c.time_create < one_date[1])
                        )
 
@@ -742,7 +742,7 @@ class PerDaySubTask_PAYMENTS(BaseTask):
                 if channel_payment_default_dict[school_channel_map.get(usergroup_map.get(payment['user_id'], {}).get("school_id", -1))]['pay_amount']:
                     channel_payment_default_dict[
                         school_channel_map.get(usergroup_map.get(payment['user_id'], {}).get("school_id", -1))][
-                        'pay_n'].append(payment['coupon_amount'])
+                        'pay_amount'].append(payment['coupon_amount'])
                 else:
                     channel_payment_default_dict[
                         school_channel_map.get(usergroup_map.get(payment['user_id'], {}).get("school_id", -1))][

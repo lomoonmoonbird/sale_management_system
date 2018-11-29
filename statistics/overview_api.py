@@ -41,22 +41,22 @@ class Overview(BaseHandler, DataExcludeMixin):
         :param request:
         :return:
         """
-
+        exclude_channels = await self.exclude_channel(request.app['mysql'])
         if request['user_info']['instance_role_id'] == Roles.GLOBAL.value:
-            pay_total, pay_curr_week_new_number, pay_last_week_new_number = await self._pay_number(request)
+            pay_total, pay_curr_week_new_number, pay_last_week_new_number = await self._pay_number(request, exclude_channels)
 
-            pay_amount, pay_curr_week_new_amount, pay_last_week_new_amount = await self._pay_amount(request)
+            pay_amount, pay_curr_week_new_amount, pay_last_week_new_amount = await self._pay_amount(request, exclude_channels)
 
-            total_school_number, curr_week_new_school_number, last_week_new_school_number = await self._school_number(request)
+            total_school_number, curr_week_new_school_number, last_week_new_school_number = await self._school_number(request, exclude_channels)
 
-            teacher_total, teacher_curr_week_new_number, teacher_last_week_new_number = await self._teacher_number(request)
-            student_total, student_curr_week_new_number, student_last_week_new_number = await self._student_number(request)
+            teacher_total, teacher_curr_week_new_number, teacher_last_week_new_number = await self._teacher_number(request, exclude_channels)
+            student_total, student_curr_week_new_number, student_last_week_new_number = await self._student_number(request, exclude_channels)
 
-            image_total, image_curr_week_new_number, image_last_week_new_number = await self._images_number(request)
+            image_total, image_curr_week_new_number, image_last_week_new_number = await self._images_number(request, exclude_channels)
 
-            guardian_total, guardian_curr_week_new_number, guardian_last_week_new_number = await self._guardian_number(request)
+            guardian_total, guardian_curr_week_new_number, guardian_last_week_new_number = await self._guardian_number(request, exclude_channels)
 
-            contest_total, contest_curr_week_new_number, contest_last_week_new_number = await self._valid_contest_number(request)
+            contest_total, contest_curr_week_new_number, contest_last_week_new_number = await self._valid_contest_number(request, exclude_channels)
 
             return self.reply_ok({"pay_total": pay_total,
                                   "pay_curr_week_new_number": pay_curr_week_new_number,
@@ -84,14 +84,14 @@ class Overview(BaseHandler, DataExcludeMixin):
                                   "contest_last_week_new_number": contest_last_week_new_number
                                   })
         elif request['user_info']['instance_role_id'] == Roles.AREA.value:
-
+            exclude_channels = await self.exclude_channel(request.app['mysql'])
             channels = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": request['user_info']['area_id'],
                                                                                        "role": Roles.AREA.value,
                                                                                        "status": 1})
 
             channels = await channels.to_list(10000)
             old_ids = [item['old_id'] for item in channels]
-
+            old_ids = list(set(old_ids).difference(set(exclude_channels)))
             pay_total, pay_curr_week_new_number, pay_last_week_new_number = await self._pay_number_area(request, old_ids)
 
             pay_amount, pay_curr_week_new_amount, pay_last_week_new_amount = await self._pay_amount_area(request, old_ids)
@@ -138,13 +138,13 @@ class Overview(BaseHandler, DataExcludeMixin):
                                   "contest_last_week_new_number": contest_last_week_new_number
                                   })
 
-    async def _valid_contest_number(self, request:Request):
+    async def _valid_contest_number(self, request:Request, exclude_channels=[]):
         """
         有效测评书
         :param request:
         :return:
         """
-        coll = request.app['mongodb'][self.db][self.class_per_day_coll]
+        coll = request.app['mongodb'][self.db][self.channel_per_day_coll]
         total_guardian_count_list = []
         current_week_new_guardian_count_list = []
         last_week_new_guardian_count_list = []
@@ -154,7 +154,7 @@ class Overview(BaseHandler, DataExcludeMixin):
             total_guardian_count = coll.aggregate(
                 [
                     {
-                        "$match": {"channel": {"$nin": ['null', None]}}
+                        "$match": {"channel": {"$nin": ['null', None] + exclude_channels}}
                     },
                     {
                         "$project": {
@@ -173,7 +173,8 @@ class Overview(BaseHandler, DataExcludeMixin):
                     {
                         "$match": {
                             "day": {"$gte": current_week[0],
-                                    "$lte": current_week[6]}
+                                    "$lte": current_week[6]},
+                            "channel": {"$nin": ['null', None] + exclude_channels}
                         }
                     },
                     {
@@ -194,7 +195,8 @@ class Overview(BaseHandler, DataExcludeMixin):
                     {
                         "$match": {
                             "day": {"$gte": last_week[0],
-                                    "$lte": last_week[6]}
+                                    "$lte": last_week[6]},
+                            "channel": {"$nin": ['null', None] + exclude_channels}
                         }
                     },
                     {
@@ -225,7 +227,7 @@ class Overview(BaseHandler, DataExcludeMixin):
         last_week = last_week_new_guardian_count_list[0]['total'] if last_week_new_guardian_count_list else 0
         return total, current_week, last_week
 
-    async def _guardian_number(self, request:Request):
+    async def _guardian_number(self, request:Request, exclude_channels=[]):
         """
         家长数
         :param request:
@@ -241,7 +243,7 @@ class Overview(BaseHandler, DataExcludeMixin):
             total_guardian_count = coll.aggregate(
                     [
                         {
-                            "$match": {"channel": {"$nin": ['null', None]}}
+                            "$match": {"channel": {"$nin": ['null', None] + exclude_channels}}
                         },
                         {
                             "$project": {
@@ -263,7 +265,8 @@ class Overview(BaseHandler, DataExcludeMixin):
                         {
                             "$match": {
                                     "day":  {"$gte": current_week[0],
-                                              "$lte": current_week[6]}
+                                              "$lte": current_week[6]},
+                                "channel": {"$nin": ['null', None] + exclude_channels}
                         }
                         },
                         {
@@ -287,7 +290,9 @@ class Overview(BaseHandler, DataExcludeMixin):
                     {
                         "$match": {
                             "day": {"$gte": last_week[0],
-                                    "$lte": last_week[6]}
+                                    "$lte": last_week[6]},
+
+                            "channel": {"$nin": ['null', None] + exclude_channels}
                         }
                     },
                     {
@@ -319,13 +324,13 @@ class Overview(BaseHandler, DataExcludeMixin):
         last_week = last_week_new_guardian_count_list[0]['total'] if last_week_new_guardian_count_list else 0
         return total, current_week, last_week
 
-    async def _images_number(self, request: Request):
+    async def _images_number(self, request: Request, exclude_channels=[]):
         """
         图片数
         :param request:
         :return:
         """
-        coll = request.app['mongodb'][self.db][self.class_per_day_coll]
+        coll = request.app['mongodb'][self.db][self.channel_per_day_coll]
         total_image_count_list = []
         current_week_new_image_count_list = []
         last_week_new_image_count_list = []
@@ -334,6 +339,9 @@ class Overview(BaseHandler, DataExcludeMixin):
             last_week = self.last_week()
             total_image_count = coll.aggregate(
                 [
+                    {
+                        "$match": {"channel": {"$nin": ['null', None] + exclude_channels}}
+                    },
                     {
                         "$project": {
                             "total": {"$sum":   [ "$e_image_c", "$w_image_c" ] }
@@ -352,7 +360,8 @@ class Overview(BaseHandler, DataExcludeMixin):
                     {
                         "$match": {
                             "day": {"$gte": current_week[0],
-                                    "$lte": current_week[6]}
+                                    "$lte": current_week[6]},
+                            "channel": {"$nin": ['null', None] + exclude_channels}
                         }
                     },
                     {
@@ -373,7 +382,8 @@ class Overview(BaseHandler, DataExcludeMixin):
                     {
                         "$match": {
                             "day": {"$gte": last_week[0],
-                                    "$lte": last_week[6]}
+                                    "$lte": last_week[6]},
+                            "channel": {"$nin": ['null', None] + exclude_channels}
                         }
                     },
                     {
@@ -403,7 +413,7 @@ class Overview(BaseHandler, DataExcludeMixin):
         last_week = last_week_new_image_count_list[0]['total'] if last_week_new_image_count_list else 0
         return total, current_week, last_week
 
-    async def _teacher_number(self, request: Request):
+    async def _teacher_number(self, request: Request, exclude_channels=[]):
         """
         老师数
         :param request:
@@ -418,6 +428,9 @@ class Overview(BaseHandler, DataExcludeMixin):
             last_week = self.last_week()
             total_teacher_count = coll.aggregate(
                 [
+                    {
+                        "$match": {"channel": {"$nin": ['null', None] + exclude_channels}}
+                    },
                     {
                         "$project": {
                             "teacher_number": 1,
@@ -436,7 +449,8 @@ class Overview(BaseHandler, DataExcludeMixin):
                     {
                         "$match": {
                             "day": {"$gte": current_week[0],
-                                    "$lte": current_week[6]}
+                                    "$lte": current_week[6]},
+                            "channel": {"$nin": ['null', None] + exclude_channels}
                         }
                     },
                     {
@@ -458,7 +472,8 @@ class Overview(BaseHandler, DataExcludeMixin):
                     {
                         "$match": {
                             "day": {"$gte": last_week[0],
-                                    "$lte": last_week[6]}
+                                    "$lte": last_week[6]},
+                            "channel": {"$nin": ['null', None] + exclude_channels}
                         }
                     },
                     {
@@ -489,7 +504,7 @@ class Overview(BaseHandler, DataExcludeMixin):
         last_week = last_week_new_teacher_count_list[0]['total'] if last_week_new_teacher_count_list else 0
         return total, current_week, last_week
 
-    async def _student_number(self, request: Request):
+    async def _student_number(self, request: Request, exclude_channels={}):
         """
         学生数
         :param coll:
@@ -505,6 +520,9 @@ class Overview(BaseHandler, DataExcludeMixin):
             last_week = self.last_week()
             total_student_count = coll.aggregate(
                 [
+                    {
+                        "$match": {"channel": {"$nin": ['null', None] + exclude_channels}}
+                    },
                     {
                         "$project": {
                             "student_number": 1,
@@ -523,7 +541,8 @@ class Overview(BaseHandler, DataExcludeMixin):
                     {
                         "$match": {
                             "day": {"$gte": current_week[0],
-                                    "$lte": current_week[6]}
+                                    "$lte": current_week[6]},
+                            "channel": {"$nin": ['null', None] + exclude_channels}
                         }
                     },
                     {
@@ -545,7 +564,8 @@ class Overview(BaseHandler, DataExcludeMixin):
                     {
                         "$match": {
                             "day": {"$gte": last_week[0],
-                                    "$lte": last_week[6]}
+                                    "$lte": last_week[6]},
+                            "channel": {"$nin": ['null', None] + exclude_channels}
                         }
                     },
                     {
@@ -576,7 +596,7 @@ class Overview(BaseHandler, DataExcludeMixin):
         last_week = last_week_new_student_count_list[0]['total'] if last_week_new_student_count_list else 0
         return total, current_week, last_week
 
-    async def _school_number(self, request: Request):
+    async def _school_number(self, request: Request, exclude_channels=[]):
         """
         学校数
         :param coll:
@@ -592,6 +612,9 @@ class Overview(BaseHandler, DataExcludeMixin):
             last_week = self.last_week()
             total_school_count = coll.aggregate(
                 [
+                    {
+                        "$match": {"channel": {"$nin": ['null', None] + exclude_channels}}
+                    },
                     {
                         "$project": {
                             "school_number": 1,
@@ -611,7 +634,8 @@ class Overview(BaseHandler, DataExcludeMixin):
                     {
                         "$match": {
                             "day": {"$gte": current_week[0],
-                                    "$lte": current_week[6]}
+                                    "$lte": current_week[6]},
+                            "channel": {"$nin": ['null', None] + exclude_channels}
                         }
                     },
                     {
@@ -634,7 +658,8 @@ class Overview(BaseHandler, DataExcludeMixin):
                     {
                         "$match": {
                             "day": {"$gte": last_week[0],
-                                    "$lte": last_week[6]}
+                                    "$lte": last_week[6]},
+                            "channel": {"$nin": ['null', None] + exclude_channels}
                         }
                     },
                     {
@@ -666,13 +691,13 @@ class Overview(BaseHandler, DataExcludeMixin):
         last_week = last_week_new_school_count_list[0]['total'] if last_week_new_school_count_list else 0
         return total, current_week, last_week
 
-    async def _pay_number(self, request: Request):
+    async def _pay_number(self, request: Request, exclude_channels=[]):
         """
         付费数
         :param coll:
         :return:
         """
-        coll = request.app['mongodb'][self.db][self.class_per_day_coll]
+        coll = request.app['mongodb'][self.db][self.channel_per_day_coll]
         total_pay_count_list = []
         current_week_new_pay_count_list = []
         last_week_new_pay_count_list = []
@@ -684,7 +709,8 @@ class Overview(BaseHandler, DataExcludeMixin):
                         {
                             "$match": {
                                     "day":  {"$gte": current_week[0],
-                                              "$lte": current_week[6]}
+                                              "$lte": current_week[6]},
+                                "channel": {"$nin": ['null', None] + exclude_channels}
                         }
                         },
                         {
@@ -708,7 +734,8 @@ class Overview(BaseHandler, DataExcludeMixin):
                     {
                         "$match": {
                             "day": {"$gte": last_week[0],
-                                    "$lte": last_week[6]}
+                                    "$lte": last_week[6]},
+                            "channel": {"$nin": ['null', None] + exclude_channels}
                         }
                     },
                     {
@@ -728,6 +755,9 @@ class Overview(BaseHandler, DataExcludeMixin):
 
             total_pay_number = coll.aggregate(
                 [
+                    {
+                        "$match": {"channel": {"$nin": ['null', None] + exclude_channels}}
+                    },
                     {
                         "$project": {
                             "pay_number": 1,
@@ -757,13 +787,13 @@ class Overview(BaseHandler, DataExcludeMixin):
         last_week = last_week_new_pay_count_list[0]['total'] if last_week_new_pay_count_list else 0
         return total,current_week,last_week
 
-    async def _pay_amount(self, request: Request):
+    async def _pay_amount(self, request: Request, exclude_channels=[]):
         """
         付费数
         :param coll:
         :return:
         """
-        coll = request.app['mongodb'][self.db][self.class_per_day_coll]
+        coll = request.app['mongodb'][self.db][self.channel_per_day_coll]
         total_pay_amount_list = []
         current_week_new_pay_amount_list = []
         last_week_new_pay_amount_list = []
@@ -775,7 +805,8 @@ class Overview(BaseHandler, DataExcludeMixin):
                         {
                             "$match": {
                                     "day":  {"$gte": current_week[0],
-                                              "$lte": current_week[6]}
+                                              "$lte": current_week[6]},
+                                "channel": {"$nin": ['null', None] + exclude_channels}
                         }
                         },
                         {
@@ -799,7 +830,8 @@ class Overview(BaseHandler, DataExcludeMixin):
                     {
                         "$match": {
                             "day": {"$gte": last_week[0],
-                                    "$lte": last_week[6]}
+                                    "$lte": last_week[6]},
+                            "channel": {"$nin": ['null', None] + exclude_channels}
                         }
                     },
                     {
@@ -819,6 +851,9 @@ class Overview(BaseHandler, DataExcludeMixin):
 
             total_pay_amount = coll.aggregate(
                 [
+                    {
+                        "$match": {"channel": {"$nin": ['null', None] + exclude_channels}}
+                    },
                     {
                         "$project": {
                             "pay_amount": 1,
@@ -850,7 +885,7 @@ class Overview(BaseHandler, DataExcludeMixin):
 
 
 
-    async def _valid_contest_number_area(self, request:Request, channle_ids=[]):
+    async def _valid_contest_number_area(self, request:Request, channle_ids=[], exclude_channels=[]):
         """
         有效测评书
         :param request:
@@ -939,7 +974,7 @@ class Overview(BaseHandler, DataExcludeMixin):
         last_week = last_week_new_guardian_count_list[0]['total'] if last_week_new_guardian_count_list else 0
         return total, current_week, last_week
 
-    async def _guardian_number_area(self, request:Request, channle_ids=[]):
+    async def _guardian_number_area(self, request:Request, channle_ids=[], exclude_channels=[]):
         """
         家长数
         :param request:
@@ -1033,7 +1068,7 @@ class Overview(BaseHandler, DataExcludeMixin):
         last_week = last_week_new_guardian_count_list[0]['total'] if last_week_new_guardian_count_list else 0
         return total, current_week, last_week
 
-    async def _images_number_area(self, request: Request, channle_ids=[]):
+    async def _images_number_area(self, request: Request, channle_ids=[], exclude_channels=[]):
         """
         图片数
         :param request:
@@ -1121,7 +1156,7 @@ class Overview(BaseHandler, DataExcludeMixin):
         last_week = last_week_new_image_count_list[0]['total'] if last_week_new_image_count_list else 0
         return total, current_week, last_week
 
-    async def _teacher_number_area(self, request: Request, channle_ids=[]):
+    async def _teacher_number_area(self, request: Request, channle_ids=[], exclude_channels = []):
         """
         老师数
         :param request:
@@ -1211,7 +1246,7 @@ class Overview(BaseHandler, DataExcludeMixin):
         last_week = last_week_new_teacher_count_list[0]['total'] if last_week_new_teacher_count_list else 0
         return total, current_week, last_week
 
-    async def _student_number_area(self, request: Request, channle_ids=[]):
+    async def _student_number_area(self, request: Request, channle_ids=[], exclude_channels=[]):
         """
         学生数
         :param coll:
@@ -1302,7 +1337,7 @@ class Overview(BaseHandler, DataExcludeMixin):
         last_week = last_week_new_student_count_list[0]['total'] if last_week_new_student_count_list else 0
         return total, current_week, last_week
 
-    async def _school_number_area(self, request: Request, channle_ids=[]):
+    async def _school_number_area(self, request: Request, channle_ids=[], exclude_channels=[]):
         """
         学校数
         :param coll:
@@ -1329,7 +1364,6 @@ class Overview(BaseHandler, DataExcludeMixin):
 
                 {"$group": {"_id": None,
                             "total": {"$sum": "$school_number"}
-                            # "pp": {"$push": {"$cond": [{"$gte": ["$day",current_week[0]]}, {"aaaa": "$class_pay_amount" },0 ] }}
                             }
                  },
 
@@ -1352,7 +1386,6 @@ class Overview(BaseHandler, DataExcludeMixin):
 
                 {"$group": {"_id": None,
                             "total": {"$sum": "$school_number"}
-                            # "pp": {"$push": {"$cond": [{"$gte": ["$day",current_week[0]]}, {"aaaa": "$class_pay_amount" },0 ] }}
                             }
                  },
 
@@ -1376,7 +1409,6 @@ class Overview(BaseHandler, DataExcludeMixin):
 
                 {"$group": {"_id": None,
                             "total": {"$sum": "$school_number"}
-                            # "pp": {"$push": {"$cond": [{"$gte": ["$day",current_week[0]]}, {"aaaa": "$class_pay_amount" },0 ] }}
                             }
                  },
 
@@ -1396,13 +1428,13 @@ class Overview(BaseHandler, DataExcludeMixin):
         last_week = last_week_new_school_count_list[0]['total'] if last_week_new_school_count_list else 0
         return total, current_week, last_week
 
-    async def _pay_number_area(self, request: Request, channle_ids=[]):
+    async def _pay_number_area(self, request: Request, channle_ids=[], exclude_channels=[]):
         """
         付费数
         :param coll:
         :return:
         """
-        coll = request.app['mongodb'][self.db][self.class_per_day_coll]
+        coll = request.app['mongodb'][self.db][self.channel_per_day_coll]
         total_pay_count_list = []
         current_week_new_pay_count_list = []
         last_week_new_pay_count_list = []
@@ -1451,7 +1483,7 @@ class Overview(BaseHandler, DataExcludeMixin):
 
                 {"$group": {"_id": "",
                             "total": {"$sum": "$pay_number"},
-                            # "pp": {"$push": {"$cond": [{"$gte": ["$day",current_week[0]]}, {"aaaa": "$class_pay_amount" },0 ] }}
+
                             }
                  },
 
@@ -1471,7 +1503,6 @@ class Overview(BaseHandler, DataExcludeMixin):
 
                 {"$group": {"_id": "",
                             "total": {"$sum": "$pay_number"},
-                            # "pp": {"$push": {"$cond": [{"$gte": ["$day",current_week[0]]}, {"aaaa": "$class_pay_amount" },0 ] }}
                             }
                  },
 
@@ -1491,13 +1522,13 @@ class Overview(BaseHandler, DataExcludeMixin):
         last_week = last_week_new_pay_count_list[0]['total'] if last_week_new_pay_count_list else 0
         return total,current_week,last_week
 
-    async def _pay_amount_area(self, request: Request, channle_ids=[]):
+    async def _pay_amount_area(self, request: Request, channle_ids=[], exclude_channels=[]):
         """
         付费数
         :param coll:
         :return:
         """
-        coll = request.app['mongodb'][self.db][self.class_per_day_coll]
+        coll = request.app['mongodb'][self.db][self.channel_per_day_coll]
         total_pay_amount_list = []
         current_week_new_pay_amount_list = []
         last_week_new_pay_amount_list = []
@@ -1521,7 +1552,6 @@ class Overview(BaseHandler, DataExcludeMixin):
 
                     {"$group": {"_id": "",
                                 "total": {"$sum": "$pay_amount"},
-                                # "pp": {"$push": {"$cond": [{"$gte": ["$day",current_week[0]]}, {"aaaa": "$class_pay_amount" },0 ] }}
                                 }
                      },
 
@@ -1546,7 +1576,7 @@ class Overview(BaseHandler, DataExcludeMixin):
 
                 {"$group": {"_id": "",
                             "total": {"$sum": "$pay_amount"},
-                            # "pp": {"$push": {"$cond": [{"$gte": ["$day",current_week[0]]}, {"aaaa": "$class_pay_amount" },0 ] }}
+
                             }
                  },
 
@@ -1566,7 +1596,6 @@ class Overview(BaseHandler, DataExcludeMixin):
 
                 {"$group": {"_id": "",
                             "total": {"$sum": "$pay_amount"},
-                            # "pp": {"$push": {"$cond": [{"$gte": ["$day",current_week[0]]}, {"aaaa": "$class_pay_amount" },0 ] }}
                             }
                  },
 
