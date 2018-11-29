@@ -72,7 +72,7 @@ class SchoolManage(BaseHandler):
         elif request_param.get('school_name'): #单个学校
             print('single school')
             school_page_sql = "select id,full_name, time_create  from sigma_account_ob_school" \
-                              " where available = 1 and full_name like '%s'" % "%"+request_param['school_name'] +"%"
+                              " where available = 1 and full_name like %s" % ("'%"+request_param['school_name'] +"%'")
 
         elif not request_param.get('school_name'):
             stage = [StageEnum.Register.value, StageEnum.Using.value, StageEnum.Binding.value, StageEnum.Pay.value]
