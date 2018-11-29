@@ -48,8 +48,8 @@ if env == 'stable':
     CONTENT_BANK_URL = 'http://mark.content.ali.hexin.im/api'
 
     """Celery task"""
-    RESULT_BACKEND = 'redis://redis.ali.hexin.im/20'
-    BROKER_URL = 'redis://redis.ali.hexin.im/20'
+    RESULT_BACKEND = 'redis://redis.ali.hexin.im/21'
+    BROKER_URL = 'redis://redis.ali.hexin.im/21'
 
     """Centauri URL"""
     CENTAURI_URL = 'http://zuoye.ali.hexin.im/api'
@@ -65,11 +65,11 @@ if env == 'stable':
     ucAppSecret = '956bc2120d8cf2c3b25588ca8b3e116b'
 
     """权限themis角色"""
-    PERMISSION_SUPER = 37  # 超级管理员id
-    PERMISSION_GLOBAL = 35  # 总部id
+    PERMISSION_SUPER = 36  # 超级管理员id
+    PERMISSION_GLOBAL = 32  # 总部id
     PERMISSION_AREA = 33  # 大区id
     PERMISSION_CHANNEL = 34  # 渠道id
-    PERMISSION_MARKET = 36  # 市场id
+    PERMISSION_MARKET = 35  # 市场id
 
 else:
     DEBUG = True
