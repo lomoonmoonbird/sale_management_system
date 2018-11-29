@@ -59,8 +59,8 @@ if env == 'stable':
     UC_SYSTEM_API_ADMIN_URL = 'http://uc.ali.hexin.im/api/admin'
     THEMIS_SYSTEM_OPEN_URL = 'http://themis.ali.hexin.im/api/open'
     THEMIS_SYSTEM_ADMIN_URL = 'http://themis.ali.hexin.im/api/admin'
-    permissionAppKey = 'themisc0129c329b'
-    permissionAppSecret = '5ef4c591f28f5a6049d22d476840c980'
+    permissionAppKey = 'themise8aacb6b63'
+    permissionAppSecret = '1f08aee118e0167277b1f21fb6aa577c'
     ucAppKey = '0d8cf2c3b25588ca'
     ucAppSecret = '956bc2120d8cf2c3b25588ca8b3e116b'
 
