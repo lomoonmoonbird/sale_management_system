@@ -23,7 +23,7 @@ from aiomysql.cursors import DictCursor
 from pymongo import UpdateOne, DeleteMany
 from bson import ObjectId
 from enumconstant import Roles, PermissionRole
-from statistics.utils import DataExcludeMixin
+from mixins import DataExcludeMixin
 
 
 class Overview(BaseHandler, DataExcludeMixin):
@@ -233,7 +233,7 @@ class Overview(BaseHandler, DataExcludeMixin):
         :param request:
         :return:
         """
-        coll = request.app['mongodb'][self.db][self.class_per_day_coll]
+        coll = request.app['mongodb'][self.db][self.channel_per_day_coll]
         total_guardian_count_list = []
         current_week_new_guardian_count_list = []
         last_week_new_guardian_count_list = []

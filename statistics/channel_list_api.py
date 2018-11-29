@@ -23,9 +23,10 @@ from aiomysql.cursors import DictCursor
 from pymongo import UpdateOne, DeleteMany
 from bson import ObjectId
 from enumconstant import Roles, PermissionRole
+from mixins import DataExcludeMixin
 
 
-class ChannelList(BaseHandler):
+class ChannelList(BaseHandler, DataExcludeMixin):
     def __init__(self):
         self.db = 'sales'
         self.instance_coll = 'instance'
@@ -64,6 +65,8 @@ class ChannelList(BaseHandler):
             channels_map = {}
             for channel in real_channels:
                 channels_map[channel["id"]] = channel
+            exclude_channels = await self.exclude_channel(request.app['mysql'])
+            old_ids = list(set(old_ids).difference(set(exclude_channels)))
             items = await self._list(request, old_ids)
             for item in items:
                 item['contest_coverage_ratio'] = 0

@@ -24,8 +24,10 @@ from pymongo import UpdateOne, DeleteMany
 from bson import ObjectId
 from enumconstant import Roles, PermissionRole
 from utils import CustomEncoder
+from mixins import DataExcludeMixin
 
-class AreaList(BaseHandler):
+
+class AreaList(BaseHandler, DataExcludeMixin):
     def __init__(self):
         self.db = 'sales'
         self.instance_coll = 'instance'
@@ -44,7 +46,7 @@ class AreaList(BaseHandler):
         request_param = await get_params(request)
         page = int(request_param.get('page', 0))
         per_page = 100
-
+        exclude_channels = await self.exclude_channel(request.app['mysql'])
         areas = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": request['user_info']['global_id'],
                                                                           "role": Roles.AREA.value,
                                                                           "status": 1}).skip(page*per_page).limit(per_page)
@@ -61,8 +63,7 @@ class AreaList(BaseHandler):
         for channel in channels:
             channels_map[channel['old_id']] = channel['parent_id']
 
-
-
+        old_ids = list(set(old_ids).difference(set(exclude_channels)))
         items = await self._list(request, old_ids)
         from collections import defaultdict
         area_compact_data = defaultdict(dict)

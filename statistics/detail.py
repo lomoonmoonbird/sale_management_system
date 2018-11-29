@@ -23,6 +23,7 @@ from aiomysql.cursors import DictCursor
 from pymongo import UpdateOne, DeleteMany
 from bson import ObjectId
 from enumconstant import Roles, PermissionRole
+from mixins import DataExcludeMixin
 
 
 class QueryMixin(BaseHandler):
@@ -859,7 +860,7 @@ class QueryMixin(BaseHandler):
 
         return items
 
-class AreaDetail(QueryMixin):
+class AreaDetail(QueryMixin, DataExcludeMixin):
     """
     大区详情
     """
@@ -887,7 +888,8 @@ class AreaDetail(QueryMixin):
         channels = await channels.to_list(10000)
 
         old_ids = [item['old_id'] for item in channels]
-
+        exclude_channels = await self.exclude_channel(request.app['mysql'])
+        old_ids = list(set(old_ids).difference(set(exclude_channels)))
         pay_total, pay_curr_week_new_number, pay_last_week_new_number = await self._pay_number(request, old_ids, "$channel")
 
         pay_amount, pay_curr_week_new_amount, pay_last_week_new_amount = await self._pay_amount(request, old_ids, "$channel")
@@ -963,7 +965,8 @@ class AreaDetail(QueryMixin):
                 async with conn.cursor(DictCursor) as cur:
                     await cur.execute(sql)
                     real_channels = await cur.fetchall()
-
+            exclude_channels = await self.exclude_channel(request.app['mysql'])
+            old_ids = list(set(old_ids).difference(set(exclude_channels)))
             items = await self._list(request, old_ids)
             channel_id_map = {}
             for channel in real_channels:

@@ -6,7 +6,7 @@
 """
 
 from enum import Enum
-
+from configs import  PERMISSION_SUPER ,PERMISSION_GLOBAL, PERMISSION_AREA, PERMISSION_CHANNEL, PERMISSION_MARKET
 class Roles(Enum):
     """
     销管对应的实例角色
@@ -22,8 +22,8 @@ class PermissionRole(Enum):
     """
     对应themis角色的id
     """
-    SUPER = 37 #超级管理员id
-    GLOBAL= 35 #总部id
-    AREA = 33 #大区id
-    CHANNEL = 34 #渠道id
-    MARKET = 36 #市场id
+    SUPER = PERMISSION_SUPER #超级管理员id
+    GLOBAL= PERMISSION_GLOBAL #总部id
+    AREA = PERMISSION_AREA #大区id
+    CHANNEL = PERMISSION_CHANNEL #渠道id
+    MARKET = PERMISSION_MARKET #市场id

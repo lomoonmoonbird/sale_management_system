@@ -99,15 +99,17 @@ class SchoolManage(BaseHandler):
                             self.start_time.strftime("%Y-%m-%d"), datetime.now().strftime("%Y-%m-%d"),','.join(['"'+str(id)+'"' for id in condition_school_ids]))
         else:
             pass
-
+        total_school_count = 1
 
         async with request.app['mysql'].acquire() as conn:
             async with conn.cursor(DictCursor) as cur:
-                await cur.execute(total_sql)
-                total_school = await cur.fetchall()
+                if total_sql:
+                    await cur.execute(total_sql)
+                    total_school = await cur.fetchall()
+                    total_school_count = total_school[0]['total_school_count']
                 await cur.execute(school_page_sql)
                 schools = await cur.fetchall()
-        total_school_count = total_school[0]['total_school_count']
+
         school_ids = [item['id'] for item in schools]
         grades = []
         if school_ids:
