@@ -860,6 +860,68 @@ class QueryMixin(BaseHandler):
 
         return items
 
+    async def _list_grade(self, request: Request, school_id: int, grade:str):
+        """
+        学校数
+        :param request:
+        :param channel_ids:
+        :return:
+        """
+        coll = request.app['mongodb'][self.db][self.class_per_day_coll]
+        items = []
+
+        item_count = coll.aggregate(
+            [
+                {
+                    "$match": {
+                        "school_id": school_id,
+                        "grade": grade
+                    }
+                },
+                {
+                    "$project": {
+                        "school_id":1,
+                        "group_id": 1,
+                        "student_number": 1,
+                        "guardian_count": 1,
+                        "pay_number": 1,
+                        "pay_amount": 1,
+
+                        "day": 1
+                    }
+                },
+
+                {"$group": {"_id": "$group_id",
+                            "total_student_number": {"$sum": "$student_number"},
+                            "total_guardian_number": {"$sum": "$guardian_count"},
+                            "total_pay_number": {"$sum": "$pay_number"},
+                            "total_pay_amount": {"$sum": "$pay_amount"},
+
+                            }
+                 },
+                {
+                    "$project": {
+                        "_id": 1,
+                        "group_id": 1,
+                        "total_student_number": 1,
+                        "total_guardian_number": 1,
+                        "total_pay_number": 1,
+                        "total_pay_amount": 1,
+
+                        "pay_ratio": {"$cond": [{"$eq": ["$total_student_number", 0]}, 0, {"$divide": ["$total_pay_number", "$total_student_number"]}]},
+                        "bind_ratio": {"$cond": [{"$eq": ["$total_student_number", 0]}, 0,
+                                                {"$divide": ["$total_guardian_number", "$total_student_number"]}]},
+                    }
+
+                }
+
+            ])
+
+        async for item in item_count:
+            items.append(item)
+
+        return items
+
 class AreaDetail(QueryMixin, DataExcludeMixin):
     """
     大区详情
@@ -1174,3 +1236,98 @@ class ChannelDetail(QueryMixin):
 
 
         return self.reply_ok(items)
+
+
+class SchoolDetail(QueryMixin):
+    """
+    学校详情
+    """
+
+class GradeDetail(QueryMixin):
+    """
+    年级详情
+    """
+
+    @validate_permission()
+    async def grade_list(self, request: Request):
+        """
+        年级详情
+        {
+            "school_id": "",
+            "grade": "",
+        }
+        :param request:
+        :return:
+        """
+        request_param = await get_params(request)
+        school_id = int(request_param.get("school_id"))
+        grade = request_param.get("grade")
+        items = await self._list_grade(request, school_id, grade)
+        group_ids = [item["_id"] for item in items]
+        if group_ids:
+            sql = "select id, name from sigma_account_ob_group where available =1 and id in (%s) " % ','.join([str(id) for id in group_ids])
+            async with request.app['mysql'].acquire() as conn:
+                async with conn.cursor(DictCursor) as cur:
+                    await cur.execute(sql)
+                    clazz = await cur.fetchall()
+
+            clazz_map = {}
+            for cla in clazz:
+                clazz_map[cla['id']] = cla
+
+            for item in items:
+                item['class_name'] = clazz_map.get(item['_id'], {}).get("name", "")
+            return self.reply_ok({"grade_info": items})
+        return self.reply_ok({})
+
+
+class ClazzDetail(BaseHandler):
+    """
+    班级详情
+    """
+    @validate_permission()
+    async def clazz_list(self, request: Request):
+        """
+        班级详情
+        {
+            "group_id": ""
+        }
+        :param request:
+        :return:
+        """
+        request_param = await get_params(request)
+        group_id = request_param.get("group_id")
+
+        sql = "select u.id, u.name, u.student_vip_expire, sum(o.coupon_amount) as total_amount, count(uw.wechat_id) as total_wechat " \
+              "from sigma_account_re_groupuser as gu " \
+              "join sigma_account_us_user as u " \
+              "on u.available = 1 and gu.available = 1 and u.role_id = 2  and gu.user_id = u.id " \
+              "left join sigma_pay_ob_order as o " \
+              "on o.available = 1 and o.status = 3 and u.id = o.user_id " \
+              "left join sigma_account_re_userwechat as uw  " \
+              "on uw.available = 1 and uw.user_id = o.user_id " \
+              "where gu.group_id = %s  " \
+              "group by u.id,uw.user_id;" % (group_id)
+        async with request.app['mysql'].acquire() as conn:
+            async with conn.cursor(DictCursor) as cur:
+                await cur.execute(sql)
+                clazz = await cur.fetchall()
+        class_data = []
+
+
+        for cla in clazz:
+            current_timestamp = time.time()
+            class_data.append({
+                "name": cla["name"],
+                "student_id": cla['id'],
+                "is_bind": 1 if cla['total_wechat'] is not None and cla['total_wechat'] > 0 else 0,
+                "is_paid": 1 if cla['total_amount'] is not None and cla['total_amount'] > 0 else 0,
+                "pay_amount": cla['total_amount'],
+                "duration": 0 if current_timestamp > cla['student_vip_expire'] else (datetime.fromtimestamp(cla['student_vip_expire']) - datetime.fromtimestamp(current_timestamp)).days
+            })
+
+        return self.reply_ok({"clazz_info": class_data})
+
+
+
+
