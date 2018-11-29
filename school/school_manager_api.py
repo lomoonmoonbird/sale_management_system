@@ -77,17 +77,24 @@ class SchoolManage(BaseHandler):
         elif not request_param.get('school_name'):
             stage = [StageEnum.Register.value, StageEnum.Using.value, StageEnum.Binding.value, StageEnum.Pay.value]
             request_stage = request_param.get('stage', -1)
-            if request_stage != -1 and int(request_stage) not in stage:
-                request_stage = stage
-            else:
-                stage = [int(request_stage)]
             query = {
-                "stage": {"$in": stage},
+
             }
-            date_range = ""
-            if request_param.get('date_range', ''):
+            if not request_stage:
+                request_stage = -1
+            if request_stage != -1 and int(request_stage) not in stage:
+                query["stage"] = {"$in": stage}
+            elif request_stage != -1 and int(request_stage) in stage:
+                query["stage"] = request_stage
+            else:
+                pass
+            date_range = request_param.get('date_range', '')
+            if date_range:
                 date_range = request_param.get('date_range').split(',')
                 query.update({"open_time": {"$gte": date_range[0], "$lte": date_range[1]}})
+            else:
+                date_range = [self.start_time.strftime("%Y-%m-%d"), datetime.now().strftime("%Y-%m-%d")]
+
             condition_schools = request.app['mongodb'][self.db][self.school_coll].find(query)
             condition_schools = await condition_schools.to_list(10000)
             condition_school_ids = [item['school_id'] for item in condition_schools]
@@ -96,7 +103,7 @@ class SchoolManage(BaseHandler):
             total_sql = "select count(id) as total_school_count from sigma_account_ob_school" \
                         " where available = 1 and time_create >= '%s' " \
                         "and time_create <= '%s' and id in (%s) " % (
-                            self.start_time.strftime("%Y-%m-%d"), datetime.now().strftime("%Y-%m-%d"),','.join(['"'+str(id)+'"' for id in condition_school_ids]))
+                date_range[0], date_range[1],','.join(['"'+str(id)+'"' for id in condition_school_ids]))
         else:
             pass
         total_school_count = 1
