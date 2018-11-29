@@ -13,6 +13,7 @@ from aiohttp import web
 from basemodel import close_db, init_db
 from middlewares import error_handle_middleware
 from routes import setup_routes
+from configs import PORT
 
 # Get logger
 logger = loggings.logger
@@ -43,6 +44,6 @@ APP = web.Application(middlewares=[error_handle_middleware], debug=False, logger
 APP.on_startup.append(init_app)
 APP.on_cleanup.append(close_app)
 
-host, port = '0.0.0.0', 8080
+host, port = '0.0.0.0', PORT
 
 web.run_app(APP, host=host, port=port, access_log=None, print=logger.debug)
