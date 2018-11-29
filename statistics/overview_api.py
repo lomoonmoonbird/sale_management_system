@@ -23,9 +23,10 @@ from aiomysql.cursors import DictCursor
 from pymongo import UpdateOne, DeleteMany
 from bson import ObjectId
 from enumconstant import Roles, PermissionRole
+from statistics.utils import DataExcludeMixin
 
 
-class Overview(BaseHandler):
+class Overview(BaseHandler, DataExcludeMixin):
     def __init__(self):
         self.db = 'sales'
         self.instance_coll = 'instance'

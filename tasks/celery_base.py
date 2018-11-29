@@ -23,6 +23,7 @@ from collections import defaultdict
 import json
 from sshtunnel import SSHTunnelForwarder
 from bson import ObjectId
+from configs import DEBUG, MONGODB_CONN_URL, MYSQL_NAME, MYSQL_USER, MYSQL_PASSWORD, MYSQL_HOST, MYSQL_PORT
 
 class CustomEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -61,10 +62,40 @@ class BaseTask(Task):
 
     def on_success(self, retval, task_id, args, kwargs):
         print ('success')
+        print(retval)
+        print(task_id)
+        print(args)
+        print(kwargs)
 
 
+    def get_connection(self):
+        if self.connection:
+            return self.connection
+        if DEBUG:
+            print("this is debug")
+            server = SSHTunnelForwarder(
+                ssh_address_or_host=('139.196.77.128', 5318),  # 跳板机
 
-
+                ssh_password="PengKim@89527",
+                ssh_username="jinpeng",
+                remote_bind_address=('rr-uf6247jo85269bp6e.mysql.rds.aliyuncs.com', 3306))
+            server.start()
+            connection = pymysql.connect(host="127.0.0.1",
+                                         port=server.local_bind_port,
+                                         user="sigma",
+                                         password="sigmaLOVE2017",
+                                         db=MYSQL_NAME,
+                                         charset='utf8mb4',
+                                         cursorclass=pymysql.cursors.DictCursor)
+        else:
+            connection = pymysql.connect(host=MYSQL_HOST,
+                                         port=MYSQL_PORT,
+                                         user=MYSQL_USER,
+                                         password=MYSQL_PASSWORD,
+                                         db=MYSQL_NAME,
+                                         charset='utf8mb4',
+                                         cursorclass=pymysql.cursors.DictCursor)
+        return  connection
 
     def _date_range(self, field):
         self.time_threshold_table = self.mongo[self.coll_time_threshold].find_one({"_id": "sale_time_threshold"}) or {}

@@ -26,88 +26,95 @@ from collections import defaultdict
 from sshtunnel import SSHTunnelForwarder
 from tasks.celery_base import BaseTask, CustomEncoder
 from pymongo.errors import BulkWriteError
-from celery.signals import worker_process_init,worker_process_shutdown
+from celery.signals import worker_process_init,worker_process_shutdown, beat_init
 from configs import DEBUG, MONGODB_CONN_URL, MYSQL_NAME, MYSQL_USER, MYSQL_PASSWORD, MYSQL_HOST, MYSQL_PORT
 
 
-connection = None
-server = None
-server = SSHTunnelForwarder(
-            ssh_address_or_host=('139.196.77.128', 5318),  # 跳板机
-
-            ssh_password="PengKim@89527",
-            ssh_username="jinpeng",
-            remote_bind_address=('rr-uf6247jo85269bp6e.mysql.rds.aliyuncs.com', 3306))
-server.start()
-connection = pymysql.connect(host="127.0.0.1",
-                                  port=server.local_bind_port,
-                                  user="sigma",
-                                  password="sigmaLOVE2017",
-                                  db=MYSQL_NAME,
-                                  charset='utf8mb4',
-                                  cursorclass=pymysql.cursors.DictCursor)
-
-@worker_process_init.connect
-def init_worker(**kwargs):
-    global connection
-    global server
-    print('Initializing database connection for worker.')
-    if DEBUG:
-        print("this is debug")
-        server = SSHTunnelForwarder(
-            ssh_address_or_host=('139.196.77.128', 5318),  # 跳板机
-
-            ssh_password="PengKim@89527",
-            ssh_username="jinpeng",
-            remote_bind_address=('rr-uf6247jo85269bp6e.mysql.rds.aliyuncs.com', 3306))
-        server.start()
-        connection = pymysql.connect(host="127.0.0.1",
-                                          port=server.local_bind_port,
-                                          user="sigma",
-                                          password="sigmaLOVE2017",
-                                          db=MYSQL_NAME,
-                                          charset='utf8mb4',
-                                          cursorclass=pymysql.cursors.DictCursor)
-    else:
-        connection = pymysql.connect(host=MYSQL_HOST,
-                                     port=MYSQL_PORT,
-                                     user=MYSQL_USER,
-                                     password=MYSQL_PASSWORD,
-                                     db=MYSQL_NAME,
-                                     charset='utf8mb4',
-                                     cursorclass=pymysql.cursors.DictCursor)
-@worker_process_shutdown.connect
-def shutdown_worker(**kwargs):
-    global connection
-    if connection:
-        print('Closing database connectionn for worker.')
-        connection.close()
-        if DEBUG:
-            server.stop()
+# @beat_init.connect()
+# def tttt(**kwargs):
+#     print("@@@@@@@@ mmb ")
+#
+# class task11(BaseTask):
+#     def run(self):
+#         print('this is task')
+#         return 'moonmoonbird'
+#
+# connection = None
+# server = None
+#
+#
+# @worker_process_init.connect
+# def init_worker(**kwargs):
+#     global connection
+#     global server
+#     print('Initializing database connection for worker.')
+#     if DEBUG:
+#         print("this is debug")
+#         server = SSHTunnelForwarder(
+#             ssh_address_or_host=('139.196.77.128', 5318),  # 跳板机
+#
+#             ssh_password="PengKim@89527",
+#             ssh_username="jinpeng",
+#             remote_bind_address=('rr-uf6247jo85269bp6e.mysql.rds.aliyuncs.com', 3306))
+#         server.start()
+#         connection = pymysql.connect(host="127.0.0.1",
+#                                           port=server.local_bind_port,
+#                                           user="sigma",
+#                                           password="sigmaLOVE2017",
+#                                           db=MYSQL_NAME,
+#                                           charset='utf8mb4',
+#                                           cursorclass=pymysql.cursors.DictCursor)
+#     else:
+#         connection = pymysql.connect(host=MYSQL_HOST,
+#                                      port=MYSQL_PORT,
+#                                      user=MYSQL_USER,
+#                                      password=MYSQL_PASSWORD,
+#                                      db=MYSQL_NAME,
+#                                      charset='utf8mb4',
+#                                      cursorclass=pymysql.cursors.DictCursor)
+# @worker_process_shutdown.connect
+# def shutdown_worker(**kwargs):
+#     global connection
+#     if connection:
+#         print('Closing database connectionn for worker.')
+#         connection.close()
+#         if DEBUG:
+#             if server:
+#                 server.stop()
 
 class PerDaySubTask_IMAGES(BaseTask):
     def __init__(self):
         super(PerDaySubTask_IMAGES, self).__init__()
 
         self.mongo = pymongo.MongoClient(MONGODB_CONN_URL).sales
-
-
+        self.connection = None
+        self.cursor = None
     def _query(self, query):
         """
         执行查询 返回数据库结果
         """
-        cursor = connection.cursor()
+        self.cursor = self.connection.cursor()
         logger.debug(
             query.compile(dialect=mysql.dialect(), compile_kwargs={"literal_binds": True}).string.replace("%%", "%"))
 
-        cursor.execute(
+        self.cursor.execute(
             query.compile(dialect=mysql.dialect(), compile_kwargs={"literal_binds": True}).string.replace("%%", "%"))
-        ret = cursor.fetchall()
+        ret = self.cursor.fetchall()
         return ret
 
     def run(self):
-        date_range = self._date_range("class_grade_channel_exercise_images_per_day_begin_time")  # 时间分段
-        self._exercise_images(date_range)
+        try:
+            self.connection = self.get_connection()
+            date_range = self._date_range("class_grade_channel_exercise_images_per_day_begin_time")  # 时间分段
+            self._exercise_images(date_range)
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            if self.cursor:
+                self.cursor.close()
+            if self.connection:
+                self.connection.close()
+            raise self.retry(exc=e, countdown=30, max_retries=10)
 
     def _exercise_images(self, date_range):
         """
@@ -349,26 +356,37 @@ class PerDaySubTask_IMAGES(BaseTask):
 class PerDaySubTask_GUARDIAN(BaseTask):
     def __init__(self):
         super(PerDaySubTask_GUARDIAN, self).__init__()
-
         self.mongo = pymongo.MongoClient(MONGODB_CONN_URL).sales
+        self.connection = None
+        self.cursor = None
 
     def _query(self, query):
         """
         执行查询 返回数据库结果
         """
-        cursor = connection.cursor()
+        self.cursor = self.connection.cursor()
         # logger.debug(
         #     query.compile(dialect=mysql.dialect(), compile_kwargs={"literal_binds": True}).string.replace("%%", "%"))
 
-        cursor.execute(
+        self.cursor.execute(
             query.compile(dialect=mysql.dialect(), compile_kwargs={"literal_binds": True}).string.replace("%%", "%"))
-        ret = cursor.fetchall()
+        ret = self.cursor.fetchall()
         return ret
 
     def run(self):
-        date_range = self._date_range("class_grade_channel_guardian_per_day_begin_time")  # 时间分段
-        # date_range = [("2018-07-1","2018-07-02")]
-        self._guardian_info(date_range)
+        try:
+            self.connection = self.get_connection()
+            date_range = self._date_range("class_grade_channel_guardian_per_day_begin_time")  # 时间分段
+            # date_range = [("2018-07-1","2018-07-02")]
+            self._guardian_info(date_range)
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            if self.cursor:
+                self.cursor.close()
+            if self.connection:
+                self.connection.close()
+            raise self.retry(exc=e, countdown=30, max_retries=10)
 
     def _guardian_info(self, date_range):
         """
@@ -578,25 +596,36 @@ class PerDaySubTask_GUARDIAN(BaseTask):
 class PerDaySubTask_PAYMENTS(BaseTask):
     def __init__(self):
         super(PerDaySubTask_PAYMENTS, self).__init__()
-
         self.mongo = pymongo.MongoClient(MONGODB_CONN_URL).sales
+        self.cursor = None
+        self.connection = None
 
     def _query(self, query):
         """
         执行查询 返回数据库结果
         """
-        cursor = connection.cursor()
+        self.cursor = self.connection.cursor()
         logger.debug(
             query.compile(dialect=mysql.dialect(), compile_kwargs={"literal_binds": True}).string.replace("%%", "%"))
 
-        cursor.execute(
+        self.cursor.execute(
             query.compile(dialect=mysql.dialect(), compile_kwargs={"literal_binds": True}).string.replace("%%", "%"))
-        ret = cursor.fetchall()
+        ret = self.cursor.fetchall()
         return ret
 
     def run(self):
-        date_range = self._date_range("class_grade_channel_pay_per_day_begin_time")  # 时间分段
-        self._pay_amount(date_range) #付费数 付费额
+        try:
+            self.connection = self.get_connection()
+            date_range = self._date_range("class_grade_channel_pay_per_day_begin_time")  # 时间分段
+            self._pay_amount(date_range) #付费数 付费额
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            if self.cursor:
+                self.cursor.close()
+            if self.connection:
+                self.connection.close()
+            raise self.retry(exc=e, countdown=30, max_retries=10)
 
     def _pay_amount(self, date_range):
         """
@@ -806,37 +835,49 @@ class PerDaySubTask_PAYMENTS(BaseTask):
 class PerDayTask_SCHOOL(BaseTask):
     def __init__(self):
         super(PerDayTask_SCHOOL, self).__init__()
-
         self.mongo = pymongo.MongoClient(MONGODB_CONN_URL).sales
         self.schoolstage_delta_record_coll = "record_schoolstage_delta"
+        self.cursor = None
+        self.connection = None
+
 
     def _query(self, query):
         """
         执行查询 返回数据库结果
         """
-        cursor = connection.cursor()
+        self.cursor = self.connection.cursor()
         logger.debug(
             query.compile(dialect=mysql.dialect(), compile_kwargs={"literal_binds": True}).string.replace("%%", "%"))
 
-        cursor.execute(
+        self.cursor.execute(
             query.compile(dialect=mysql.dialect(), compile_kwargs={"literal_binds": True}).string.replace("%%", "%"))
-        ret = cursor.fetchall()
+        ret = self.cursor.fetchall()
         return ret
 
     def _execute_raw(self, query):
-        cursor = connection.cursor()
+        cursor = self.connection.cursor()
         cursor.execute(query)
         ret = cursor.fetchall()
         return ret
 
     def run(self):
-        date_range = self._date_range("school_number_per_day_begin_time")  # 时间分段
-        print('stage stage stage')
-        self._school(date_range) #学校数
-        date_range = self._date_range("school_stage_begin_time")  # 时间分段
-        # date_range =[("2018-05-27", "2018-05-28")]
-        print('stage2 stage2 stage2')
-        self._schools(date_range)  # 学校
+        try:
+            self.connection = self.get_connection()
+            date_range = self._date_range("school_number_per_day_begin_time")  # 时间分段
+            print('stage stage stage')
+            self._school(date_range) #学校数
+            date_range = self._date_range("school_stage_begin_time")  # 时间分段
+            # date_range =[("2018-05-27", "2018-05-28")]
+            print('stage2 stage2 stage2')
+            self._schools(date_range)  # 学校
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            if self.cursor:
+                self.cursor.close()
+            if self.connection:
+                self.connection.close()
+            raise self.retry(exc=e, countdown=30, max_retries=5)
 
 
     def _school(self, date_range):
@@ -953,26 +994,37 @@ class PerDayTask_SCHOOL(BaseTask):
 class PerDaySubTask_USERS(BaseTask):
     def __init__(self):
         super(PerDaySubTask_USERS, self).__init__()
-
         self.mongo = pymongo.MongoClient(MONGODB_CONN_URL).sales
+        self.cursor = None
+        self.connection = None
 
     def _query(self, query):
         """
         执行查询 返回数据库结果
         """
-        cursor = connection.cursor()
+        self.cursor = self.connection.cursor()
         # logger.debug(
         #     query.compile(dialect=mysql.dialect(), compile_kwargs={"literal_binds": True}).string.replace("%%", "%"))
 
-        cursor.execute(
+        self.cursor.execute(
             query.compile(dialect=mysql.dialect(), compile_kwargs={"literal_binds": True}).string.replace("%%", "%"))
-        ret = cursor.fetchall()
+        ret = self.cursor.fetchall()
         return ret
 
     def run(self):
-        date_range = self._date_range("teacher_student_number_per_day_begin_time")  # 时间分段
-        # date_range = [("2018-4-1", "2018-4-2")]
-        self._user_counts(date_range) #老师数 学生数
+        try:
+            self.connection = self.get_connection()
+            date_range = self._date_range("teacher_student_number_per_day_begin_time")  # 时间分段
+            # date_range = [("2018-4-1", "2018-4-2")]
+            self._user_counts(date_range) #老师数 学生数
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            if self.cursor:
+                self.cursor.close()
+            if self.connection:
+                self.connection.close()
+            raise self.retry(exc=e, countdown=30, max_retries=10)
 
     def _user_counts(self, date_range):
         """
@@ -1270,24 +1322,26 @@ class PerDayTask_VALIDCONTEST(BaseTask):
         self.mongo = pymongo.MongoClient(MONGODB_CONN_URL).sales
         self.grade_coll = "grade"
         self.school_coll = "school"
-
+        self.cursor = None
+        self.connection = None
     def _query(self, query):
         """
         执行查询 返回数据库结果
         """
 
-        cursor = connection.cursor()
+        self.cursor = self.connection.cursor()
         # logger.debug(
         #     query.compile(dialect=mysql.dialect(), compile_kwargs={"literal_binds": True}).string.replace("%%", "%"))
 
-        cursor.execute(
+        self.cursor.execute(
             query.compile(dialect=mysql.dialect(), compile_kwargs={"literal_binds": True}).string.replace("%%", "%"))
-        ret = cursor.fetchall()
+        ret = self.cursor.fetchall()
         return ret
 
 
     def run(self):
         try:
+            self.connection = self.get_connection()
             date_range = self._date_range("valid_exercise_word_begin_time") #时间分段
             # date_range = [("2018-05-01", "2018-06-05")]
             self._exercise_number(date_range) #有效考试 有效词汇
@@ -1295,8 +1349,11 @@ class PerDayTask_VALIDCONTEST(BaseTask):
         except Exception as e:
             import traceback
             traceback.print_exc()
-
-            raise self.retry(exc=e, countdown=30, max_retries=5)
+            if self.cursor:
+                self.cursor.close()
+            if self.connection:
+                self.connection.close()
+            raise self.retry(exc=e, countdown=30, max_retries=10)
 
     def _exercise_number(self, date_range):
         """
@@ -1879,32 +1936,37 @@ class PerDayTask_VALIDREADING(BaseTask):
         super(PerDayTask_VALIDREADING, self).__init__()
         self.mongo = pymongo.MongoClient(MONGODB_CONN_URL).sales
         self.reading_delta_record_coll = "record_reading_delta"
-
+        self.cursor = None
+        self.connection = None
     def _query(self, query):
         """
         执行查询 返回数据库结果
         """
 
-        cursor = connection.cursor()
+        self.cursor = self.connection.cursor()
         # logger.debug(
         #     query.compile(dialect=mysql.dialect(), compile_kwargs={"literal_binds": True}).string.replace("%%", "%"))
 
-        cursor.execute(
+        self.cursor.execute(
             query.compile(dialect=mysql.dialect(), compile_kwargs={"literal_binds": True}).string.replace("%%", "%"))
-        ret = cursor.fetchall()
+        ret = self.cursor.fetchall()
         return ret
 
 
     def run(self):
         try:
+            self.connection = self.get_connection()
             date_range = self._date_range("valid_reading_begin_time") #时间分段
             self._reading_number(date_range) #有效阅读
 
         except Exception as e:
             import traceback
             traceback.print_exc()
-            print('error')
-            raise self.retry(exc=e, countdown=10, max_retries=10)
+            if self.cursor:
+                self.cursor.close()
+            if self.connection:
+                self.connection.close()
+            raise self.retry(exc=e, countdown=30, max_retries=10)
 
 
     def _reading_number(self, date_range):

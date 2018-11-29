@@ -29,9 +29,13 @@ class Config():
     enable_utc=True
     installed_apps  = ('tasks')
     beat_schedule= {
+        # "aaaaaa": {
+        #     "task": "tasks.celery_per_day_task.task11",
+        #     "schedule": 10
+        # },
         "per_day_task": {
             "task": "tasks.celery_per_day_task.PerDayTask",
-            "schedule": crontab(hour=20, minute=10)
+            "schedule": crontab(hour=2)
         },
         # "per_day_pay": {
         #     "task": "tasks.celery_per_day_task.PerDaySubTask_PAYMENTS",
@@ -167,3 +171,6 @@ sales_celery.register_task(per_day_valid_exercise_word)
 
 per_day_valid_reading = PerDayTask_VALIDREADING()
 sales_celery.register_task(per_day_valid_reading)
+
+# task1 = task11()
+# sales_celery.register_task(task1)
