@@ -48,7 +48,7 @@ if env == 'stable':
     CONTENT_BANK_URL = 'http://mark.content.ali.hexin.im/api'
 
     """Celery task"""
-    RESULT_BACKEND = 'redis://redis.hexin.im/20'
+    RESULT_BACKEND = 'redis://redis.ali.hexin.im/20'
     BROKER_URL = 'redis://redis.ali.hexin.im/20'
 
     """Centauri URL"""

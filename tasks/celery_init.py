@@ -35,7 +35,7 @@ class Config():
         # },
         "per_day_task": {
             "task": "tasks.celery_per_day_task.PerDayTask",
-            "schedule": crontab(hour=10)
+            "schedule": crontab(hour=11,minute=40)
         },
         # "per_day_pay": {
         #     "task": "tasks.celery_per_day_task.PerDaySubTask_PAYMENTS",
