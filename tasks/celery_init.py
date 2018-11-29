@@ -9,15 +9,9 @@ from celery import Celery
 from kombu import Queue, Exchange
 from celery.schedules import crontab
 import configs
-from tasks.celery_task_grade import  GradeTask
-from tasks.celery_task_summary import SummaryTask
-from tasks.celery_task_school_backup import SchoolTask
-from tasks.celery_task_student import StudentTask
 from tasks.celery_per_day_task import  PerDayTask, PerDaySubTask_IMAGES,PerDaySubTask_GUARDIAN,\
     PerDaySubTask_PAYMENTS, PerDaySubTask_USERS, PerDayTask_SCHOOL, PerDayTask_VALIDCONTEST, PerDayTask_VALIDREADING
 
-# from tasks.celery_test import TestTask
-from tasks.celery_task_school import PerDayTask_SCHOOL_NUMBER
 
 sales_celery = Celery("Sales")
 
@@ -29,42 +23,38 @@ class Config():
     enable_utc=True
     installed_apps  = ('tasks')
     beat_schedule= {
-        # "aaaaaa": {
-        #     "task": "tasks.celery_per_day_task.task11",
-        #     "schedule": 10
+        # "per_day_task": {
+        #     "task": "tasks.celery_per_day_task.PerDayTask",
+        #     "schedule": crontab(hour=15,minute=35)
         # },
-        "per_day_task": {
-            "task": "tasks.celery_per_day_task.PerDayTask",
-            "schedule": crontab(hour=11,minute=40)
+        "per_day_pay": {
+            "task": "tasks.celery_per_day_task.PerDaySubTask_PAYMENTS",
+            "schedule": crontab(hour=16,minute=10)
         },
-        # "per_day_pay": {
-        #     "task": "tasks.celery_per_day_task.PerDaySubTask_PAYMENTS",
-        #     "schedule": 10
-        # },
-        # "per_day_image": {
-        #     "task": "tasks.celery_per_day_task.PerDaySubTask_IMAGES",
-        #     "schedule": 10
-        # },
-        # "per_day_guardian": {
-        #     "task": "tasks.celery_per_day_task.PerDaySubTask_GUARDIAN",
-        #     "schedule": 10
-        # },
-        # "per_day_users": {
-        #     "task": "tasks.celery_per_day_task.PerDaySubTask_USERS",
-        #     "schedule": 10
-        # },
-        # "per_day_school": {
-        #     "task": "tasks.celery_per_day_task.PerDayTask_SCHOOL",
-        #     "schedule": 10
-        # },
-        # "per_day_validcontest": {
-        #     "task": "tasks.celery_per_day_task.PerDayTask_VALIDCONTEST",
-        #     "schedule": 10
-        # },
-        # "per_day_validreading": {
-        #     "task": "tasks.celery_per_day_task.PerDayTask_VALIDREADING",
-        #     "schedule": 10
-        # },
+        "per_day_image": {
+            "task": "tasks.celery_per_day_task.PerDaySubTask_IMAGES",
+            "schedule": crontab(hour=16,minute=10)
+        },
+        "per_day_guardian": {
+            "task": "tasks.celery_per_day_task.PerDaySubTask_GUARDIAN",
+            "schedule": crontab(hour=16,minute=10)
+        },
+        "per_day_users": {
+            "task": "tasks.celery_per_day_task.PerDaySubTask_USERS",
+            "schedule": crontab(hour=16,minute=10)
+        },
+        "per_day_school": {
+            "task": "tasks.celery_per_day_task.PerDayTask_SCHOOL",
+            "schedule": crontab(hour=16,minute=10)
+        },
+        "per_day_validcontest": {
+            "task": "tasks.celery_per_day_task.PerDayTask_VALIDCONTEST",
+            "schedule": crontab(hour=16,minute=10)
+        },
+        "per_day_validreading": {
+            "task": "tasks.celery_per_day_task.PerDayTask_VALIDREADING",
+            "schedule": crontab(hour=16,minute=10)
+        },
 
 
     }

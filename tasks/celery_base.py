@@ -70,7 +70,10 @@ class BaseTask(Task):
 
     def get_connection(self):
         if self.connection:
+            print('?????')
             return self.connection
+        print('23223322333212321321')
+
         if DEBUG:
             print("this is debug")
             server = SSHTunnelForwarder(
@@ -80,6 +83,7 @@ class BaseTask(Task):
                 ssh_username="jinpeng",
                 remote_bind_address=('rr-uf6247jo85269bp6e.mysql.rds.aliyuncs.com', 3306))
             server.start()
+
             connection = pymysql.connect(host="127.0.0.1",
                                          port=server.local_bind_port,
                                          user="sigma",

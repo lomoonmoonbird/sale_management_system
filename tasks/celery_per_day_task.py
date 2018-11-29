@@ -730,22 +730,24 @@ class PerDaySubTask_PAYMENTS(BaseTask):
                 else:
                     school_payment_default_dict[usergroup_map.get(payment['user_id'], {}).get("school_id", -1)]['pay_amount'] = [payment['coupon_amount']]
                 #渠道
-                if channel_payment_default_dict[school_channel_map.get(usergroup_map.get(payment['user_id'], {}).get("school_id", -1))]['pay_n']:
+                if school_channel_map.get(usergroup_map.get(payment['user_id'], {}).get("school_id", -1), -1) == -1:
+                    self.mongo.no_channel_students.update_one({"name": "no_channels_students"}, {"$set": {"student": payment['user_id']}},upsert=True)
+                if channel_payment_default_dict[school_channel_map.get(usergroup_map.get(payment['user_id'], {}).get("school_id", -1), -1)]['pay_n']:
                     channel_payment_default_dict[
-                        school_channel_map.get(usergroup_map.get(payment['user_id'], {}).get("school_id", -1))][
+                        school_channel_map.get(usergroup_map.get(payment['user_id'], {}).get("school_id", -1), -1)][
                         'pay_n'].append(1)
                 else:
                     channel_payment_default_dict[
-                        school_channel_map.get(usergroup_map.get(payment['user_id'], {}).get("school_id", -1))][
+                        school_channel_map.get(usergroup_map.get(payment['user_id'], {}).get("school_id", -1), -1)][
                         'pay_n'] = [1]
 
-                if channel_payment_default_dict[school_channel_map.get(usergroup_map.get(payment['user_id'], {}).get("school_id", -1))]['pay_amount']:
+                if channel_payment_default_dict[school_channel_map.get(usergroup_map.get(payment['user_id'], {}).get("school_id", -1), -1)]['pay_amount']:
                     channel_payment_default_dict[
-                        school_channel_map.get(usergroup_map.get(payment['user_id'], {}).get("school_id", -1))][
+                        school_channel_map.get(usergroup_map.get(payment['user_id'], {}).get("school_id", -1),-1)][
                         'pay_amount'].append(payment['coupon_amount'])
                 else:
                     channel_payment_default_dict[
-                        school_channel_map.get(usergroup_map.get(payment['user_id'], {}).get("school_id", -1))][
+                        school_channel_map.get(usergroup_map.get(payment['user_id'], {}).get("school_id", -1), -1)][
                         'pay_amount'] = [payment['coupon_amount']]
 
 

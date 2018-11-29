@@ -100,7 +100,8 @@ class SchoolManage(BaseHandler):
         else:
             pass
         total_school_count = 1
-
+        print(total_sql)
+        print(school_page_sql)
         async with request.app['mysql'].acquire() as conn:
             async with conn.cursor(DictCursor) as cur:
                 if total_sql:
@@ -200,21 +201,48 @@ class SchoolManage(BaseHandler):
         begin_time = request_data.get("begin_time")
         if not school_id or not grade or not stage:
             raise RequestError("paramter should not be empty")
-        if stage == StageEnum.Binding.value:
-            # grade_of_school_sql = "select grade, school_id, time_create from sigma_account_ob_group where available = 1 and school_id = %s group by school_id, grade" % school_id
-            # async with request.app['mysql'].acquire() as conn:
-            #     async with conn.cursor(DictCursor) as cur:
-            #         await cur.execute(grade_of_school_sql)
-            #         school_grade = await cur.fetchall()
-            await request.app['mongodb'][self.db][self.grade_coll].update_one({"school_id": school_id, "grade": grade},
-                                                                        {"$set": {"stage": stage, "binding_time": begin_time}})
-        elif stage == StageEnum.Pay.value:
-            await request.app['mongodb'][self.db][self.grade_coll].update_one({"school_id": school_id, "grade": grade},
-                                                                        {"$set": {"stage": stage,
-                                                                                  "pay_time": begin_time}})
-        else:
-            pass
+        if stage in [StageEnum.Binding.value, StageEnum.Pay.value]:
+            grade_of_school_sql = "select grade, school_id, time_create from sigma_account_ob_group where available = 1 and school_id = %s group by school_id, grade" % school_id
+            async with request.app['mysql'].acquire() as conn:
+                async with conn.cursor(DictCursor) as cur:
+                    await cur.execute(grade_of_school_sql)
+                    school_grade = await cur.fetchall()
+            print('school_grade', school_grade)
 
+            school_grade_mongo = request.app['mongodb'][self.db][self.grade_coll].find({"school_id": school_id})
+            school_grade_mongo = await school_grade_mongo.to_list(10000)
+            school_grade_mongo_map = {}
+            for s_g_m in school_grade_mongo:
+                school_grade_mongo_map[s_g_m['grade']] = s_g_m['stage']
+
+            for s_g in school_grade:
+                s_g['stage'] = school_grade_mongo_map.get(s_g['grade'], StageEnum.Register.value)
+            school_stage = min([item['stage'] for item in school_grade]) if school_grade else StageEnum.Register.value
+
+            if stage == StageEnum.Pay.value:
+
+                await request.app['mongodb'][self.db][self.school_coll].update_one({"school_id": school_id,
+                                                                                    "stage": {"$in": [StageEnum.Binding.value,
+                                                                                                      StageEnum.Pay.value,
+                                                                                                      StageEnum.Using.value]}},
+                                                                                   {"$set": {"stage": stage, "pay_time": begin_time}})
+                await request.app['mongodb'][self.db][self.grade_coll].update_one(
+                    {"school_id": school_id, "grade": grade},
+                    {"$set": {"stage": stage,
+                              "pay_time": begin_time}})
+            elif stage == StageEnum.Binding.value:
+                await request.app['mongodb'][self.db][self.school_coll].update_one({"school_id": school_id,
+                                                                                    "stage": {
+                                                                                        "$in": [StageEnum.Binding.value,
+                                                                                                StageEnum.Pay.value,
+                                                                                                StageEnum.Using.value]}},
+                                                                                   {"$set": {"stage": stage,
+                                                                                             "binding_time": begin_time}})
+
+                await request.app['mongodb'][self.db][self.grade_coll].update_one({"school_id": school_id, "grade": grade},
+                                                                           {"$set": {"stage": stage, "binding_time": begin_time}})
+        else:
+            raise RequestError("not support binding type")
         return self.reply_ok({})
 
     async def _stat_grade(self, request: Request, school_id):

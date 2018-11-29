@@ -33,6 +33,7 @@ class Overview(BaseHandler, DataExcludeMixin):
         self.class_per_day_coll = 'class_per_day'
         self.grade_per_day_coll = 'grade_per_day'
         self.channel_per_day_coll = 'channel_per_day'
+        self.school_per_day_coll = 'school_per_day'
 
     @validate_permission()
     async def overview(self, request: Request):
@@ -843,7 +844,6 @@ class Overview(BaseHandler, DataExcludeMixin):
 
                     {"$group": {"_id": "",
                                 "total": {"$sum": "$pay_amount"},
-                                # "pp": {"$push": {"$cond": [{"$gte": ["$day",current_week[0]]}, {"aaaa": "$class_pay_amount" },0 ] }}
                                 }
                      },
 
@@ -863,7 +863,6 @@ class Overview(BaseHandler, DataExcludeMixin):
 
                     {"$group": {"_id": "",
                                 "total": {"$sum": "$pay_amount"},
-                                # "pp": {"$push": {"$cond": [{"$gte": ["$day",current_week[0]]}, {"aaaa": "$class_pay_amount" },0 ] }}
                                 }
                      },
 
