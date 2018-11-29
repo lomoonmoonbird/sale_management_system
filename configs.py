@@ -11,7 +11,7 @@ env = 'stable' if socket.gethostname().startswith('ali') else 'dev'
 
 if env == 'stable':
     DEBUG = False
-    PORT = 30000
+    PORT = 8080
     """MySQL config"""
     MYSQL_NAME = 'sigma_centauri_new'
     MYSQL_USER = 'sigma'
