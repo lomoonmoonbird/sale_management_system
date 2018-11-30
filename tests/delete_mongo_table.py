@@ -1,4 +1,6 @@
 import pymongo
+import os
+os.sys.path.insert(0, '/app/hexin/Sales-management-system')
 from configs import DEBUG, MONGODB_CONN_URL, MYSQL_NAME, MYSQL_USER, MYSQL_PASSWORD, MYSQL_HOST, MYSQL_PORT
 mongo = pymongo.MongoClient(MONGODB_CONN_URL).sales
 

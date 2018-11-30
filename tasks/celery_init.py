@@ -4,7 +4,8 @@
 """
 celery任务队列初始化
 """
-
+import os
+os.sys.path.insert(0, '/app/hexin/Sales-management-system')
 from celery import Celery
 from kombu import Queue, Exchange
 from celery.schedules import crontab
