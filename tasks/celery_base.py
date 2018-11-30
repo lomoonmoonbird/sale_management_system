@@ -70,9 +70,7 @@ class BaseTask(Task):
 
     def get_connection(self):
         if self.connection:
-            print('?????')
             return self.connection
-        print('23223322333212321321')
 
         if DEBUG:
             print("this is debug")

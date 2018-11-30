@@ -94,7 +94,7 @@ class ChannelExportReport(BaseHandler, ExportBase, DataExcludeMixin):
 
             return await self.replay_stream(sheet, "渠道月报-" + datetime.now().strftime("%Y-%m-%d"), request)
         return self.reply_ok({})
-    
+
     @validate_permission()
     async def week(self, request: Request):
         """

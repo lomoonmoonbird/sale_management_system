@@ -221,7 +221,6 @@ class SchoolManage(BaseHandler):
                 async with conn.cursor(DictCursor) as cur:
                     await cur.execute(grade_of_school_sql)
                     school_grade = await cur.fetchall()
-            print('school_grade', school_grade)
 
             school_grade_mongo = request.app['mongodb'][self.db][self.grade_coll].find({"school_id": school_id})
             school_grade_mongo = await school_grade_mongo.to_list(10000)
