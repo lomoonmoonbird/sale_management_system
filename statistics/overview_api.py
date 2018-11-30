@@ -802,6 +802,7 @@ class Overview(BaseHandler, DataExcludeMixin):
 
                     {"$group": {"_id": "",
                                 "total": {"$sum": "$pay_amount"},
+                                # "pp": {"$push": {"$cond": [{"$gte": ["$day",current_week[0]]}, {"aaaa": "$class_pay_amount" },0 ] }}
                                 }
                      },
 
@@ -980,6 +981,7 @@ class Overview(BaseHandler, DataExcludeMixin):
 
                     {"$group": {"_id": None,
                                 "total": {"$sum": "$guardian_count"},
+                                # "pp": {"$push": {"$cond": [{"$gte": ["$day",current_week[0]]}, {"aaaa": "$class_pay_amount" },0 ] }}
                                 }
                      },
 
@@ -1003,6 +1005,7 @@ class Overview(BaseHandler, DataExcludeMixin):
 
                     {"$group": {"_id": None,
                                 "total": {"$sum": "$guardian_count"},
+                                # "pp": {"$push": {"$cond": [{"$gte": ["$day",current_week[0]]}, {"aaaa": "$class_pay_amount" },0 ] }}
                                 }
                      },
 
