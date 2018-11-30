@@ -111,7 +111,7 @@ class School(BaseHandler):
         {
             "page": ""
         }
-        #todo 全局查看所有
+
         :param request:
         :return:
         """
@@ -165,7 +165,7 @@ class School(BaseHandler):
 
 
         elif request['user_info']['instance_role_id'] == Roles.GLOBAL.value: #总部
-            sql = "select id, full_name from sigma_account_ob_school where available = 1"
+            sql = "select id, full_name, time_create from sigma_account_ob_school where available = 1"
             async with request.app['mysql'].acquire() as conn:
                 async with conn.cursor(DictCursor) as cur:
                     await cur.execute(sql)
@@ -198,7 +198,6 @@ class School(BaseHandler):
                 users_info = [distributed_user_map.get(int(user_id), {}) for user_id in user_ids]
                 school['market_info'] = users_info
 
-            print(json.dumps(schools, indent=4))
 
         elif request['user_info']['instance_role_id'] == Roles.AREA.value: #大区
             area_id = request['user_info']['area_id']
@@ -207,8 +206,8 @@ class School(BaseHandler):
             old_ids = [item['old_id'] for item in channels]
             channels_ids = [str(item['_id']) for item in channels]
             if old_ids:
-                sql = "select id, full_name from sigma_account_ob_school where available = 1 and owner_id in (%s) " % (2)
-                
+                sql = "select id, full_name,time_create from sigma_account_ob_school where available = 1 and owner_id in (%s) " % (2)
+
                 async with request.app['mysql'].acquire() as conn:
                     async with conn.cursor(DictCursor) as cur:
                         await cur.execute(sql)
@@ -242,7 +241,6 @@ class School(BaseHandler):
                     users_info = [distributed_user_map.get(int(user_id), {}) for user_id in user_ids]
                     school['market_info'] = users_info
 
-                print(json.dumps(schools, indent=4))
         return self.reply_ok({"market_school": schools})
 
 
