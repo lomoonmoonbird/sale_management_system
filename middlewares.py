@@ -37,5 +37,4 @@ async def error_handle_middleware(request, handler):
             logger.warning(error_info)
             resp = json_response(
                 {'code': ErrorCode.INTERNALERROR.value, 'message': 'An unexpected exception ' + error_info, 'data': {}}, status=200)
-
     return resp

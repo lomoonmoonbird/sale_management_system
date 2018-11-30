@@ -93,7 +93,8 @@ class ChannelExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                                                            "month")
 
             return await self.replay_stream(sheet, "渠道月报-" + datetime.now().strftime("%Y-%m-%d"), request)
-
+        return self.reply_ok({})
+    
     @validate_permission()
     async def week(self, request: Request):
         """
@@ -101,6 +102,7 @@ class ChannelExportReport(BaseHandler, ExportBase, DataExcludeMixin):
         :param request:
         :return:
         """
+
         request_param = await get_params(request)
         channel_id = request_param.get("channel_id", "")
         if not channel_id:
@@ -134,6 +136,7 @@ class ChannelExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                                                            "week")
 
             return await self.replay_stream(sheet, "渠道周报-" + datetime.now().strftime("%Y-%m-%d"), request)
+        return self.reply_ok({})
 
     async def _list_month(self, request: Request, school_ids: list):
         """
