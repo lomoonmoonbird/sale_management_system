@@ -107,13 +107,16 @@ class PerDaySubTask_IMAGES(BaseTask):
             self.connection = self.get_connection()
             date_range = self._date_range("class_grade_channel_exercise_images_per_day_begin_time")  # 时间分段
             self._exercise_images(date_range)
+            if self.cursor:
+                self.cursor.close()
+                self.cursor = None
+            if self.connection:
+                self.connection.close()
+                self.connection = None
         except Exception as e:
             import traceback
             traceback.print_exc()
-            if self.cursor:
-                self.cursor.close()
-            if self.connection:
-                self.connection.close()
+
             raise self.retry(exc=e, countdown=30, max_retries=10)
 
     def _exercise_images(self, date_range):
@@ -379,13 +382,15 @@ class PerDaySubTask_GUARDIAN(BaseTask):
             date_range = self._date_range("class_grade_channel_guardian_per_day_begin_time")  # 时间分段
             # date_range = [("2018-07-1","2018-07-02")]
             self._guardian_info(date_range)
+            if self.cursor:
+                self.cursor.close()
+                self.cursor = None
+            if self.connection:
+                self.connection.close()
+                self.connection = None
         except Exception as e:
             import traceback
             traceback.print_exc()
-            if self.cursor:
-                self.cursor.close()
-            if self.connection:
-                self.connection.close()
             raise self.retry(exc=e, countdown=30, max_retries=10)
 
     def _guardian_info(self, date_range):
@@ -618,13 +623,16 @@ class PerDaySubTask_PAYMENTS(BaseTask):
             self.connection = self.get_connection()
             date_range = self._date_range("class_grade_channel_pay_per_day_begin_time")  # 时间分段
             self._pay_amount(date_range) #付费数 付费额
+            if self.cursor:
+                self.cursor.close()
+                self.cursor = None
+            if self.connection:
+                self.connection.close()
+                self.connection = None
         except Exception as e:
             import traceback
             traceback.print_exc()
-            if self.cursor:
-                self.cursor.close()
-            if self.connection:
-                self.connection.close()
+
             raise self.retry(exc=e, countdown=30, max_retries=10)
 
     def _pay_amount(self, date_range):
@@ -872,13 +880,17 @@ class PerDayTask_SCHOOL(BaseTask):
             # date_range =[("2018-05-27", "2018-05-28")]
             print('stage2 stage2 stage2')
             self._schools(date_range)  # 学校
+
+            if self.cursor:
+                self.cursor.close()
+                self.cursor = None
+            if self.connection:
+                self.connection.close()
+                self.connection = None
         except Exception as e:
             import traceback
             traceback.print_exc()
-            if self.cursor:
-                self.cursor.close()
-            if self.connection:
-                self.connection.close()
+
             raise self.retry(exc=e, countdown=30, max_retries=5)
 
 
@@ -1021,8 +1033,10 @@ class PerDaySubTask_USERS(BaseTask):
             self._user_counts(date_range) #老师数 学生数
             if self.cursor:
                 self.cursor.close()
+                self.cursor = None
             if self.connection:
                 self.connection.close()
+                self.connection = None
         except Exception as e:
             import traceback
             traceback.print_exc()
@@ -1374,14 +1388,16 @@ class PerDayTask_VALIDCONTEST(BaseTask):
             date_range = self._date_range("valid_exercise_word_begin_time") #时间分段
             # date_range = [("2018-05-01", "2018-06-05")]
             self._exercise_number(date_range) #有效考试 有效词汇
-
+            if self.cursor:
+                self.cursor.close()
+                self.cursor = None
+            if self.connection:
+                self.connection.close()
+                self.connection = None
         except Exception as e:
             import traceback
             traceback.print_exc()
-            if self.cursor:
-                self.cursor.close()
-            if self.connection:
-                self.connection.close()
+
             raise self.retry(exc=e, countdown=30, max_retries=10)
 
     def _exercise_number(self, date_range):
@@ -1987,14 +2003,15 @@ class PerDayTask_VALIDREADING(BaseTask):
             self.connection = self.get_connection()
             date_range = self._date_range("valid_reading_begin_time") #时间分段
             self._reading_number(date_range) #有效阅读
-
+            if self.cursor:
+                self.cursor.close()
+                self.cursor = None
+            if self.connection:
+                self.connection.close()
+                self.connection = None
         except Exception as e:
             import traceback
             traceback.print_exc()
-            if self.cursor:
-                self.cursor.close()
-            if self.connection:
-                self.connection.close()
             raise self.retry(exc=e, countdown=30, max_retries=10)
 
 
@@ -2236,13 +2253,13 @@ class PerDayTask(BaseTask):
         try:
             print ('begin...')
             from tasks.celery_init import sales_celery
-            # sales_celery.send_task("tasks.celery_per_day_task.PerDaySubTask_IMAGES") #考试 单词图片数
-            # sales_celery.send_task("tasks.celery_per_day_task.PerDaySubTask_GUARDIAN") #家长数也为绑定数
-            # sales_celery.send_task("tasks.celery_per_day_task.PerDaySubTask_PAYMENTS") #付费数 付费额
+            sales_celery.send_task("tasks.celery_per_day_task.PerDaySubTask_IMAGES") #考试 单词图片数
+            sales_celery.send_task("tasks.celery_per_day_task.PerDaySubTask_GUARDIAN") #家长数也为绑定数
+            sales_celery.send_task("tasks.celery_per_day_task.PerDaySubTask_PAYMENTS") #付费数 付费额
             sales_celery.send_task("tasks.celery_per_day_task.PerDaySubTask_USERS") #学生数 老师数
-            # sales_celery.send_task("tasks.celery_per_day_task.PerDayTask_SCHOOL") #学校数
-            # sales_celery.send_task("tasks.celery_per_day_task.PerDayTask_VALIDCONTEST") #有效考试 有效单词
-            # sales_celery.send_task("tasks.celery_per_day_task.PerDayTask_VALIDREADING")  # 有效阅读
+            sales_celery.send_task("tasks.celery_per_day_task.PerDayTask_SCHOOL") #学校数
+            sales_celery.send_task("tasks.celery_per_day_task.PerDayTask_VALIDCONTEST") #有效考试 有效单词
+            sales_celery.send_task("tasks.celery_per_day_task.PerDayTask_VALIDREADING")  # 有效阅读
             # sales_celery.send_task("tasks.celery_per_day_task.PerDayTask_SCHOOLSTAGE")  # 学校阶段
             print ('finished...')
 
