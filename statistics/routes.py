@@ -3,7 +3,7 @@ from aiohttp.web import UrlDispatcher
 from statistics.overview_api import Overview
 from statistics.area_list_api import AreaList
 from statistics.channel_list_api import ChannelList
-from statistics.detail import AreaDetail, ChannelDetail, GradeDetail, ClazzDetail
+from statistics.detail import AreaDetail, ChannelDetail, GradeDetail, ClazzDetail, SchoolDetail
 
 overview = Overview()
 arealist = AreaList()
@@ -12,6 +12,7 @@ areadetail = AreaDetail()
 channeldetail = ChannelDetail()
 gradedetail = GradeDetail()
 clazzdetail = ClazzDetail()
+schooldetail = SchoolDetail()
 
 def register(router: UrlDispatcher):
     router.add_get('/api/stat/global/overview', overview.overview)
@@ -26,3 +27,4 @@ def register(router: UrlDispatcher):
 
     router.add_get('/api/stat/detail/grade/gradelist', gradedetail.grade_list)
     router.add_get('/api/stat/detail/clazz/clazzlist', clazzdetail.clazz_list)
+    router.add_get('/api/stat/detail/school/clazzlist', schooldetail.clazz_list)

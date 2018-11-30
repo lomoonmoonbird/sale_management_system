@@ -149,79 +149,78 @@ class Overview(BaseHandler, DataExcludeMixin):
         total_guardian_count_list = []
         current_week_new_guardian_count_list = []
         last_week_new_guardian_count_list = []
-        if request['user_info']['instance_role_id'] == Roles.GLOBAL.value:
-            current_week = self.current_week()
-            last_week = self.last_week()
-            total_guardian_count = coll.aggregate(
-                [
-                    {
-                        "$match": {"channel": {"$nin": ['null', None] + exclude_channels}}
-                    },
-                    {
-                        "$project": {
-                            "total": {"$sum": ["$valid_exercise_count", "$valid_word_count", "$valid_reading_count"]}
-                        }
-                    },
+        current_week = self.current_week()
+        last_week = self.last_week()
+        total_guardian_count = coll.aggregate(
+            [
+                {
+                    "$match": {"channel": {"$nin": ['null', None] + exclude_channels}}
+                },
+                {
+                    "$project": {
+                        "total": {"$sum": ["$valid_exercise_count", "$valid_word_count", "$valid_reading_count"]}
+                    }
+                },
 
-                    {"$group": {"_id": None,
-                                "total": {"$sum": "$total"},
-                                }
-                     },
+                {"$group": {"_id": None,
+                            "total": {"$sum": "$total"},
+                            }
+                 },
 
-                ])
-            current_week_new_guardian_count = coll.aggregate(
-                [
-                    {
-                        "$match": {
-                            "day": {"$gte": current_week[0],
-                                    "$lte": current_week[6]},
-                            "channel": {"$nin": ['null', None] + exclude_channels}
-                        }
-                    },
-                    {
-                        "$project": {
-                            "total": {"$sum": ["$valid_exercise_count", "$valid_word_count", "$valid_reading_count"]}
-                        }
-                    },
+            ])
+        current_week_new_guardian_count = coll.aggregate(
+            [
+                {
+                    "$match": {
+                        "day": {"$gte": current_week[0],
+                                "$lte": current_week[6]},
+                        "channel": {"$nin": ['null', None] + exclude_channels}
+                    }
+                },
+                {
+                    "$project": {
+                        "total": {"$sum": ["$valid_exercise_count", "$valid_word_count", "$valid_reading_count"]}
+                    }
+                },
 
-                    {"$group": {"_id": None,
-                                "total": {"$sum": "$total"},
-                                }
-                     },
+                {"$group": {"_id": None,
+                            "total": {"$sum": "$total"},
+                            }
+                 },
 
-                ])
+            ])
 
-            last_week_new_guardian_count = coll.aggregate(
-                [
-                    {
-                        "$match": {
-                            "day": {"$gte": last_week[0],
-                                    "$lte": last_week[6]},
-                            "channel": {"$nin": ['null', None] + exclude_channels}
-                        }
-                    },
-                    {
-                        "$project": {
-                            "total": {"$sum": ["$valid_exercise_count", "$valid_word_count", "$valid_reading_count"]}
-                        }
-                    },
+        last_week_new_guardian_count = coll.aggregate(
+            [
+                {
+                    "$match": {
+                        "day": {"$gte": last_week[0],
+                                "$lte": last_week[6]},
+                        "channel": {"$nin": ['null', None] + exclude_channels}
+                    }
+                },
+                {
+                    "$project": {
+                        "total": {"$sum": ["$valid_exercise_count", "$valid_word_count", "$valid_reading_count"]}
+                    }
+                },
 
-                    {"$group": {"_id": None,
-                                "total": {"$sum": "$total"},
+                {"$group": {"_id": None,
+                            "total": {"$sum": "$total"},
 
-                                }
-                     },
+                            }
+                 },
 
-                ])
+            ])
 
-            async for amount in current_week_new_guardian_count:
-                current_week_new_guardian_count_list.append(amount)
+        async for amount in current_week_new_guardian_count:
+            current_week_new_guardian_count_list.append(amount)
 
-            async for amount in last_week_new_guardian_count:
-                last_week_new_guardian_count_list.append(amount)
+        async for amount in last_week_new_guardian_count:
+            last_week_new_guardian_count_list.append(amount)
 
-            async for amount in total_guardian_count:
-                total_guardian_count_list.append(amount)
+        async for amount in total_guardian_count:
+            total_guardian_count_list.append(amount)
 
         total = total_guardian_count_list[0]['total'] if total_guardian_count_list else 0
         current_week = current_week_new_guardian_count_list[0]['total'] if current_week_new_guardian_count_list else 0
@@ -238,63 +237,12 @@ class Overview(BaseHandler, DataExcludeMixin):
         total_guardian_count_list = []
         current_week_new_guardian_count_list = []
         last_week_new_guardian_count_list = []
-        if request['user_info']['instance_role_id'] == Roles.GLOBAL.value:
-            current_week = self.current_week()
-            last_week = self.last_week()
-            total_guardian_count = coll.aggregate(
-                    [
-                        {
-                            "$match": {"channel": {"$nin": ['null', None] + exclude_channels}}
-                        },
-                        {
-                            "$project": {
-                                "guardian_count": 1,
-                                "day": 1
-                            }
-                        },
-
-                        {"$group": {"_id": None,
-                                    "total": {"$sum": "$guardian_count"},
-                                    # "pp": {"$push": {"$cond": [{"$gte": ["$day",current_week[0]]}, {"aaaa": "$class_pay_amount" },0 ] }}
-                                    }
-                         },
-
-
-                    ])
-            current_week_new_guardian_count =  coll.aggregate(
-                    [
-                        {
-                            "$match": {
-                                    "day":  {"$gte": current_week[0],
-                                              "$lte": current_week[6]},
-                                "channel": {"$nin": ['null', None] + exclude_channels}
-                        }
-                        },
-                        {
-                            "$project": {
-                                "guardian_count": 1,
-                                "day": 1
-                            }
-                        },
-
-                        {"$group": {"_id": None,
-                                    "total": {"$sum": "$guardian_count"},
-                                    # "pp": {"$push": {"$cond": [{"$gte": ["$day",current_week[0]]}, {"aaaa": "$class_pay_amount" },0 ] }}
-                                    }
-                         },
-
-
-                    ])
-
-            last_week_new_guardian_count = coll.aggregate(
+        current_week = self.current_week()
+        last_week = self.last_week()
+        total_guardian_count = coll.aggregate(
                 [
                     {
-                        "$match": {
-                            "day": {"$gte": last_week[0],
-                                    "$lte": last_week[6]},
-
-                            "channel": {"$nin": ['null', None] + exclude_channels}
-                        }
+                        "$match": {"channel": {"$nin": ['null', None] + exclude_channels}}
                     },
                     {
                         "$project": {
@@ -305,20 +253,67 @@ class Overview(BaseHandler, DataExcludeMixin):
 
                     {"$group": {"_id": None,
                                 "total": {"$sum": "$guardian_count"},
-                                # "pp": {"$push": {"$cond": [{"$gte": ["$day",current_week[0]]}, {"aaaa": "$class_pay_amount" },0 ] }}
                                 }
                      },
 
+
+                ])
+        current_week_new_guardian_count =  coll.aggregate(
+                [
+                    {
+                        "$match": {
+                                "day":  {"$gte": current_week[0],
+                                          "$lte": current_week[6]},
+                            "channel": {"$nin": ['null', None] + exclude_channels}
+                    }
+                    },
+                    {
+                        "$project": {
+                            "guardian_count": 1,
+                            "day": 1
+                        }
+                    },
+
+                    {"$group": {"_id": None,
+                                "total": {"$sum": "$guardian_count"},
+                                }
+                     },
+
+
                 ])
 
-            async for amount in current_week_new_guardian_count:
-                current_week_new_guardian_count_list.append(amount)
+        last_week_new_guardian_count = coll.aggregate(
+            [
+                {
+                    "$match": {
+                        "day": {"$gte": last_week[0],
+                                "$lte": last_week[6]},
 
-            async for amount in last_week_new_guardian_count:
-                last_week_new_guardian_count_list.append(amount)
+                        "channel": {"$nin": ['null', None] + exclude_channels}
+                    }
+                },
+                {
+                    "$project": {
+                        "guardian_count": 1,
+                        "day": 1
+                    }
+                },
 
-            async for amount in total_guardian_count:
-                total_guardian_count_list.append(amount)
+                {"$group": {"_id": None,
+                            "total": {"$sum": "$guardian_count"},
+                            }
+                 },
+
+            ])
+
+        async for amount in current_week_new_guardian_count:
+            current_week_new_guardian_count_list.append(amount)
+
+        async for amount in last_week_new_guardian_count:
+            last_week_new_guardian_count_list.append(amount)
+
+        async for amount in total_guardian_count:
+            total_guardian_count_list.append(amount)
 
         total = total_guardian_count_list[0]['total'] if total_guardian_count_list else 0
         current_week = current_week_new_guardian_count_list[0]['total'] if current_week_new_guardian_count_list else 0
@@ -335,79 +330,78 @@ class Overview(BaseHandler, DataExcludeMixin):
         total_image_count_list = []
         current_week_new_image_count_list = []
         last_week_new_image_count_list = []
-        if request['user_info']['instance_role_id'] == Roles.GLOBAL.value:
-            current_week = self.current_week()
-            last_week = self.last_week()
-            total_image_count = coll.aggregate(
-                [
-                    {
-                        "$match": {"channel": {"$nin": ['null', None] + exclude_channels}}
-                    },
-                    {
-                        "$project": {
-                            "total": {"$sum":   [ "$e_image_c", "$w_image_c" ] }
-                        }
-                    },
+        current_week = self.current_week()
+        last_week = self.last_week()
+        total_image_count = coll.aggregate(
+            [
+                {
+                    "$match": {"channel": {"$nin": ['null', None] + exclude_channels}}
+                },
+                {
+                    "$project": {
+                        "total": {"$sum":   [ "$e_image_c", "$w_image_c" ] }
+                    }
+                },
 
-                    {"$group": {"_id": None,
-                                "total": {"$sum": "$total"}
-                                }
-                     },
+                {"$group": {"_id": None,
+                            "total": {"$sum": "$total"}
+                            }
+                 },
 
-                ])
+            ])
 
-            current_week_new_image_count = coll.aggregate(
-                [
-                    {
-                        "$match": {
-                            "day": {"$gte": current_week[0],
-                                    "$lte": current_week[6]},
-                            "channel": {"$nin": ['null', None] + exclude_channels}
-                        }
-                    },
-                    {
-                        "$project": {
-                            "total": {"$sum":   [ "$e_image_c", "$w_image_c" ] }
-                        }
-                    },
+        current_week_new_image_count = coll.aggregate(
+            [
+                {
+                    "$match": {
+                        "day": {"$gte": current_week[0],
+                                "$lte": current_week[6]},
+                        "channel": {"$nin": ['null', None] + exclude_channels}
+                    }
+                },
+                {
+                    "$project": {
+                        "total": {"$sum":   [ "$e_image_c", "$w_image_c" ] }
+                    }
+                },
 
-                    {"$group": {"_id": None,
-                                "total": {"$sum": "$total"}
-                                }
-                     },
+                {"$group": {"_id": None,
+                            "total": {"$sum": "$total"}
+                            }
+                 },
 
-                ])
+            ])
 
-            last_week_new_image_count = coll.aggregate(
-                [
-                    {
-                        "$match": {
-                            "day": {"$gte": last_week[0],
-                                    "$lte": last_week[6]},
-                            "channel": {"$nin": ['null', None] + exclude_channels}
-                        }
-                    },
-                    {
-                        "$project": {
-                            "total": {"$sum":   [ "$e_image_c", "$w_image_c" ] }
-                        }
-                    },
+        last_week_new_image_count = coll.aggregate(
+            [
+                {
+                    "$match": {
+                        "day": {"$gte": last_week[0],
+                                "$lte": last_week[6]},
+                        "channel": {"$nin": ['null', None] + exclude_channels}
+                    }
+                },
+                {
+                    "$project": {
+                        "total": {"$sum":   [ "$e_image_c", "$w_image_c" ] }
+                    }
+                },
 
-                    {"$group": {"_id": "",
-                                "total": {"$sum": "$total"}
-                                }
-                     },
+                {"$group": {"_id": "",
+                            "total": {"$sum": "$total"}
+                            }
+                 },
 
-                ])
+            ])
 
-            async for amount in current_week_new_image_count:
-                current_week_new_image_count_list.append(amount)
+        async for amount in current_week_new_image_count:
+            current_week_new_image_count_list.append(amount)
 
-            async for amount in last_week_new_image_count:
-                last_week_new_image_count_list.append(amount)
+        async for amount in last_week_new_image_count:
+            last_week_new_image_count_list.append(amount)
 
-            async for amount in total_image_count:
-                total_image_count_list.append(amount)
+        async for amount in total_image_count:
+            total_image_count_list.append(amount)
 
         total = total_image_count_list[0]['total'] if total_image_count_list else 0
         current_week = current_week_new_image_count_list[0]['total'] if current_week_new_image_count_list else 0
@@ -424,81 +418,80 @@ class Overview(BaseHandler, DataExcludeMixin):
         total_teacher_count_list = []
         current_week_new_teacher_count_list = []
         last_week_new_teacher_count_list = []
-        if request['user_info']['instance_role_id'] == Roles.GLOBAL.value:
-            current_week = self.current_week()
-            last_week = self.last_week()
-            total_teacher_count = coll.aggregate(
-                [
-                    {
-                        "$match": {"channel": {"$nin": ['null', None] + exclude_channels}}
-                    },
-                    {
-                        "$project": {
-                            "teacher_number": 1,
-                            "day": 1
-                        }
-                    },
+        current_week = self.current_week()
+        last_week = self.last_week()
+        total_teacher_count = coll.aggregate(
+            [
+                {
+                    "$match": {"channel": {"$nin": ['null', None] + exclude_channels}}
+                },
+                {
+                    "$project": {
+                        "teacher_number": 1,
+                        "day": 1
+                    }
+                },
 
-                    {"$group": {"_id": None,
-                                "total": {"$sum": "$teacher_number"}
-                                }
-                     },
+                {"$group": {"_id": None,
+                            "total": {"$sum": "$teacher_number"}
+                            }
+                 },
 
-                ])
-            current_week_new_teacher_count = coll.aggregate(
-                [
-                    {
-                        "$match": {
-                            "day": {"$gte": current_week[0],
-                                    "$lte": current_week[6]},
-                            "channel": {"$nin": ['null', None] + exclude_channels}
-                        }
-                    },
-                    {
-                        "$project": {
-                            "teacher_number": 1,
-                            "day": 1
-                        }
-                    },
+            ])
+        current_week_new_teacher_count = coll.aggregate(
+            [
+                {
+                    "$match": {
+                        "day": {"$gte": current_week[0],
+                                "$lte": current_week[6]},
+                        "channel": {"$nin": ['null', None] + exclude_channels}
+                    }
+                },
+                {
+                    "$project": {
+                        "teacher_number": 1,
+                        "day": 1
+                    }
+                },
 
-                    {"$group": {"_id": None,
-                                "total": {"$sum": "$teacher_number"}
-                                }
-                     },
+                {"$group": {"_id": None,
+                            "total": {"$sum": "$teacher_number"}
+                            }
+                 },
 
-                ])
+            ])
 
-            last_week_new_teacher_count = coll.aggregate(
-                [
-                    {
-                        "$match": {
-                            "day": {"$gte": last_week[0],
-                                    "$lte": last_week[6]},
-                            "channel": {"$nin": ['null', None] + exclude_channels}
-                        }
-                    },
-                    {
-                        "$project": {
-                            "teacher_number": 1,
-                            "day": 1
-                        }
-                    },
+        last_week_new_teacher_count = coll.aggregate(
+            [
+                {
+                    "$match": {
+                        "day": {"$gte": last_week[0],
+                                "$lte": last_week[6]},
+                        "channel": {"$nin": ['null', None] + exclude_channels}
+                    }
+                },
+                {
+                    "$project": {
+                        "teacher_number": 1,
+                        "day": 1
+                    }
+                },
 
-                    {"$group": {"_id": None,
-                                "total": {"$sum": "$teacher_number"}
-                                }
-                     },
+                {"$group": {"_id": None,
+                            "total": {"$sum": "$teacher_number"}
+                            }
+                 },
 
-                ])
+            ])
 
-            async for amount in current_week_new_teacher_count:
-                current_week_new_teacher_count_list.append(amount)
+        async for amount in current_week_new_teacher_count:
+            current_week_new_teacher_count_list.append(amount)
 
-            async for amount in last_week_new_teacher_count:
-                last_week_new_teacher_count_list.append(amount)
+        async for amount in last_week_new_teacher_count:
+            last_week_new_teacher_count_list.append(amount)
 
-            async for amount in total_teacher_count:
-                total_teacher_count_list.append(amount)
+        async for amount in total_teacher_count:
+            total_teacher_count_list.append(amount)
 
         total = total_teacher_count_list[0]['total'] if total_teacher_count_list else 0
         current_week = current_week_new_teacher_count_list[0]['total'] if current_week_new_teacher_count_list else 0
@@ -516,81 +509,80 @@ class Overview(BaseHandler, DataExcludeMixin):
         total_student_count_list = []
         current_week_new_student_count_list = []
         last_week_new_student_count_list = []
-        if request['user_info']['instance_role_id'] == Roles.GLOBAL.value:
-            current_week = self.current_week()
-            last_week = self.last_week()
-            total_student_count = coll.aggregate(
-                [
-                    {
-                        "$match": {"channel": {"$nin": ['null', None] + exclude_channels}}
-                    },
-                    {
-                        "$project": {
-                            "student_number": 1,
-                            "day": 1
-                        }
-                    },
+        current_week = self.current_week()
+        last_week = self.last_week()
+        total_student_count = coll.aggregate(
+            [
+                {
+                    "$match": {"channel": {"$nin": ['null', None] + exclude_channels}}
+                },
+                {
+                    "$project": {
+                        "student_number": 1,
+                        "day": 1
+                    }
+                },
 
-                    {"$group": {"_id": None,
-                                "total": {"$sum": "$student_number"}
-                                }
-                     },
+                {"$group": {"_id": None,
+                            "total": {"$sum": "$student_number"}
+                            }
+                 },
 
-                ])
-            current_week_new_student_count = coll.aggregate(
-                [
-                    {
-                        "$match": {
-                            "day": {"$gte": current_week[0],
-                                    "$lte": current_week[6]},
-                            "channel": {"$nin": ['null', None] + exclude_channels}
-                        }
-                    },
-                    {
-                        "$project": {
-                            "student_number": 1,
-                            "day": 1
-                        }
-                    },
+            ])
+        current_week_new_student_count = coll.aggregate(
+            [
+                {
+                    "$match": {
+                        "day": {"$gte": current_week[0],
+                                "$lte": current_week[6]},
+                        "channel": {"$nin": ['null', None] + exclude_channels}
+                    }
+                },
+                {
+                    "$project": {
+                        "student_number": 1,
+                        "day": 1
+                    }
+                },
 
-                    {"$group": {"_id": None,
-                                "total": {"$sum": "$student_number"}
-                                }
-                     },
+                {"$group": {"_id": None,
+                            "total": {"$sum": "$student_number"}
+                            }
+                 },
 
-                ])
+            ])
 
-            last_week_new_student_count = coll.aggregate(
-                [
-                    {
-                        "$match": {
-                            "day": {"$gte": last_week[0],
-                                    "$lte": last_week[6]},
-                            "channel": {"$nin": ['null', None] + exclude_channels}
-                        }
-                    },
-                    {
-                        "$project": {
-                            "student_number": 1,
-                            "day": 1
-                        }
-                    },
+        last_week_new_student_count = coll.aggregate(
+            [
+                {
+                    "$match": {
+                        "day": {"$gte": last_week[0],
+                                "$lte": last_week[6]},
+                        "channel": {"$nin": ['null', None] + exclude_channels}
+                    }
+                },
+                {
+                    "$project": {
+                        "student_number": 1,
+                        "day": 1
+                    }
+                },
 
-                    {"$group": {"_id": None,
-                                "total": {"$sum": "$student_number"}
-                                }
-                     },
+                {"$group": {"_id": None,
+                            "total": {"$sum": "$student_number"}
+                            }
+                 },
 
-                ])
+            ])
 
-            async for amount in current_week_new_student_count:
-                current_week_new_student_count_list.append(amount)
+        async for amount in current_week_new_student_count:
+            current_week_new_student_count_list.append(amount)
 
-            async for amount in last_week_new_student_count:
-                last_week_new_student_count_list.append(amount)
+        async for amount in last_week_new_student_count:
+            last_week_new_student_count_list.append(amount)
 
-            async for amount in total_student_count:
-                total_student_count_list.append(amount)
+        async for amount in total_student_count:
+            total_student_count_list.append(amount)
 
         total = total_student_count_list[0]['total'] if total_student_count_list else 0
         current_week = current_week_new_student_count_list[0]['total'] if current_week_new_student_count_list else 0
@@ -608,84 +600,80 @@ class Overview(BaseHandler, DataExcludeMixin):
         total_school_count_list = []
         current_week_new_school_count_list = []
         last_week_new_school_count_list = []
-        if request['user_info']['instance_role_id'] == Roles.GLOBAL.value:
-            current_week = self.current_week()
-            last_week = self.last_week()
-            total_school_count = coll.aggregate(
-                [
-                    {
-                        "$match": {"channel": {"$nin": ['null', None] + exclude_channels}}
-                    },
-                    {
-                        "$project": {
-                            "school_number": 1,
-                            "day": 1
-                        }
-                    },
+        current_week = self.current_week()
+        last_week = self.last_week()
+        total_school_count = coll.aggregate(
+            [
+                {
+                    "$match": {"channel": {"$nin": ['null', None] + exclude_channels}}
+                },
+                {
+                    "$project": {
+                        "school_number": 1,
+                        "day": 1
+                    }
+                },
 
-                    {"$group": {"_id": None,
-                                "total": {"$sum": "$school_number"}
-                                # "pp": {"$push": {"$cond": [{"$gte": ["$day",current_week[0]]}, {"aaaa": "$class_pay_amount" },0 ] }}
-                                }
-                     },
+                {"$group": {"_id": None,
+                            "total": {"$sum": "$school_number"}
+                            }
+                 },
 
-                ])
-            current_week_new_school_count = coll.aggregate(
-                [
-                    {
-                        "$match": {
-                            "day": {"$gte": current_week[0],
-                                    "$lte": current_week[6]},
-                            "channel": {"$nin": ['null', None] + exclude_channels}
-                        }
-                    },
-                    {
-                        "$project": {
-                            "school_number": 1,
-                            "day": 1
-                        }
-                    },
+            ])
+        current_week_new_school_count = coll.aggregate(
+            [
+                {
+                    "$match": {
+                        "day": {"$gte": current_week[0],
+                                "$lte": current_week[6]},
+                        "channel": {"$nin": ['null', None] + exclude_channels}
+                    }
+                },
+                {
+                    "$project": {
+                        "school_number": 1,
+                        "day": 1
+                    }
+                },
 
-                    {"$group": {"_id": None,
-                                "total": {"$sum": "$school_number"}
-                                # "pp": {"$push": {"$cond": [{"$gte": ["$day",current_week[0]]}, {"aaaa": "$class_pay_amount" },0 ] }}
-                                }
-                     },
+                {"$group": {"_id": None,
+                            "total": {"$sum": "$school_number"}
+                            }
+                 },
 
-                ])
+            ])
 
-            last_week_new_school_count = coll.aggregate(
-                [
-                    {
-                        "$match": {
-                            "day": {"$gte": last_week[0],
-                                    "$lte": last_week[6]},
-                            "channel": {"$nin": ['null', None] + exclude_channels}
-                        }
-                    },
-                    {
-                        "$project": {
-                            "school_number": 1,
-                            "day": 1
-                        }
-                    },
+        last_week_new_school_count = coll.aggregate(
+            [
+                {
+                    "$match": {
+                        "day": {"$gte": last_week[0],
+                                "$lte": last_week[6]},
+                        "channel": {"$nin": ['null', None] + exclude_channels}
+                    }
+                },
+                {
+                    "$project": {
+                        "school_number": 1,
+                        "day": 1
+                    }
+                },
 
-                    {"$group": {"_id": None,
-                                "total": {"$sum": "$school_number"}
-                                # "pp": {"$push": {"$cond": [{"$gte": ["$day",current_week[0]]}, {"aaaa": "$class_pay_amount" },0 ] }}
-                                }
-                     },
+                {"$group": {"_id": None,
+                            "total": {"$sum": "$school_number"}
+                            }
+                 },
 
-                ])
+            ])
 
-            async for amount in current_week_new_school_count:
-                current_week_new_school_count_list.append(amount)
+        async for amount in current_week_new_school_count:
+            current_week_new_school_count_list.append(amount)
 
-            async for amount in last_week_new_school_count:
-                last_week_new_school_count_list.append(amount)
+        async for amount in last_week_new_school_count:
+            last_week_new_school_count_list.append(amount)
 
-            async for amount in total_school_count:
-                total_school_count_list.append(amount)
+        async for amount in total_school_count:
+            total_school_count_list.append(amount)
 
         total = total_school_count_list[0]['total'] if total_school_count_list else 0
         current_week = current_week_new_school_count_list[0]['total'] if current_week_new_school_count_list else 0
@@ -702,42 +690,16 @@ class Overview(BaseHandler, DataExcludeMixin):
         total_pay_count_list = []
         current_week_new_pay_count_list = []
         last_week_new_pay_count_list = []
-        if request['user_info']['instance_role_id'] == Roles.GLOBAL.value:
-            current_week = self.current_week()
-            last_week = self.last_week()
-            current_week_new_pay_number =  coll.aggregate(
-                    [
-                        {
-                            "$match": {
-                                    "day":  {"$gte": current_week[0],
-                                              "$lte": current_week[6]},
-                                "channel": {"$nin": ['null', None] + exclude_channels}
-                        }
-                        },
-                        {
-                            "$project": {
-                                "pay_number": 1,
-                                "day": 1
-                            }
-                        },
-
-                        {"$group": {"_id": "",
-                                    "total": {"$sum": "$pay_number"},
-                                    # "pp": {"$push": {"$cond": [{"$gte": ["$day",current_week[0]]}, {"aaaa": "$class_pay_amount" },0 ] }}
-                                    }
-                         },
-
-
-                    ])
-
-            last_week_new_pay_number = coll.aggregate(
+        current_week = self.current_week()
+        last_week = self.last_week()
+        current_week_new_pay_number =  coll.aggregate(
                 [
                     {
                         "$match": {
-                            "day": {"$gte": last_week[0],
-                                    "$lte": last_week[6]},
+                                "day":  {"$gte": current_week[0],
+                                          "$lte": current_week[6]},
                             "channel": {"$nin": ['null', None] + exclude_channels}
-                        }
+                    }
                     },
                     {
                         "$project": {
@@ -748,40 +710,62 @@ class Overview(BaseHandler, DataExcludeMixin):
 
                     {"$group": {"_id": "",
                                 "total": {"$sum": "$pay_number"},
-                                # "pp": {"$push": {"$cond": [{"$gte": ["$day",current_week[0]]}, {"aaaa": "$class_pay_amount" },0 ] }}
                                 }
                      },
 
-                ])
-
-            total_pay_number = coll.aggregate(
-                [
-                    {
-                        "$match": {"channel": {"$nin": ['null', None] + exclude_channels}}
-                    },
-                    {
-                        "$project": {
-                            "pay_number": 1,
-                            "day": 1
-                        }
-                    },
-
-                    {"$group": {"_id": "",
-                                "total": {"$sum": "$pay_number"},
-                                # "pp": {"$push": {"$cond": [{"$gte": ["$day",current_week[0]]}, {"aaaa": "$class_pay_amount" },0 ] }}
-                                }
-                     },
 
                 ])
 
-            async for amount in current_week_new_pay_number:
-                current_week_new_pay_count_list.append(amount)
+        last_week_new_pay_number = coll.aggregate(
+            [
+                {
+                    "$match": {
+                        "day": {"$gte": last_week[0],
+                                "$lte": last_week[6]},
+                        "channel": {"$nin": ['null', None] + exclude_channels}
+                    }
+                },
+                {
+                    "$project": {
+                        "pay_number": 1,
+                        "day": 1
+                    }
+                },
 
-            async for amount in last_week_new_pay_number:
-                last_week_new_pay_count_list.append(amount)
+                {"$group": {"_id": "",
+                            "total": {"$sum": "$pay_number"},
+                            }
+                 },
 
-            async for amount in total_pay_number:
-                total_pay_count_list.append(amount)
+            ])
+
+        total_pay_number = coll.aggregate(
+            [
+                {
+                    "$match": {"channel": {"$nin": ['null', None] + exclude_channels}}
+                },
+                {
+                    "$project": {
+                        "pay_number": 1,
+                        "day": 1
+                    }
+                },
+
+                {"$group": {"_id": "",
+                            "total": {"$sum": "$pay_number"},
+                            }
+                 },
+
+            ])
+
+        async for amount in current_week_new_pay_number:
+            current_week_new_pay_count_list.append(amount)
+
+        async for amount in last_week_new_pay_number:
+            last_week_new_pay_count_list.append(amount)
+
+        async for amount in total_pay_number:
+            total_pay_count_list.append(amount)
 
         total = total_pay_count_list[0]['total'] if total_pay_count_list else 0
         current_week = current_week_new_pay_count_list[0]['total'] if current_week_new_pay_count_list else 0
@@ -798,42 +782,16 @@ class Overview(BaseHandler, DataExcludeMixin):
         total_pay_amount_list = []
         current_week_new_pay_amount_list = []
         last_week_new_pay_amount_list = []
-        if request['user_info']['instance_role_id'] == Roles.GLOBAL.value:
-            current_week = self.current_week()
-            last_week = self.last_week()
-            current_week_new_pay_amount =  coll.aggregate(
-                    [
-                        {
-                            "$match": {
-                                    "day":  {"$gte": current_week[0],
-                                              "$lte": current_week[6]},
-                                "channel": {"$nin": ['null', None] + exclude_channels}
-                        }
-                        },
-                        {
-                            "$project": {
-                                "pay_amount": 1,
-                                "day": 1
-                            }
-                        },
-
-                        {"$group": {"_id": "",
-                                    "total": {"$sum": "$pay_amount"},
-                                    # "pp": {"$push": {"$cond": [{"$gte": ["$day",current_week[0]]}, {"aaaa": "$class_pay_amount" },0 ] }}
-                                    }
-                         },
-
-
-                    ])
-
-            last_week_new_pay_amount = coll.aggregate(
+        current_week = self.current_week()
+        last_week = self.last_week()
+        current_week_new_pay_amount =  coll.aggregate(
                 [
                     {
                         "$match": {
-                            "day": {"$gte": last_week[0],
-                                    "$lte": last_week[6]},
+                                "day":  {"$gte": current_week[0],
+                                          "$lte": current_week[6]},
                             "channel": {"$nin": ['null', None] + exclude_channels}
-                        }
+                    }
                     },
                     {
                         "$project": {
@@ -847,35 +805,59 @@ class Overview(BaseHandler, DataExcludeMixin):
                                 }
                      },
 
-                ])
-
-            total_pay_amount = coll.aggregate(
-                [
-                    {
-                        "$match": {"channel": {"$nin": ['null', None] + exclude_channels}}
-                    },
-                    {
-                        "$project": {
-                            "pay_amount": 1,
-                            "day": 1
-                        }
-                    },
-
-                    {"$group": {"_id": "",
-                                "total": {"$sum": "$pay_amount"},
-                                }
-                     },
 
                 ])
 
-            async for amount in current_week_new_pay_amount:
-                current_week_new_pay_amount_list.append(amount)
+        last_week_new_pay_amount = coll.aggregate(
+            [
+                {
+                    "$match": {
+                        "day": {"$gte": last_week[0],
+                                "$lte": last_week[6]},
+                        "channel": {"$nin": ['null', None] + exclude_channels}
+                    }
+                },
+                {
+                    "$project": {
+                        "pay_amount": 1,
+                        "day": 1
+                    }
+                },
 
-            async for amount in last_week_new_pay_amount:
-                last_week_new_pay_amount_list.append(amount)
+                {"$group": {"_id": "",
+                            "total": {"$sum": "$pay_amount"},
+                            }
+                 },
 
-            async for amount in total_pay_amount:
-                total_pay_amount_list.append(amount)
+            ])
+
+        total_pay_amount = coll.aggregate(
+            [
+                {
+                    "$match": {"channel": {"$nin": ['null', None] + exclude_channels}}
+                },
+                {
+                    "$project": {
+                        "pay_amount": 1,
+                        "day": 1
+                    }
+                },
+
+                {"$group": {"_id": "",
+                            "total": {"$sum": "$pay_amount"},
+                            }
+                 },
+
+            ])
+
+        async for amount in current_week_new_pay_amount:
+            current_week_new_pay_amount_list.append(amount)
+
+        async for amount in last_week_new_pay_amount:
+            last_week_new_pay_amount_list.append(amount)
+
+        async for amount in total_pay_amount:
+            total_pay_amount_list.append(amount)
 
         total = total_pay_amount_list[0]['total'] if total_pay_amount_list else 0
         current_week = current_week_new_pay_amount_list[0]['total'] if current_week_new_pay_amount_list else 0
@@ -894,79 +876,78 @@ class Overview(BaseHandler, DataExcludeMixin):
         total_guardian_count_list = []
         current_week_new_guardian_count_list = []
         last_week_new_guardian_count_list = []
-        if request['user_info']['instance_role_id'] == Roles.GLOBAL.value:
-            current_week = self.current_week()
-            last_week = self.last_week()
-            total_guardian_count = coll.aggregate(
-                [
-                    {
-                        "$match": {"channel": {"$in": channle_ids}}
-                    },
-                    {
-                        "$project": {
-                            "total": {"$sum": ["$valid_exercise_count", "$valid_word_count", "$valid_reading_count"]}
-                        }
-                    },
+        current_week = self.current_week()
+        last_week = self.last_week()
+        total_guardian_count = coll.aggregate(
+            [
+                {
+                    "$match": {"channel": {"$in": channle_ids}}
+                },
+                {
+                    "$project": {
+                        "total": {"$sum": ["$valid_exercise_count", "$valid_word_count", "$valid_reading_count"]}
+                    }
+                },
 
-                    {"$group": {"_id": None,
-                                "total": {"$sum": "$total"},
-                                }
-                     },
+                {"$group": {"_id": None,
+                            "total": {"$sum": "$total"},
+                            }
+                 },
 
-                ])
-            current_week_new_guardian_count = coll.aggregate(
-                [
-                    {
-                        "$match": {
-                            "day": {"$gte": current_week[0],
-                                    "$lte": current_week[6]},
-                            "channel": {"$in": channle_ids}
-                        }
-                    },
-                    {
-                        "$project": {
-                            "total": {"$sum": ["$valid_exercise_count", "$valid_word_count", "$valid_reading_count"]}
-                        }
-                    },
+            ])
+        current_week_new_guardian_count = coll.aggregate(
+            [
+                {
+                    "$match": {
+                        "day": {"$gte": current_week[0],
+                                "$lte": current_week[6]},
+                        "channel": {"$in": channle_ids}
+                    }
+                },
+                {
+                    "$project": {
+                        "total": {"$sum": ["$valid_exercise_count", "$valid_word_count", "$valid_reading_count"]}
+                    }
+                },
 
-                    {"$group": {"_id": None,
-                                "total": {"$sum": "$total"},
-                                }
-                     },
+                {"$group": {"_id": None,
+                            "total": {"$sum": "$total"},
+                            }
+                 },
 
-                ])
+            ])
 
-            last_week_new_guardian_count = coll.aggregate(
-                [
-                    {
-                        "$match": {
-                            "day": {"$gte": last_week[0],
-                                    "$lte": last_week[6]},
-                            "channel": {"$in": channle_ids}
-                        }
-                    },
-                    {
-                        "$project": {
-                            "total": {"$sum": ["$valid_exercise_count", "$valid_word_count", "$valid_reading_count"]}
-                        }
-                    },
+        last_week_new_guardian_count = coll.aggregate(
+            [
+                {
+                    "$match": {
+                        "day": {"$gte": last_week[0],
+                                "$lte": last_week[6]},
+                        "channel": {"$in": channle_ids}
+                    }
+                },
+                {
+                    "$project": {
+                        "total": {"$sum": ["$valid_exercise_count", "$valid_word_count", "$valid_reading_count"]}
+                    }
+                },
 
-                    {"$group": {"_id": None,
-                                "total": {"$sum": "$total"},
+                {"$group": {"_id": None,
+                            "total": {"$sum": "$total"},
 
-                                }
-                     },
+                            }
+                 },
 
-                ])
+            ])
 
-            async for amount in current_week_new_guardian_count:
-                current_week_new_guardian_count_list.append(amount)
+        async for amount in current_week_new_guardian_count:
+            current_week_new_guardian_count_list.append(amount)
 
-            async for amount in last_week_new_guardian_count:
-                last_week_new_guardian_count_list.append(amount)
+        async for amount in last_week_new_guardian_count:
+            last_week_new_guardian_count_list.append(amount)
 
-            async for amount in total_guardian_count:
-                total_guardian_count_list.append(amount)
+        async for amount in total_guardian_count:
+            total_guardian_count_list.append(amount)
 
         total = total_guardian_count_list[0]['total'] if total_guardian_count_list else 0
         current_week = current_week_new_guardian_count_list[0]['total'] if current_week_new_guardian_count_list else 0
@@ -999,7 +980,6 @@ class Overview(BaseHandler, DataExcludeMixin):
 
                     {"$group": {"_id": None,
                                 "total": {"$sum": "$guardian_count"},
-                                # "pp": {"$push": {"$cond": [{"$gte": ["$day",current_week[0]]}, {"aaaa": "$class_pay_amount" },0 ] }}
                                 }
                      },
 
@@ -1023,7 +1003,6 @@ class Overview(BaseHandler, DataExcludeMixin):
 
                     {"$group": {"_id": None,
                                 "total": {"$sum": "$guardian_count"},
-                                # "pp": {"$push": {"$cond": [{"$gte": ["$day",current_week[0]]}, {"aaaa": "$class_pay_amount" },0 ] }}
                                 }
                      },
 

@@ -922,6 +922,67 @@ class QueryMixin(BaseHandler):
 
         return items
 
+    async def _list_school_clazz(self, request: Request, school_id: int):
+        """
+        学校数
+        :param request:
+        :param channel_ids:
+        :return:
+        """
+        coll = request.app['mongodb'][self.db][self.class_per_day_coll]
+        items = []
+
+        item_count = coll.aggregate(
+            [
+                {
+                    "$match": {
+                        "school_id": school_id,
+                    }
+                },
+                {
+                    "$project": {
+                        "school_id":1,
+                        "group_id": 1,
+                        "student_number": 1,
+                        "guardian_count": 1,
+                        "pay_number": 1,
+                        "pay_amount": 1,
+
+                        "day": 1
+                    }
+                },
+
+                {"$group": {"_id": "$group_id",
+                            "total_student_number": {"$sum": "$student_number"},
+                            "total_guardian_number": {"$sum": "$guardian_count"},
+                            "total_pay_number": {"$sum": "$pay_number"},
+                            "total_pay_amount": {"$sum": "$pay_amount"},
+
+                            }
+                 },
+                {
+                    "$project": {
+                        "_id": 1,
+                        "group_id": 1,
+                        "total_student_number": 1,
+                        "total_guardian_number": 1,
+                        "total_pay_number": 1,
+                        "total_pay_amount": 1,
+
+                        "pay_ratio": {"$cond": [{"$eq": ["$total_student_number", 0]}, 0, {"$divide": ["$total_pay_number", "$total_student_number"]}]},
+                        "bind_ratio": {"$cond": [{"$eq": ["$total_student_number", 0]}, 0,
+                                                {"$divide": ["$total_guardian_number", "$total_student_number"]}]},
+                    }
+
+                }
+
+            ])
+
+        async for item in item_count:
+            items.append(item)
+
+        return items
+
 class AreaDetail(QueryMixin, DataExcludeMixin):
     """
     大区详情
@@ -1241,7 +1302,40 @@ class ChannelDetail(QueryMixin):
 class SchoolDetail(QueryMixin):
     """
     学校详情
+    {
+        "school_id": ""
+    }
     """
+
+    async def clazz_list(self, request: Request):
+        """
+        班级列表
+
+        :param request:
+        :return:
+        """
+        request_param = await get_params(request)
+        school_id = int(request_param.get("school_id"))
+        items = await self._list_school_clazz(request, school_id)
+        group_ids = [item["_id"] for item in items]
+        if group_ids:
+            sql = "select id, name from sigma_account_ob_group where available =1 and id in (%s) " % ','.join(
+                [str(id) for id in group_ids])
+            async with request.app['mysql'].acquire() as conn:
+                async with conn.cursor(DictCursor) as cur:
+                    await cur.execute(sql)
+                    clazz = await cur.fetchall()
+
+            clazz_map = {}
+            for cla in clazz:
+                clazz_map[cla['id']] = cla
+
+            for item in items:
+                item['class_name'] = clazz_map.get(item['_id'], {}).get("name", "")
+            return self.reply_ok({"clazz_info": items})
+        return self.reply_ok({})
+
+
 
 class GradeDetail(QueryMixin):
     """

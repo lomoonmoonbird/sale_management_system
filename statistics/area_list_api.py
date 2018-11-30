@@ -42,7 +42,7 @@ class AreaList(BaseHandler, DataExcludeMixin):
         :param request:
         :return:
         """
-        #todo 有bug 不能按渠道循环
+
         request_param = await get_params(request)
         page = int(request_param.get('page', 0))
         per_page = 100
