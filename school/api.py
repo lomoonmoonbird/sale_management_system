@@ -108,47 +108,87 @@ class School(BaseHandler):
     async def get_market_school(self, request: Request):
         """
         获取市场学校列表
+        {
+            "page": ""
+        }
         #todo 全局查看所有
         :param request:
         :return:
         """
         request_param = await get_params(request)
 
-        # page = request_param['page']
-        # per_page = 100
+        # page = int(request_param['page'])
+        # per_page = 30
+        schools= []
+        if request['user_info']['instance_role_id'] == Roles.CHANNEL.value: #渠道
+            channel_id = request['user_info']['channel_id']
+            market_school = []
+            if not channel_id:
+                return self.reply_ok({"market_school": market_school})
+            channel_info = await request.app['mongodb'][self.db][self.instance_coll].find_one({"_id": ObjectId(channel_id), "status": 1})
+            old_id = channel_info.get('old_id', None)
 
-        channel_id = request['user_info']['channel_id']
-        market_school = []
-        if not channel_id:
-            return self.reply_ok({"market_school": market_school})
-        channel_info = await request.app['mongodb'][self.db][self.instance_coll].find_one({"_id": ObjectId(channel_id), "status": 1})
-        old_id = channel_info.get('old_id', None)
+            if old_id:
+                sql = "select id, full_name, time_create from sigma_account_ob_school where available = 1 and owner_id = %s " %  (old_id)
+                # total_sql = "select count(*) as total_ from sigma_account_ob_school where available = 1 and owner_id = %s" % old_id
+                async with request.app['mysql'].acquire() as conn:
+                    async with conn.cursor(DictCursor) as cur:
+                        await cur.execute(sql)
+                        schools = await cur.fetchall()
 
-        if old_id:
-            sql = "select id, full_name, time_create from sigma_account_ob_school where available = 1 and owner_id = %s " %  old_id
 
+                school_ids = [item['id'] for item in schools]
+
+                distributed_school = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": channel_id,
+                                                                                               "role": Roles.SCHOOL.value,
+                                                                                               "status": 1})
+                distributed_school = await distributed_school.to_list(10000)
+                distributed_school_map = {}
+                for d_s_m in distributed_school:
+                    if distributed_school_map.get("school_id", []):
+                        distributed_school_map[d_s_m['school_id']].append(d_s_m['user_id'])
+                    else:
+                        distributed_school_map[d_s_m['school_id']] = [d_s_m['user_id']]
+
+                distributed_user_ids = [str(item['user_id']) for item in distributed_school]
+                distributed_user = request.app['mongodb'][self.db][self.user_coll].find({"user_id": {"$in": distributed_user_ids},
+                                                                                               "status": 1})
+                distributed_user = await distributed_user.to_list(10000)
+
+                distributed_user_map = {}
+                for d_u in distributed_user:
+                    distributed_user_map[int(d_u['user_id'])] = {"user_name": d_u['nickname'], "user_id": d_u['user_id']}
+                for school in schools:
+                    user_ids = distributed_school_map.get(school['id'], [])
+                    users_info = [distributed_user_map.get(int(user_id), {}) for user_id in user_ids]
+                    school['market_info'] = users_info
+
+
+        elif request['user_info']['instance_role_id'] == Roles.GLOBAL.value: #总部
+            sql = "select id, full_name from sigma_account_ob_school where available = 1"
             async with request.app['mysql'].acquire() as conn:
                 async with conn.cursor(DictCursor) as cur:
                     await cur.execute(sql)
                     schools = await cur.fetchall()
 
-            school_ids = [item['id'] for item in schools]
-
-            distributed_school = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": channel_id,
+            distributed_school = request.app['mongodb'][self.db][self.instance_coll].find({
                                                                                            "role": Roles.SCHOOL.value,
                                                                                            "status": 1})
             distributed_school = await distributed_school.to_list(10000)
+            distributed_user_ids = [str(item['user_id']) for item in distributed_school]
+
+            distributed_user = request.app['mongodb'][self.db][self.user_coll].find(
+                {"user_id": {"$in": distributed_user_ids},
+                 "status": 1})
+
+            distributed_user = await distributed_user.to_list(10000)
+
             distributed_school_map = {}
             for d_s_m in distributed_school:
                 if distributed_school_map.get("school_id", []):
                     distributed_school_map[d_s_m['school_id']].append(d_s_m['user_id'])
                 else:
                     distributed_school_map[d_s_m['school_id']] = [d_s_m['user_id']]
-
-            distributed_user_ids = [str(item['user_id']) for item in distributed_school]
-            distributed_user = request.app['mongodb'][self.db][self.user_coll].find({"user_id": {"$in": distributed_user_ids},
-                                                                                           "status": 1})
-            distributed_user = await distributed_user.to_list(10000)
 
             distributed_user_map = {}
             for d_u in distributed_user:
@@ -158,7 +198,54 @@ class School(BaseHandler):
                 users_info = [distributed_user_map.get(int(user_id), {}) for user_id in user_ids]
                 school['market_info'] = users_info
 
+            print(json.dumps(schools, indent=4))
+
+        elif request['user_info']['instance_role_id'] == Roles.AREA.value: #大区
+            area_id = request['user_info']['area_id']
+            channels = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": area_id, "role": Roles.CHANNEL.value, 'status': 1})
+            channels = await channels.to_list(10000)
+            old_ids = [item['old_id'] for item in channels]
+            channels_ids = [str(item['_id']) for item in channels]
+            if old_ids:
+                sql = "select id, full_name from sigma_account_ob_school where available = 1 and owner_id in (%s) " % (2)
+                
+                async with request.app['mysql'].acquire() as conn:
+                    async with conn.cursor(DictCursor) as cur:
+                        await cur.execute(sql)
+                        schools = await cur.fetchall()
+
+                distributed_school = request.app['mongodb'][self.db][self.instance_coll].find({
+                    "parent_id": {"$in": channels_ids},
+                    "role": Roles.SCHOOL.value,
+                    "status": 1})
+                distributed_school = await distributed_school.to_list(10000)
+                distributed_user_ids = [str(item['user_id']) for item in distributed_school]
+
+                distributed_user = request.app['mongodb'][self.db][self.user_coll].find(
+                    {"user_id": {"$in": distributed_user_ids},
+                     "status": 1})
+
+                distributed_user = await distributed_user.to_list(10000)
+
+                distributed_school_map = {}
+                for d_s_m in distributed_school:
+                    if distributed_school_map.get("school_id", []):
+                        distributed_school_map[d_s_m['school_id']].append(d_s_m['user_id'])
+                    else:
+                        distributed_school_map[d_s_m['school_id']] = [d_s_m['user_id']]
+
+                distributed_user_map = {}
+                for d_u in distributed_user:
+                    distributed_user_map[int(d_u['user_id'])] = {"user_name": d_u['nickname'], "user_id": d_u['user_id']}
+                for school in schools:
+                    user_ids = distributed_school_map.get(school['id'], [])
+                    users_info = [distributed_user_map.get(int(user_id), {}) for user_id in user_ids]
+                    school['market_info'] = users_info
+
+                print(json.dumps(schools, indent=4))
         return self.reply_ok({"market_school": schools})
+
+
 
     @validate_permission()
     async def get_spare_market_user_for_school(self, request: Request):
