@@ -1047,6 +1047,8 @@ class PerDaySubTask_USERS(BaseTask):
 
             user_ids = list(set([item['id'] for item in teacher_student]))
 
+
+
             q_usergroup = select([ob_groupuser]).where(and_(
                 ob_groupuser.c.available == 1,
                 ob_groupuser.c.user_id.in_(user_ids),
@@ -1064,7 +1066,8 @@ class PerDaySubTask_USERS(BaseTask):
             group = self._query(q_group)
 
 
-            school_ids = list(set([item['school_id'] for item in group]))
+            # school_ids = list(set([item['school_id'] for item in group]))
+            school_ids = list(set([item['school_id'] for item in teacher_student]))
             q_school = select([ob_school.c.owner_id, ob_school.c.id]).where(and_(
                 ob_school.c.available == 1,
                 ob_school.c.id.in_(school_ids),
@@ -1095,6 +1098,8 @@ class PerDaySubTask_USERS(BaseTask):
             school_channel_map = {}
             for s_c in schools:
                 school_channel_map[s_c['id']] = s_c['owner_id']
+            # for t_s in teacher_student:
+            #     school_channel_map[t_s['school_id']] = t_s['owner_id']
 
             teacher_student_map = {}
             for t_s in teacher_student:
@@ -1114,7 +1119,6 @@ class PerDaySubTask_USERS(BaseTask):
             # print(json.dumps(teacher_student, indent=4, cls=CustomEncoder))
             # print(json.dumps(usergroup_single_map, indent=4, cls=CustomEncoder))
             for t_s in teacher_student:
-
                 for ug_map in usergroup_map.get(t_s['id'], []):
                     # print(ug_map)
                     if int(ug_map['role_id']) == Roles.TEACHER.value: #老师
@@ -1144,21 +1148,22 @@ class PerDaySubTask_USERS(BaseTask):
                         pass
 
 
-                if int(usergroup_single_map.get(t_s['id'], {}).get('role_id', -1)) == Roles.TEACHER.value:  # 老师
+                if int(t_s['role_id']) == Roles.TEACHER.value:  # 老师
+
                     #学校
-                    school_teacher_number_defaultdict[usergroup_single_map.get(t_s['id'], {}).get("school_id", -1)]['user_info'] = usergroup_single_map.get(t_s['id'], {})
-                    if school_teacher_number_defaultdict[usergroup_single_map.get(t_s['id'], {}).get("school_id", -1)]['n']:
-                        school_teacher_number_defaultdict[usergroup_single_map.get(t_s['id'], {}).get("school_id", -1)]['n'].append(1)
+                    school_teacher_number_defaultdict[teacher_student_map.get(t_s['id'], {}).get("school_id", -1)]['user_info'] = teacher_student_map.get(t_s['id'], {})
+                    if school_teacher_number_defaultdict[teacher_student_map.get(t_s['id'], {}).get("school_id", -1)]['n']:
+                        school_teacher_number_defaultdict[teacher_student_map.get(t_s['id'], {}).get("school_id", -1)]['n'].append(1)
                     else:
-                        school_teacher_number_defaultdict[usergroup_single_map.get(t_s['id'], {}).get("school_id", -1)]['n'] = [1]
+                        school_teacher_number_defaultdict[teacher_student_map.get(t_s['id'], {}).get("school_id", -1)]['n'] = [1]
 
                     #渠道
-                    channel_teacher_number_defaultdict[school_channel_map.get(usergroup_single_map.get(t_s['id'], {}).get("school_id", -1), -1)]['user_info'] = usergroup_single_map.get(t_s['id'], {})
-                    if channel_teacher_number_defaultdict[school_channel_map.get(usergroup_single_map.get(t_s['id'], {}).get("school_id", -1), -1)]['n']:
-                        channel_teacher_number_defaultdict[school_channel_map.get(usergroup_single_map.get(t_s['id'], {}).get("school_id", -1), -1)]['n'].append(1)
+                    channel_teacher_number_defaultdict[school_channel_map.get(teacher_student_map.get(t_s['id'], {}).get("school_id", -1), -1)]['user_info'] = teacher_student_map.get(t_s['id'], {})
+                    if channel_teacher_number_defaultdict[school_channel_map.get(teacher_student_map.get(t_s['id'], {}).get("school_id", -1), -1)]['n']:
+                        channel_teacher_number_defaultdict[school_channel_map.get(teacher_student_map.get(t_s['id'], {}).get("school_id", -1), -1)]['n'].append(1)
                     else:
-                        channel_teacher_number_defaultdict[school_channel_map.get(usergroup_single_map.get(t_s['id'], {}).get("school_id", -1), -1)]['n'] = [1]
-                elif int(usergroup_single_map.get(t_s['id'], {}).get('role_id', -1)) == Roles.STUDENT.value:  # 学生:
+                        channel_teacher_number_defaultdict[school_channel_map.get(teacher_student_map.get(t_s['id'], {}).get("school_id", -1), -1)]['n'] = [1]
+                elif int(t_s['role_id']) == Roles.STUDENT.value:  # 学生:
                     # 年级
                     school_grade_key = str(usergroup_single_map.get(t_s['id'], {}).get("school_id", -1)) + "@" + str(usergroup_single_map.get(t_s['id'], {}).get("grade", -1))
                     grade_student_number_defaultdict[school_grade_key]['user_info'] = usergroup_single_map.get(t_s['id'], {})
@@ -1168,17 +1173,17 @@ class PerDaySubTask_USERS(BaseTask):
                         grade_student_number_defaultdict[school_grade_key]['n'] = [1]
 
                     # 学校
-                    school_student_number_defaultdict[usergroup_single_map.get(t_s['id'], {}).get("school_id", -1)]['user_info'] = usergroup_single_map.get(t_s['id'], {})
-                    if school_student_number_defaultdict[usergroup_single_map.get(t_s['id'], {}).get("school_id", -1)]['n']:
-                        school_student_number_defaultdict[usergroup_single_map.get(t_s['id'], {}).get("school_id", -1)]['n'].append(1)
+                    school_student_number_defaultdict[teacher_student_map.get(t_s['id'], {}).get("school_id", -1)]['user_info'] = teacher_student_map.get(t_s['id'], {})
+                    if school_student_number_defaultdict[teacher_student_map.get(t_s['id'], {}).get("school_id", -1)]['n']:
+                        school_student_number_defaultdict[teacher_student_map.get(t_s['id'], {}).get("school_id", -1)]['n'].append(1)
                     else:
-                        school_student_number_defaultdict[usergroup_single_map.get(t_s['id'], {}).get("school_id", -1)]['n'] = [1]
+                        school_student_number_defaultdict[teacher_student_map.get(t_s['id'], {}).get("school_id", -1)]['n'] = [1]
                     # 渠道
-                    channel_student_number_defaultdict[school_channel_map.get(usergroup_single_map.get(t_s['id'], {}).get("school_id", -1), -1)]['user_info'] = usergroup_single_map.get(t_s['id'], {})
-                    if channel_student_number_defaultdict[school_channel_map.get(usergroup_single_map.get(t_s['id'], {}).get("school_id", -1), -1)]['n']:
-                        channel_student_number_defaultdict[school_channel_map.get(usergroup_single_map.get(t_s['id'], {}).get("school_id", -1), -1)]['n'].append(1)
+                    channel_student_number_defaultdict[school_channel_map.get(teacher_student_map.get(t_s['id'], {}).get("school_id", -1), -1)]['user_info'] = teacher_student_map.get(t_s['id'], {})
+                    if channel_student_number_defaultdict[school_channel_map.get(teacher_student_map.get(t_s['id'], {}).get("school_id", -1), -1)]['n']:
+                        channel_student_number_defaultdict[school_channel_map.get(teacher_student_map.get(t_s['id'], {}).get("school_id", -1), -1)]['n'].append(1)
                     else:
-                        channel_student_number_defaultdict[school_channel_map.get(usergroup_single_map.get(t_s['id'], {}).get("school_id", -1), -1)]['n'] = [1]
+                        channel_student_number_defaultdict[school_channel_map.get(teacher_student_map.get(t_s['id'], {}).get("school_id", -1), -1)]['n'] = [1]
 
                 else:
                     pass
@@ -2231,14 +2236,14 @@ class PerDayTask(BaseTask):
         try:
             print ('begin...')
             from tasks.celery_init import sales_celery
-            sales_celery.send_task("tasks.celery_per_day_task.PerDaySubTask_IMAGES") #考试 单词图片数
-            sales_celery.send_task("tasks.celery_per_day_task.PerDaySubTask_GUARDIAN") #家长数也为绑定数
-            sales_celery.send_task("tasks.celery_per_day_task.PerDaySubTask_PAYMENTS") #付费数 付费额
+            # sales_celery.send_task("tasks.celery_per_day_task.PerDaySubTask_IMAGES") #考试 单词图片数
+            # sales_celery.send_task("tasks.celery_per_day_task.PerDaySubTask_GUARDIAN") #家长数也为绑定数
+            # sales_celery.send_task("tasks.celery_per_day_task.PerDaySubTask_PAYMENTS") #付费数 付费额
             sales_celery.send_task("tasks.celery_per_day_task.PerDaySubTask_USERS") #学生数 老师数
-            sales_celery.send_task("tasks.celery_per_day_task.PerDayTask_SCHOOL") #学校数
-            sales_celery.send_task("tasks.celery_per_day_task.PerDayTask_VALIDCONTEST") #有效考试 有效单词
-            sales_celery.send_task("tasks.celery_per_day_task.PerDayTask_VALIDREADING")  # 有效阅读
-            sales_celery.send_task("tasks.celery_per_day_task.PerDayTask_SCHOOLSTAGE")  # 学校阶段
+            # sales_celery.send_task("tasks.celery_per_day_task.PerDayTask_SCHOOL") #学校数
+            # sales_celery.send_task("tasks.celery_per_day_task.PerDayTask_VALIDCONTEST") #有效考试 有效单词
+            # sales_celery.send_task("tasks.celery_per_day_task.PerDayTask_VALIDREADING")  # 有效阅读
+            # sales_celery.send_task("tasks.celery_per_day_task.PerDayTask_SCHOOLSTAGE")  # 学校阶段
             print ('finished...')
 
         except Exception as e:
