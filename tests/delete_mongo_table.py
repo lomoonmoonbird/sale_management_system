@@ -12,3 +12,6 @@ collections = ["channel_per_day", "class_per_day", "school_per_day","grade", "gr
 
 for coll in collections:
     mongo[coll].drop()
+
+
+print('complete .')
