@@ -682,6 +682,93 @@ class QueryMixin(BaseHandler):
         last_week = last_week_new_pay_amount_list[0]['total'] if last_week_new_pay_amount_list else 0
         return total,current_week,last_week
 
+    async def _valid_contest_number(self, request:Request, channle_ids=[], group_by=None):
+        """
+        有效测评书
+        :param request:
+        :return:
+        """
+        coll = request.app['mongodb'][self.db][self.channel_per_day_coll]
+        total_guardian_count_list = []
+        current_week_new_guardian_count_list = []
+        last_week_new_guardian_count_list = []
+        current_week = self.current_week()
+        last_week = self.last_week()
+        total_guardian_count = coll.aggregate(
+            [
+                {
+                    "$match": {"channel": {"$in": channle_ids}}
+                },
+                {
+                    "$project": {
+                        "total": {"$sum": ["$valid_exercise_count", "$valid_word_count", "$valid_reading_count"]}
+                    }
+                },
+
+                {"$group": {"_id": group_by,
+                            "total": {"$sum": "$total"},
+                            }
+                 },
+
+            ])
+        current_week_new_guardian_count = coll.aggregate(
+            [
+                {
+                    "$match": {
+                        "day": {"$gte": current_week[0],
+                                "$lte": current_week[6]},
+                        "channel": {"$in": channle_ids}
+                    }
+                },
+                {
+                    "$project": {
+                        "total": {"$sum": ["$valid_exercise_count", "$valid_word_count", "$valid_reading_count"]}
+                    }
+                },
+
+                {"$group": {"_id": None,
+                            "total": {"$sum": "$total"},
+                            }
+                 },
+
+            ])
+
+        last_week_new_guardian_count = coll.aggregate(
+            [
+                {
+                    "$match": {
+                        "day": {"$gte": last_week[0],
+                                "$lte": last_week[6]},
+                        "channel": {"$in": channle_ids}
+                    }
+                },
+                {
+                    "$project": {
+                        "total": {"$sum": ["$valid_exercise_count", "$valid_word_count", "$valid_reading_count"]}
+                    }
+                },
+
+                {"$group": {"_id": None,
+                            "total": {"$sum": "$total"},
+
+                            }
+                 },
+
+            ])
+
+        async for amount in current_week_new_guardian_count:
+            current_week_new_guardian_count_list.append(amount)
+
+        async for amount in last_week_new_guardian_count:
+            last_week_new_guardian_count_list.append(amount)
+
+        async for amount in total_guardian_count:
+            total_guardian_count_list.append(amount)
+
+        total = total_guardian_count_list[0]['total'] if total_guardian_count_list else 0
+        current_week = current_week_new_guardian_count_list[0]['total'] if current_week_new_guardian_count_list else 0
+        last_week = last_week_new_guardian_count_list[0]['total'] if last_week_new_guardian_count_list else 0
+        return total, current_week, last_week
 
     async def _list(self, request: Request, channel_ids: list):
         """
@@ -1031,6 +1118,8 @@ class AreaDetail(QueryMixin, DataExcludeMixin):
         guardian_total, guardian_curr_week_new_number, guardian_last_week_new_number = await self._guardian_number(
             request, old_ids, "$channel")
 
+        contest_total, contest_curr_week_new_number, contest_last_week_new_number = await self._valid_contest_number(
+            request, exclude_channels)
         return self.reply_ok({"pay_total": pay_total,
                               "pay_curr_week_new_number": pay_curr_week_new_number,
                               "pay_last_week_new_number": pay_last_week_new_number,
@@ -1051,7 +1140,10 @@ class AreaDetail(QueryMixin, DataExcludeMixin):
                               "image_last_week_new_number": image_last_week_new_number,
                               "guardian_total": guardian_total,
                               "guardian_curr_week_new_number": guardian_curr_week_new_number,
-                              "guardian_last_week_new_number": guardian_last_week_new_number
+                              "guardian_last_week_new_number": guardian_last_week_new_number,
+                              "contest_total": contest_total,
+                              "contest_curr_week_new_number": contest_curr_week_new_number,
+                              "contest_last_week_new_number": contest_last_week_new_number
                               })
 
     @validate_permission()
@@ -1151,7 +1243,8 @@ class ChannelDetail(QueryMixin):
             guardian_total, guardian_curr_week_new_number, guardian_last_week_new_number = await self._guardian_number(
                 request, channel_old_id, "$channel")
 
-            print ()
+            contest_total, contest_curr_week_new_number, contest_last_week_new_number = await self._valid_contest_number(
+                request, channel_old_id)
 
             return self.reply_ok({"pay_total": pay_total,
                                   "pay_curr_week_new_number": pay_curr_week_new_number,
@@ -1173,7 +1266,10 @@ class ChannelDetail(QueryMixin):
                                   "image_last_week_new_number": image_last_week_new_number,
                                   "guardian_total": guardian_total,
                                   "guardian_curr_week_new_number": guardian_curr_week_new_number,
-                                  "guardian_last_week_new_number": guardian_last_week_new_number
+                                  "guardian_last_week_new_number": guardian_last_week_new_number,
+                                  "contest_total": contest_total,
+                                  "contest_curr_week_new_number": contest_curr_week_new_number,
+                                  "contest_last_week_new_number": contest_last_week_new_number
                                   })
         # raise ChannelNotExist("Channel not exist")
         return self.reply_ok([])

@@ -98,7 +98,7 @@ class ChannelExportReport(BaseHandler, ExportBase, DataExcludeMixin):
     @validate_permission()
     async def week(self, request: Request):
         """
-        渠道导出月报
+        渠道导出周报
         :param request:
         :return:
         """
