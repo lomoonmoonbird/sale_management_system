@@ -76,6 +76,7 @@ total_teacher_channel = mongo.channel_per_day.aggregate([
             ])
 
 
+
 for a1 in total_teacher_class:
     print(a1)
 
@@ -86,4 +87,90 @@ for a1 in total_teacher_school:
     print(a1)
 
 for a2 in total_teacher_channel:
+    print(a2)
+
+
+total_student_class = mongo.class_per_day.aggregate([
+                # {
+                #     "$match": {"channel": {"$nin": ['null', None, -1] + exclude_channels}}
+                # },
+                {
+                    "$project": {
+                        "student_number": 1,
+                        "day": 1
+                    }
+                },
+
+                {"$group": {"_id": None,
+                            "total": {"$sum": "$student_number"}
+                            }
+                 },
+
+            ])
+
+total_student_grade = mongo.grade_per_day.aggregate([
+                # {
+                #     "$match": {"channel": {"$nin": ['null', None, -1] + exclude_channels}}
+                # },
+                {
+                    "$project": {
+                        "student_number": 1,
+                        "day": 1
+                    }
+                },
+
+                {"$group": {"_id": None,
+                            "total": {"$sum": "$student_number"}
+                            }
+                 },
+
+            ])
+
+total_student_school = mongo.school_per_day.aggregate([
+                # {
+                #     "$match": {"channel": {"$nin": ['null', None, -1] + exclude_channels}}
+                # },
+                {
+                    "$project": {
+                        "student_number": 1,
+                        "day": 1
+                    }
+                },
+
+                {"$group": {"_id": None,
+                            "total": {"$sum": "$student_number"}
+                            }
+                 },
+
+            ])
+
+total_student_channel = mongo.channel_per_day.aggregate([
+                # {
+                #     "$match": {"channel": {"$nin": ['null', None, -1] }}
+                # },
+                {
+                    "$project": {
+                        "student_number": 1,
+                        "day": 1
+                    }
+                },
+
+                {"$group": {"_id": None,
+                            "total": {"$sum": "$student_number"}
+                            }
+                 },
+
+            ])
+
+
+for a1 in total_student_class:
+    print(a1)
+
+for a2 in total_student_grade:
+    print(a2)
+
+for a1 in total_student_school:
+    print(a1)
+
+for a2 in total_student_channel:
     print(a2)

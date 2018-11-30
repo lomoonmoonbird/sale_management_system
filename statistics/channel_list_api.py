@@ -2,7 +2,7 @@
 # --*-- coding: utf-8 --*--
 
 """
-数据统计 ： 数据总览
+数据统计 ： 渠道列表
 """
 
 from datetime import datetime, timedelta
@@ -74,7 +74,6 @@ class ChannelList(BaseHandler, DataExcludeMixin):
                 item["channel_info"] = channels_map.get(item["_id"], 0)
             items = items
         return self.reply_ok(items)
-
 
 
     async def _list(self, request: Request, channel_ids: list):

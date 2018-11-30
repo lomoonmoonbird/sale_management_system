@@ -1298,7 +1298,6 @@ class ChannelDetail(QueryMixin):
 
         return self.reply_ok(items)
 
-
 class SchoolDetail(QueryMixin):
     """
     学校详情
@@ -1334,8 +1333,6 @@ class SchoolDetail(QueryMixin):
                 item['class_name'] = clazz_map.get(item['_id'], {}).get("name", "")
             return self.reply_ok({"clazz_info": items})
         return self.reply_ok({})
-
-
 
 class GradeDetail(QueryMixin):
     """
@@ -1373,7 +1370,6 @@ class GradeDetail(QueryMixin):
                 item['class_name'] = clazz_map.get(item['_id'], {}).get("name", "")
             return self.reply_ok({"grade_info": items})
         return self.reply_ok({})
-
 
 class ClazzDetail(BaseHandler):
     """
@@ -1416,7 +1412,7 @@ class ClazzDetail(BaseHandler):
                 "student_id": cla['id'],
                 "is_bind": 1 if cla['total_wechat'] is not None and cla['total_wechat'] > 0 else 0,
                 "is_paid": 1 if cla['total_amount'] is not None and cla['total_amount'] > 0 else 0,
-                "pay_amount": cla['total_amount'],
+                "pay_amount": cla['total_amount'] if cla['total_amount'] is not None else 0,
                 "duration": 0 if current_timestamp > cla['student_vip_expire'] else (datetime.fromtimestamp(cla['student_vip_expire']) - datetime.fromtimestamp(current_timestamp)).days
             })
 

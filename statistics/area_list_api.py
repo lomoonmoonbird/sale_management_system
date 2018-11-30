@@ -2,7 +2,7 @@
 # --*-- coding: utf-8 --*--
 
 """
-数据统计 ： 数据总览
+数据统计 ： 大区列表
 """
 
 from datetime import datetime, timedelta
