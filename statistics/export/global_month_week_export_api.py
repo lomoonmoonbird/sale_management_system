@@ -32,6 +32,7 @@ from openpyxl.styles import PatternFill, Border, Side, Alignment, Protection, Fo
 from bson import ObjectId
 from concurrent.futures import ThreadPoolExecutor
 from statistics.export.export_base import ExportBase
+from mixins import DataExcludeMixin
 
 class CustomEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -42,7 +43,7 @@ class CustomEncoder(json.JSONEncoder):
 
         return json.JSONEncoder.default(self, obj)
 
-class GlobalExportReport(BaseHandler, ExportBase):
+class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
     def __init__(self):
         self.db = 'sales'
         self.user_coll = 'sale_user'
@@ -88,6 +89,8 @@ class GlobalExportReport(BaseHandler, ExportBase):
             user['area_info'] = area_map.get(user['area_id'], {})
         old_ids = [item['old_id'] for item in channels]
 
+        exclude_channels = await self.exclude_channel(request.app['mysql'])
+        old_ids = list(set(old_ids).difference(set(exclude_channels)))
         items = await self._list_month(request, old_ids)
 
         template_path = os.path.dirname(__file__) + "/templates/global_month_template.xlsx"
@@ -139,7 +142,8 @@ class GlobalExportReport(BaseHandler, ExportBase):
         for user in area_users:
             user['area_info'] = area_map.get(user['area_id'], {})
         old_ids = [item['old_id'] for item in channels]
-
+        exclude_channels = await self.exclude_channel(request.app['mysql'])
+        old_ids = list(set(old_ids).difference(set(exclude_channels)))
         items = await self._list_week(request, old_ids)
 
         template_path = os.path.dirname(__file__) + "/templates/global_week_template.xlsx"

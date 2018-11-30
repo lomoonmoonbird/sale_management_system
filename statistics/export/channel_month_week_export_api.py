@@ -32,6 +32,7 @@ from openpyxl.styles import PatternFill, Border, Side, Alignment, Protection, Fo
 from bson import ObjectId
 from concurrent.futures import ThreadPoolExecutor
 from statistics.export.export_base import ExportBase
+from mixins import DataExcludeMixin
 
 class CustomEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -42,7 +43,7 @@ class CustomEncoder(json.JSONEncoder):
 
         return json.JSONEncoder.default(self, obj)
 
-class ChannelExportReport(BaseHandler, ExportBase):
+class ChannelExportReport(BaseHandler, ExportBase, DataExcludeMixin):
     def __init__(self):
         self.db = 'sales'
         self.user_coll = 'sale_user'
@@ -80,6 +81,8 @@ class ChannelExportReport(BaseHandler, ExportBase):
             school_map = {}
             for school in school_info:
                 school_map[school['id']] = school
+            exclude_schools = await self.exclude_schools(request.app['mysql'])
+            schools_ids = list(set(schools_ids).difference(set(exclude_schools)))
             items = await self._list_month(request, schools_ids)
             template_path = os.path.dirname(__file__) + "/templates/channel_month_template.xlsx"
             sheet = await request.app.loop.run_in_executor(self.thread_pool,
@@ -100,7 +103,6 @@ class ChannelExportReport(BaseHandler, ExportBase):
         """
         request_param = await get_params(request)
         channel_id = request_param.get("channel_id", "")
-        print(request_param)
         if not channel_id:
             return self.reply_ok({})
 
@@ -120,6 +122,8 @@ class ChannelExportReport(BaseHandler, ExportBase):
             school_map = {}
             for school in school_info:
                 school_map[school['id']] = school
+            exclude_schools = await self.exclude_schools(request.app['mysql'])
+            schools_ids = list(set(schools_ids).difference(set(exclude_schools)))
             items = await self._list_week(request, schools_ids)
             template_path = os.path.dirname(__file__) + "/templates/channel_week_template.xlsx"
             sheet = await request.app.loop.run_in_executor(self.thread_pool,
@@ -139,7 +143,7 @@ class ChannelExportReport(BaseHandler, ExportBase):
         :return:
         """
 
-        coll = request.app['mongodb'][self.db][self.class_per_day_coll]
+        coll = request.app['mongodb'][self.db][self.grade_per_day_coll]
         items = []
 
         last_last_month_first_day, last_last_month_last_day, last_month_first_day, last_month_last_day,\
@@ -322,12 +326,14 @@ class ChannelExportReport(BaseHandler, ExportBase):
         :param channel_ids:
         :return:
         """
-        coll = request.app['mongodb'][self.db][self.class_per_day_coll]
+        coll = request.app['mongodb'][self.db][self.grade_per_day_coll]
         items = []
         current_week = self.current_week()
         last_week = self.last_week()
         last_last_week = self.last_last_week()
-        last_week_first_day, last_week_last_day, last_last_week_first_day, last_last_week_last_day =  last_week[0], last_week[6], last_last_week[0], last_last_week[6]
+        last_week_first_day, last_week_last_day, \
+        last_last_week_first_day, last_last_week_last_day =  last_week[0], last_week[6],\
+                                                             last_last_week[0], last_last_week[6]
 
         item_count = coll.aggregate(
             [

@@ -32,6 +32,7 @@ from openpyxl.styles import Border, Side, PatternFill, Font, GradientFill, Align
 from bson import ObjectId
 from concurrent.futures import ThreadPoolExecutor
 from statistics.export.export_base import ExportBase
+from mixins import DataExcludeMixin
 
 class CustomEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -42,7 +43,7 @@ class CustomEncoder(json.JSONEncoder):
 
         return json.JSONEncoder.default(self, obj)
 
-class AreaExportReport(BaseHandler, ExportBase):
+class AreaExportReport(BaseHandler, ExportBase, DataExcludeMixin):
     def __init__(self):
         self.db = 'sales'
         self.user_coll = 'sale_user'
@@ -98,9 +99,10 @@ class AreaExportReport(BaseHandler, ExportBase):
 
             area_info = await request.app['mongodb'][self.db][self.instance_coll].find_one({"_id": ObjectId(area_id), "status": 1})
             area_name = area_info.get("name", "")
+            exclude_channels = await self.exclude_channel(request.app['mysql'])
+            old_ids = list(set(old_ids).difference(set(exclude_channels)))
             items = await self._list_month(request, old_ids)
             template_path = os.path.dirname(__file__) + "/templates/area_month_template.xlsx"
-            print(json.dumps(items, indent=4, cls=CustomEncoder), 'items')
             sheet = await request.app.loop.run_in_executor(self.thread_pool,
                                                            self.sheet,
                                                            template_path,
@@ -132,7 +134,6 @@ class AreaExportReport(BaseHandler, ExportBase):
              "status": 1})
 
         channels = await channels.to_list(100000)
-        print(channels, 'channles')
         channel_ids = [str(item['_id'] for item in channels)]
         channel_users = request.app['mongodb'][self.db][self.user_coll].find({"channel_id": {"$in": channel_ids},
                                                                               "instance_role_id": Roles.CHANNEL.value,
@@ -163,10 +164,10 @@ class AreaExportReport(BaseHandler, ExportBase):
             area_info = await request.app['mongodb'][self.db][self.instance_coll].find_one(
                 {"_id": ObjectId(area_id), "status": 1})
             area_name = area_info.get("name", "")
-            print(old_ids, 'old_ids')
+            exclude_channels = await self.exclude_channel(request.app['mysql'])
+            old_ids = list(set(old_ids).difference(set(exclude_channels)))
             items = await self._list_week(request, old_ids)
             template_path = os.path.dirname(__file__) + "/templates/area_week_template.xlsx"
-            print(json.dumps(items, indent=4, cls=CustomEncoder), 'items')
             sheet = await request.app.loop.run_in_executor(self.thread_pool,
                                                            self.sheet,
                                                            template_path,
