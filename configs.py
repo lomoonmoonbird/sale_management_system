@@ -95,7 +95,7 @@ else:
     }
 
     """Mongodb configs"""
-    MONGODB_CONN_URL = 'mongodb://127.0.0.1'
+    MONGODB_CONN_URL = 'mongodb://mongo.hexin.im'
 
     """Logging configs"""
     LOG_FILE_PATH = os.path.join(here, 'logs/index.log')
@@ -111,8 +111,8 @@ else:
 
     """Celery task"""
 
-    RESULT_BACKEND = 'redis://127.0.0.1'
-    BROKER_URL = 'redis://127.0.0.1'
+    RESULT_BACKEND = 'redis://redis.hexin.im/20'
+    BROKER_URL = 'redis://redis.hexin.im/20'
 
     """Centauri URL"""
     CENTAURI_URL = 'http://zuoye.hexin.im/api'
