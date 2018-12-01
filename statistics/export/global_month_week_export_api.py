@@ -282,8 +282,8 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
             area_dimesion_items.setdefault(
                 channel_map.get(item["_id"], {}).get("area_info", {}).get("name", "") + '@' + str(
                     channel_map.get(item["_id"], {}).get("area_info", {}).get("_id", "")),
-                {}).setdefault('total_unique_unique_number', []).append(
-                item['total_unique_guardian_unique_number'])
+                {}).setdefault('total_unique_guardian_number', []).append(
+                item['total_unique_guardian_number'])
             area_dimesion_items.setdefault(
                 channel_map.get(item["_id"], {}).get("area_info", {}).get("name", "") + '@' + str(
                     channel_map.get(item["_id"], {}).get("area_info", {}).get("_id", "")),
