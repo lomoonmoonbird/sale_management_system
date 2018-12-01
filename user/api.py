@@ -259,7 +259,7 @@ class User(BaseHandler, DataExcludeMixin):
         """
         request_param = await get_params(request)
         # page = int(request_param['page'])
-        exclude_channels = await self._exclude_channel(request.app['mysql'])
+        exclude_channels = await self.exclude_channel(request.app['mysql'])
         sql = "select * from sigma_account_us_user where available = 1 and role_id=6"
         async with request.app['mysql'].acquire() as conn:
             async with conn.cursor(DictCursor) as cur:
