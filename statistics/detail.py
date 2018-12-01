@@ -35,6 +35,7 @@ class QueryMixin(BaseHandler):
         self.class_per_day_coll = 'class_per_day'
         self.grade_per_day_coll = 'grade_per_day'
         self.channel_per_day_coll = 'channel_per_day'
+        self.school_per_day_coll = "school_per_day"
 
     async def _guardian_number(self, request:Request, channle_ids=[], group_by=None):
         """
@@ -772,7 +773,7 @@ class QueryMixin(BaseHandler):
 
     async def _list(self, request: Request, channel_ids: list):
         """
-        学校数
+        渠道维度统计
         :param request:
         :param channel_ids:
         :return:
@@ -799,6 +800,7 @@ class QueryMixin(BaseHandler):
                         "teacher_number": 1,
                         "student_number": 1,
                         "guardian_count": 1,
+                        "guardian_unique_count": 1,
                         "pay_number": 1,
                         "pay_amount": 1,
                         "valid_reading_count": {"$cond": [{"$and": [{"$lt": ["$day", yesterday_str]}, {
@@ -821,6 +823,7 @@ class QueryMixin(BaseHandler):
                             "total_teacher_number": {"$sum": "$teacher_number"},
                             "total_student_number": {"$sum": "$student_number"},
                             "total_guardian_number": {"$sum": "$guardian_count"},
+                            "total_guardian_unique_count": {"$sum": "$guardian_unique_count"},
                             "total_pay_number": {"$sum": "$pay_number"},
                             "total_pay_amount": {"$sum": "$pay_amount"},
                             "total_valid_reading_number": {"$sum": "$valid_reading_count"},
@@ -837,6 +840,7 @@ class QueryMixin(BaseHandler):
                         "total_teacher_number": 1,
                         "total_student_number": 1,
                         "total_guardian_number": 1,
+                        "total_guardian_unique_count": 1,
                         "total_pay_number": 1,
                         "total_pay_amount": 1,
                         "total_valid_reading_number": 1,
@@ -846,7 +850,7 @@ class QueryMixin(BaseHandler):
                         "total_word_image_number": 1,
                         "pay_ratio": {"$cond": [{"$eq": ["$total_student_number", 0]}, 0, {"$divide": ["$total_pay_number", "$total_student_number"]}]},
                         "bind_ratio": {"$cond": [{"$eq": ["$total_student_number", 0]}, 0,
-                                                {"$divide": ["$total_guardian_number", "$total_student_number"]}]},
+                                                {"$divide": ["$total_guardian_unique_count", "$total_student_number"]}]},
                     }
 
                 }
@@ -860,7 +864,7 @@ class QueryMixin(BaseHandler):
 
     async def _list_channel(self, request: Request, school_ids: list):
         """
-        学校数
+        渠道详情
         :param request:
         :param channel_ids:
         :return:
@@ -888,6 +892,7 @@ class QueryMixin(BaseHandler):
                         "teacher_number": 1,
                         "student_number": 1,
                         "guardian_count": 1,
+                        "guardian_unique_count": 1,
                         "pay_number": 1,
                         "pay_amount": 1,
                         "valid_reading_count": {"$cond": [{"$and": [{"$lt": ["$day", yesterday_str]}, {
@@ -910,6 +915,7 @@ class QueryMixin(BaseHandler):
                             "total_teacher_number": {"$sum": "$teacher_number"},
                             "total_student_number": {"$sum": "$student_number"},
                             "total_guardian_number": {"$sum": "$guardian_count"},
+                            "total_guardian_unique_count": {"$sum": "$guardian_unique_count"},
                             "total_pay_number": {"$sum": "$pay_number"},
                             "total_pay_amount": {"$sum": "$pay_amount"},
                             "total_valid_reading_number": {"$sum": "$valid_reading_count"},
@@ -926,6 +932,7 @@ class QueryMixin(BaseHandler):
                         "total_teacher_number": 1,
                         "total_student_number": 1,
                         "total_guardian_number": 1,
+                        "total_guardian_unique_count": 1,
                         "total_pay_number": 1,
                         "total_pay_amount": 1,
                         "total_valid_reading_number": 1,
@@ -935,7 +942,7 @@ class QueryMixin(BaseHandler):
                         "total_word_image_number": 1,
                         "pay_ratio": {"$cond": [{"$eq": ["$total_student_number", 0]}, 0, {"$divide": ["$total_pay_number", "$total_student_number"]}]},
                         "bind_ratio": {"$cond": [{"$eq": ["$total_student_number", 0]}, 0,
-                                                {"$divide": ["$total_guardian_number", "$total_student_number"]}]},
+                                                {"$divide": ["$total_guardian_unique_count", "$total_student_number"]}]},
                     }
 
                 }
@@ -949,7 +956,7 @@ class QueryMixin(BaseHandler):
 
     async def _list_grade(self, request: Request, school_id: int, grade:str):
         """
-        学校数
+        年级详情
         :param request:
         :param channel_ids:
         :return:
@@ -971,6 +978,7 @@ class QueryMixin(BaseHandler):
                         "group_id": 1,
                         "student_number": 1,
                         "guardian_count": 1,
+                        "guardian_unique_count": 1,
                         "pay_number": 1,
                         "pay_amount": 1,
 
@@ -981,6 +989,7 @@ class QueryMixin(BaseHandler):
                 {"$group": {"_id": "$group_id",
                             "total_student_number": {"$sum": "$student_number"},
                             "total_guardian_number": {"$sum": "$guardian_count"},
+                            "total_guardian_unique_count": {"$sum": "$guardian_unique_count"},
                             "total_pay_number": {"$sum": "$pay_number"},
                             "total_pay_amount": {"$sum": "$pay_amount"},
 
@@ -992,12 +1001,13 @@ class QueryMixin(BaseHandler):
                         "group_id": 1,
                         "total_student_number": 1,
                         "total_guardian_number": 1,
+                        "total_guardian_unique_count": 1,
                         "total_pay_number": 1,
                         "total_pay_amount": 1,
 
                         "pay_ratio": {"$cond": [{"$eq": ["$total_student_number", 0]}, 0, {"$divide": ["$total_pay_number", "$total_student_number"]}]},
                         "bind_ratio": {"$cond": [{"$eq": ["$total_student_number", 0]}, 0,
-                                                {"$divide": ["$total_guardian_number", "$total_student_number"]}]},
+                                                {"$divide": ["$total_guardian_unique_count", "$total_student_number"]}]},
                     }
 
                 }
@@ -1032,6 +1042,7 @@ class QueryMixin(BaseHandler):
                         "group_id": 1,
                         "student_number": 1,
                         "guardian_count": 1,
+                        "guardian_unique_count": 1,
                         "pay_number": 1,
                         "pay_amount": 1,
 
@@ -1042,6 +1053,7 @@ class QueryMixin(BaseHandler):
                 {"$group": {"_id": "$group_id",
                             "total_student_number": {"$sum": "$student_number"},
                             "total_guardian_number": {"$sum": "$guardian_count"},
+                            "total_guardian_unique_count": {"$sum": "$guardian_unique_count"},
                             "total_pay_number": {"$sum": "$pay_number"},
                             "total_pay_amount": {"$sum": "$pay_amount"},
 
@@ -1058,7 +1070,190 @@ class QueryMixin(BaseHandler):
 
                         "pay_ratio": {"$cond": [{"$eq": ["$total_student_number", 0]}, 0, {"$divide": ["$total_pay_number", "$total_student_number"]}]},
                         "bind_ratio": {"$cond": [{"$eq": ["$total_student_number", 0]}, 0,
-                                                {"$divide": ["$total_guardian_number", "$total_student_number"]}]},
+                                                {"$divide": ["$total_guardian_unique_count", "$total_student_number"]}]},
+                    }
+
+                }
+
+            ])
+
+        async for item in item_count:
+            items.append(item)
+
+        return items
+
+
+    async def _list_school(self, request: Request, school_ids: list, exclude_channels=[]):
+        """
+        渠道维度统计
+        :param request:
+        :param channel_ids:
+        :return:
+        """
+        coll = request.app['mongodb'][self.db][self.school_per_day_coll]
+        items = []
+        yesterday = datetime.now() - timedelta(1)
+        yesterday_before_30day = yesterday - timedelta(30)
+        yesterday_str = yesterday.strftime("%Y-%m-%d")
+        yesterday_before_30day_str = yesterday_before_30day.strftime("%Y-%m-%d")
+
+
+        item_count = coll.aggregate(
+            [
+                {
+                    "$match": {
+                        "school_id": {"$in": school_ids}
+                    }
+                },
+                {
+                    "$project": {
+                        "channel": 1,
+                        "school_number": 1,
+                        "teacher_number": 1,
+                        "student_number": 1,
+                        "guardian_count": 1,
+                        "guardian_unique_count": 1,
+                        "pay_number": 1,
+                        "pay_amount": 1,
+                        "valid_reading_count": {"$cond": [{"$and": [{"$lt": ["$day", yesterday_str]}, {
+                            "$gte": ["$day", yesterday_before_30day_str]}]}, "$valid_reading_count", 0]},
+                        "valid_exercise_count": {"$cond": [{"$and": [{"$lt": ["$day", yesterday_str]}, {
+                            "$gte": ["$day", yesterday_before_30day_str]}]}, "$valid_exercise_count", 0]},
+                        "e_image_c": {"$cond": [{"$and": [{"$lt": ["$day", yesterday_str]}, {
+                            "$gte": ["$day", yesterday_before_30day_str]}]}, "$e_image_c", 0]},
+                        "valid_word_count": {"$cond": [{"$and": [{"$lt": ["$day", yesterday_str]}, {
+                            "$gte": ["$day", yesterday_before_30day_str]}]}, "$valid_word_count", 0]},
+                        "w_image_c": {"$cond": [{"$and": [{"$lt": ["$day", yesterday_str]}, {
+                            "$gte": ["$day", yesterday_before_30day_str]}]}, "$w_image_c", 0]},
+
+                        "day": 1
+                    }
+                },
+
+                {"$group": {"_id": "$school_id",
+                            "total_school_number": {"$sum": "$school_number"},
+                            "total_teacher_number": {"$sum": "$teacher_number"},
+                            "total_student_number": {"$sum": "$student_number"},
+                            "total_guardian_number": {"$sum": "$guardian_count"},
+                            "total_guardian_unique_count": {"$sum": "$guardian_unique_count"},
+                            "total_pay_number": {"$sum": "$pay_number"},
+                            "total_pay_amount": {"$sum": "$pay_amount"},
+                            "total_valid_reading_number": {"$sum": "$valid_reading_count"},
+                            "total_valid_exercise_number": {"$sum": "$valid_exercise_count"},
+                            "total_valid_word_number": {"$sum": "$valid_word_count"},
+                            "total_exercise_image_number": {"$sum": "$e_image_c"},
+                            "total_word_image_number": {"$sum": "$w_image_c"}
+                            }
+                 },
+                {
+                    "$project": {
+                        "_id": 1,
+                        "total_school_number": 1,
+                        "total_teacher_number": 1,
+                        "total_student_number": 1,
+                        "total_guardian_number": 1,
+                        "total_guardian_unique_count": 1,
+                        "total_pay_number": 1,
+                        "total_pay_amount": 1,
+                        "total_valid_reading_number": 1,
+                        "total_valid_exercise_number": 1,
+                        "total_valid_word_number": 1,
+                        "total_exercise_image_number": 1,
+                        "total_word_image_number": 1,
+                        "pay_ratio": {"$cond": [{"$eq": ["$total_student_number", 0]}, 0, {"$divide": ["$total_pay_number", "$total_student_number"]}]},
+                        "bind_ratio": {"$cond": [{"$eq": ["$total_student_number", 0]}, 0,
+                                                {"$divide": ["$total_guardian_unique_count", "$total_student_number"]}]},
+                    }
+
+                }
+
+            ])
+
+        async for item in item_count:
+            items.append(item)
+
+        return items
+
+    async def _list_school_grade(self, request: Request, school_ids: list, exclude_channels=[]):
+        """
+        学校年级维度
+        :param request:
+        :param channel_ids:
+        :return:
+        """
+        coll = request.app['mongodb'][self.db][self.grade_per_day_coll]
+        items = []
+        yesterday = datetime.now() - timedelta(1)
+        yesterday_before_30day = yesterday - timedelta(30)
+        yesterday_str = yesterday.strftime("%Y-%m-%d")
+        yesterday_before_30day_str = yesterday_before_30day.strftime("%Y-%m-%d")
+
+
+        item_count = coll.aggregate(
+            [
+                {
+                    "$match": {
+                        "school_id": {"$in": school_ids}
+                    }
+                },
+                {
+                    "$project": {
+                        "channel": 1,
+                        "school_number": 1,
+                        "teacher_number": 1,
+                        "student_number": 1,
+                        "guardian_count": 1,
+                        "guardian_unique_count": 1,
+                        "pay_number": 1,
+                        "pay_amount": 1,
+                        "valid_reading_count": {"$cond": [{"$and": [{"$lt": ["$day", yesterday_str]}, {
+                            "$gte": ["$day", yesterday_before_30day_str]}]}, "$valid_reading_count", 0]},
+                        "valid_exercise_count": {"$cond": [{"$and": [{"$lt": ["$day", yesterday_str]}, {
+                            "$gte": ["$day", yesterday_before_30day_str]}]}, "$valid_exercise_count", 0]},
+                        "e_image_c": {"$cond": [{"$and": [{"$lt": ["$day", yesterday_str]}, {
+                            "$gte": ["$day", yesterday_before_30day_str]}]}, "$e_image_c", 0]},
+                        "valid_word_count": {"$cond": [{"$and": [{"$lt": ["$day", yesterday_str]}, {
+                            "$gte": ["$day", yesterday_before_30day_str]}]}, "$valid_word_count", 0]},
+                        "w_image_c": {"$cond": [{"$and": [{"$lt": ["$day", yesterday_str]}, {
+                            "$gte": ["$day", yesterday_before_30day_str]}]}, "$w_image_c", 0]},
+
+                        "day": 1
+                    }
+                },
+
+                {"$group": {"_id": {"school_id": "$school_id", "grade": "$grade"},
+                            "total_school_number": {"$sum": "$school_number"},
+                            "total_teacher_number": {"$sum": "$teacher_number"},
+                            "total_student_number": {"$sum": "$student_number"},
+                            "total_guardian_number": {"$sum": "$guardian_count"},
+                            "total_guardian_unique_count": {"$sum": "$guardian_unique_count"},
+                            "total_pay_number": {"$sum": "$pay_number"},
+                            "total_pay_amount": {"$sum": "$pay_amount"},
+                            "total_valid_reading_number": {"$sum": "$valid_reading_count"},
+                            "total_valid_exercise_number": {"$sum": "$valid_exercise_count"},
+                            "total_valid_word_number": {"$sum": "$valid_word_count"},
+                            "total_exercise_image_number": {"$sum": "$e_image_c"},
+                            "total_word_image_number": {"$sum": "$w_image_c"}
+                            }
+                 },
+                {
+                    "$project": {
+                        "_id": 1,
+                        "total_school_number": 1,
+                        "total_teacher_number": 1,
+                        "total_student_number": 1,
+                        "total_guardian_number": 1,
+                        "total_guardian_unique_count": 1,
+                        "total_pay_number": 1,
+                        "total_pay_amount": 1,
+                        "total_valid_reading_number": 1,
+                        "total_valid_exercise_number": 1,
+                        "total_valid_word_number": 1,
+                        "total_exercise_image_number": 1,
+                        "total_word_image_number": 1,
+                        "pay_ratio": {"$cond": [{"$eq": ["$total_student_number", 0]}, 0, {"$divide": ["$total_pay_number", "$total_student_number"]}]},
+                        "bind_ratio": {"$cond": [{"$eq": ["$total_student_number", 0]}, 0,
+                                                {"$divide": ["$total_guardian_unique_count", "$total_student_number"]}]},
                     }
 
                 }
@@ -1513,6 +1708,64 @@ class ClazzDetail(BaseHandler):
             })
 
         return self.reply_ok({"clazz_info": class_data})
+
+class MarketDetail(QueryMixin, DataExcludeMixin):
+    """
+    市场详情
+    {
+        "page": 0
+        "user_id": ""
+    }
+    """
+    async def school_list(self, request: Request):
+        """
+        学校列表
+        :param request:
+        :return:
+        """
+        request_param = await get_params(request)
+        page = int(request_param.get("page"))
+        per_page = 30
+        user_id = request_param.get("user_id")
+        if request['user_info']['instance_role_id'] == Roles.MARKET.value:
+            user_id = request['user_info']['user_id']
+        total_counts = await request.app['mongodb'][self.db][self.instance_coll].count_documents({"user_id": user_id,
+                                                                            "role": Roles.SCHOOL.value,
+                                                                            "status": 1})
+        if total_counts <= 0:
+            return self.reply_ok({"school_list": []})
+        channel_info = await request.app['mongodb'][self.db][self.instance_coll].find_one({"user_id": user_id,
+                                                                                           "role": Roles.MARKET.value,
+                                                                                           "status": 1})
+        schools = request.app['mongodb'][self.db][self.instance_coll].find({"user_id": user_id,
+                                                                            "role": Roles.SCHOOL.value,
+                                                                            "status": 1}).skip(page*per_page).limit(per_page)
+        schools = await schools.to_list(10000)
+        if not schools :
+            return self.reply_ok({"school_list": []})
+        school_ids = [item['school_id'] for item in schools]
+        old_ids = []
+
+        school_items = await self._list_school(request, school_ids)
+        grade_items = await self._list_school_grade(request, school_ids)
+
+        school_items_map = {}
+        for item in school_items_map:
+            school_items_map[item["_id"]] = item
+
+        from collections import defaultdict
+        grade_items_defaultdict = defaultdict(list)
+        for item in grade_items:
+            grade_items_defaultdict[item['_id']['school_id']].append(item)
+
+
+        for school in schools:
+            school['school_stat'] = school_items_map.get(school['_id'])
+            school['grade_stat'] = grade_items_defaultdict.get(school['_id'])
+
+        return self.reply_ok({"school_list": schools, "extra": {"total": total_counts, "number_per_page": per_page, "curr_page": page}})
+
+
 
 
 

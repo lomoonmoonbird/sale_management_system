@@ -6,7 +6,6 @@ user = User()
 
 def register(router: UrlDispatcher):
     prefix= '/api'
-    router.add_post(prefix + '/user', user.create_account)
     router.add_get(prefix + '/user/profile', user.profile)#用户资料
     router.add_post(prefix + '/instance/area', user.add_area) #创建大区
     router.add_post(prefix + '/instance/area/user', user.add_area_user) #创建大区用户

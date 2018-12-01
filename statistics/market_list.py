@@ -155,25 +155,7 @@ class MarketList(BaseHandler, DataExcludeMixin):
                 # print(json.dumps(data, indent=4, cls=CustomEncoder))
             print(json.dumps(items, indent=4, cls=CustomEncoder))
 
-            # items = []
-            # old_ids = [item['old_id'] for item in channels]
-            # if old_ids:
-            #     sql = "select id, name from sigma_account_us_user where available = 1 and id in (%s) " % \
-            #           ','.join([str(id) for id in old_ids])
-            #     async with request.app['mysql'].acquire() as conn:
-            #         async with conn.cursor(DictCursor) as cur:
-            #             await cur.execute(sql)
-            #             real_channels = await cur.fetchall()
-            #
-            #
-            #     exclude_channels = await self.exclude_channel(request.app['mysql'])
-            #     old_ids = list(set(old_ids).difference(set(exclude_channels)))
-            #     items = await self._list(request, old_ids)
-            #     for item in items:
-            #         item['contest_coverage_ratio'] = 0
-            #         item['contest_average_per_person'] = 0
-            #         item["channel_info"] = channels_map.get(item["_id"], 0)
-            #     items = items
+
             return self.reply_ok(data)
         return self.reply_ok({})
 
@@ -208,6 +190,7 @@ class MarketList(BaseHandler, DataExcludeMixin):
                         "teacher_number": 1,
                         "student_number": 1,
                         "guardian_count": 1,
+                        "guardian_unique_count":1 ,
                         "pay_number": 1,
                         "pay_amount": 1,
                         "valid_reading_count": {"$cond": [{"$and": [{"$lt": ["$day", yesterday_str]}, {
@@ -230,6 +213,7 @@ class MarketList(BaseHandler, DataExcludeMixin):
                             "total_teacher_number": {"$sum": "$teacher_number"},
                             "total_student_number": {"$sum": "$student_number"},
                             "total_guardian_number": {"$sum": "$guardian_count"},
+                            "total_guardian_unique_count": {"$sum": "$guardian_unique_count"},
                             "total_pay_number": {"$sum": "$pay_number"},
                             "total_pay_amount": {"$sum": "$pay_amount"},
                             "total_valid_reading_number": {"$sum": "$valid_reading_count"},
@@ -246,6 +230,7 @@ class MarketList(BaseHandler, DataExcludeMixin):
                         "total_teacher_number": 1,
                         "total_student_number": 1,
                         "total_guardian_number": 1,
+                        "total_guardian_unique_count": 1,
                         "total_pay_number": 1,
                         "total_pay_amount": 1,
                         "total_valid_reading_number": 1,
@@ -255,7 +240,7 @@ class MarketList(BaseHandler, DataExcludeMixin):
                         "total_word_image_number": 1,
                         "pay_ratio": {"$cond": [{"$eq": ["$total_student_number", 0]}, 0, {"$divide": ["$total_pay_number", "$total_student_number"]}]},
                         "bind_ratio": {"$cond": [{"$eq": ["$total_student_number", 0]}, 0,
-                                                {"$divide": ["$total_guardian_number", "$total_student_number"]}]},
+                                                {"$divide": ["$total_guardian_unique_count", "$total_student_number"]}]},
                     }
 
                 }

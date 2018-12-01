@@ -279,6 +279,22 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                                            {}).setdefault('guardian_number_curr_month', []).append(
                 item['guardian_number_curr_month'])
 
+            area_dimesion_items.setdefault(
+                channel_map.get(item["_id"], {}).get("area_info", {}).get("name", "") + '@' + str(
+                    channel_map.get(item["_id"], {}).get("area_info", {}).get("_id", "")),
+                {}).setdefault('total_guardian_unique_number', []).append(
+                item['total_guardian_unique_number'])
+            area_dimesion_items.setdefault(
+                channel_map.get(item["_id"], {}).get("area_info", {}).get("name", "") + '@' + str(
+                    channel_map.get(item["_id"], {}).get("area_info", {}).get("_id", "")),
+                {}).setdefault('guardian_unique_number_last_month', []).append(
+                item['guardian_unique_number_last_month'])
+            area_dimesion_items.setdefault(
+                channel_map.get(item["_id"], {}).get("area_info", {}).get("name", "") + '@' + str(
+                    channel_map.get(item["_id"], {}).get("area_info", {}).get("_id", "")),
+                {}).setdefault('guardian_unique_number_curr_month', []).append(
+                item['guardian_unique_number_curr_month'])
+
             # 新增付费数
             area_dimesion_items.setdefault(channel_map.get(item["_id"], {}).get("area_info", {}).get("name", "") + '@' + str(channel_map.get(item["_id"], {}).get("area_info", {}).get("_id", "")),
                                            {}).setdefault('total_pay_amount', []).append(
@@ -418,9 +434,9 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                 summary_map[33].append(row[33].value)
                 summary_map[34].append(mom)
                 # 新增家长数量
-                mom = (sum(area_data['guardian_number_curr_month']) - sum(area_data['guardian_number_last_month'])) / sum(area_data[
-                    'guardian_number_last_month']) if sum(area_data['guardian_number_last_month']) else 0
-                avg = sum(area_data['total_guardian_number']) / sum(area_data['total_student_number']) if sum(area_data['total_student_number']) > 0 else 0
+                mom = (sum(area_data['guardian_unique_number_curr_month']) - sum(area_data['guardian_unique_number_last_month'])) / sum(area_data[
+                    'guardian_unique_number_last_month']) if sum(area_data['guardian_unique_number_last_month']) else 0
+                avg = sum(area_data['total_unique_guardian_number']) / sum(area_data['total_student_number']) if sum(area_data['total_student_number']) > 0 else 0
                 row[35].value = self.percentage(avg)
                 row[36].value = sum(area_data['guardian_number_last_month'])
                 row[37].value = sum(area_data['guardian_number_curr_month'])
@@ -572,13 +588,13 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
             else:
                 cell.value = self.rounding(sum(summary_map.get(index,[0])))
         row = sheet[total_offset +3]
-        row[0].value = "分析"
-        notifications = self._analyze(area_dimesion_items, area_name_id_map, users, report_type)
-        for index, notify in enumerate(notifications):
-
-            row = sheet[total_offset + 4]
-            row[0].value = notify['user'].get("area_info", {}).get("name")
-            row[1].value = notify['info']
+        # row[0].value = "分析"
+        # notifications = self._analyze(area_dimesion_items, area_name_id_map, users, report_type)
+        # for index, notify in enumerate(notifications):
+        #
+        #     row = sheet[total_offset + 4]
+        #     row[0].value = notify['user'].get("area_info", {}).get("name")
+        #     row[1].value = notify['info']
 
 
         with NamedTemporaryFile() as tmp:
@@ -728,6 +744,7 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                         "teacher_number": 1,
                         "student_number": 1,
                         "guardian_count": 1,
+                        "guardian_unique_count": 1,
                         "pay_number": 1,
                         "pay_amount": 1,
                         "valid_reading_count": 1,
@@ -758,9 +775,15 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                             "$gte": ["$day", last_last_month_first_day]}]}, "$student_number", 0]},
 
                         "guardian_number_curr_month": {"$cond": [{"$and": [{"$lte": ["$day", last_month_last_day]}, {
-                            "$gte": ["$day", last_month_first_day]}]}, "$guardian_number", 0]},
+                            "$gte": ["$day", last_month_first_day]}]}, "$guardian_count", 0]},
                         "guardian_number_last_month": {"$cond": [{"$and": [{"$lte": ["$day", last_last_month_last_day]}, {
-                            "$gte": ["$day", last_last_month_first_day]}]}, "$guardian_number", 0]},
+                            "$gte": ["$day", last_last_month_first_day]}]}, "$guardian_count", 0]},
+
+                        "guardian_unique_number_curr_month": {"$cond": [{"$and": [{"$lte": ["$day", last_month_last_day]}, {
+                            "$gte": ["$day", last_month_first_day]}]}, "$guardian_unique_count", 0]},
+                        "guardian_unique_number_last_month": {
+                            "$cond": [{"$and": [{"$lte": ["$day", last_last_month_last_day]}, {
+                                "$gte": ["$day", last_last_month_first_day]}]}, "$guardian_unique_count", 0]},
 
                         "pay_number_curr_month": {"$cond": [{"$and": [{"$lte": ["$day", last_month_last_day]}, {
                             "$gte": ["$day", last_month_first_day]}]}, "$pay_number", 0]},
@@ -820,6 +843,7 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                             "total_teacher_number": {"$sum": "$teacher_number"},
                             "total_student_number": {"$sum": "$student_number"},
                             "total_guardian_number": {"$sum": "$guardian_count"},
+                            "total_guardian_unique_number": {"$sum": "$guardian_unique_count"},
                             "total_pay_number": {"$sum": "$pay_number"},
                             "total_pay_amount": {"$sum": "$pay_amount"},
                             "city_number_curr_month": {"$sum": "$city_number_curr_month"},
@@ -832,6 +856,8 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                             "student_number_last_month": {"$sum": "$student_number_last_month"},
                             "guardian_number_curr_month": {"$sum": "$guardian_number_curr_month"},
                             "guardian_number_last_month": {"$sum": "$guardian_number_last_month"},
+                            "guardian_unique_number_curr_month": {"$sum": "$guardian_unique_number_curr_month"},
+                            "guardian_unique_number_last_month": {"$sum": "$guardian_unique_number_last_month"},
                             "pay_number_curr_month": {"$sum": "$pay_number_curr_month"},
                             "pay_number_last_month": {"$sum": "$pay_number_last_month"},
                             "pay_amount_curr_month": {"$sum": "$pay_amount_curr_month"},
@@ -856,6 +882,7 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                         "total_teacher_number": 1,
                         "total_student_number": 1,
                         "total_guardian_number": 1,
+                        "total_guardian_unique_number": 1,
                         "total_pay_number": 1,
                         "total_pay_amount": 1,
                         "valid_reading_count": 1,
@@ -873,6 +900,8 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                         "student_number_last_month": 1,
                         "guardian_number_curr_month": 1,
                         "guardian_number_last_month": 1,
+                        "guardian_unique_number_curr_month": 1,
+                        "guardian_unique_number_last_month": 1,
                         "pay_number_curr_month": 1,
                         "pay_number_last_month": 1,
                         "pay_amount_curr_month": 1,
@@ -890,7 +919,7 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                         "pay_ratio": {"$cond": [{"$eq": ["$total_student_number", 0]}, 0,
                                                 {"$divide": ["$total_pay_number", "$total_student_number"]}]},
                         "bind_ratio": {"$cond": [{"$eq": ["$total_student_number", 0]}, 0,
-                                                 {"$divide": ["$total_guardian_number", "$total_student_number"]}]},
+                                                 {"$divide": ["$total_guardian_unique_count", "$total_student_number"]}]},
                         # "pay_ratio": {"$divide": ["$total_pay_number", "$total_student_number"]},
                         # "bind_ratio": {"$divide": ["$total_guardian_number", "$total_student_number"]},
                         # "school_MoM":
@@ -935,6 +964,7 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                         "teacher_number": 1,
                         "student_number": 1,
                         "guardian_count": 1,
+                        "guardian_unique_count": 1,
                         "pay_number": 1,
                         "pay_amount": 1,
                         "valid_reading_count": 1,
@@ -965,9 +995,15 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                             "$gte": ["$day", last_last_week_first_day]}]}, "$student_number", 0]},
 
                         "guardian_number_curr_month": {"$cond": [{"$and": [{"$lte": ["$day", last_week_last_day]}, {
-                            "$gte": ["$day", last_week_first_day]}]}, "$guardian_number", 0]},
+                            "$gte": ["$day", last_week_first_day]}]}, "$guardian_count", 0]},
                         "guardian_number_last_month": {"$cond": [{"$and": [{"$lte": ["$day", last_last_week_last_day]}, {
-                            "$gte": ["$day", last_last_week_first_day]}]}, "$guardian_number", 0]},
+                            "$gte": ["$day", last_last_week_first_day]}]}, "$guardian_count", 0]},
+
+                        "guardian_unique_number_curr_month": {"$cond": [{"$and": [{"$lte": ["$day", last_week_last_day]}, {
+                            "$gte": ["$day", last_week_first_day]}]}, "$guardian_unique_count", 0]},
+                        "guardian_unique_number_last_month": {
+                            "$cond": [{"$and": [{"$lte": ["$day", last_last_week_last_day]}, {
+                                "$gte": ["$day", last_last_week_first_day]}]}, "$guardian_unique_count", 0]},
 
                         "pay_number_curr_month": {"$cond": [{"$and": [{"$lte": ["$day", last_week_last_day]}, {
                             "$gte": ["$day", last_week_first_day]}]}, "$pay_number", 0]},
@@ -1028,6 +1064,7 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                             "total_teacher_number": {"$sum": "$teacher_number"},
                             "total_student_number": {"$sum": "$student_number"},
                             "total_guardian_number": {"$sum": "$guardian_count"},
+                            "total_guardian_unique_number": {"$sum": "$guardian_unique_count"},
                             "total_pay_number": {"$sum": "$pay_number"},
                             "total_pay_amount": {"$sum": "$pay_amount"},
                             "city_number_curr_month": {"$sum": "$city_number_curr_month"},
@@ -1040,6 +1077,8 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                             "student_number_last_month": {"$sum": "$student_number_last_month"},
                             "guardian_number_curr_month": {"$sum": "$guardian_number_curr_month"},
                             "guardian_number_last_month": {"$sum": "$guardian_number_last_month"},
+                            "guardian_unique_number_curr_month": {"$sum": "$guardian_unique_number_curr_month"},
+                            "guardian_unique_number_last_month": {"$sum": "$guardian_unique_number_last_month"},
                             "pay_number_curr_month": {"$sum": "$pay_number_curr_month"},
                             "pay_number_last_month": {"$sum": "$pay_number_last_month"},
                             "pay_amount_curr_month": {"$sum": "$pay_amount_curr_month"},
@@ -1064,6 +1103,7 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                         "total_teacher_number": 1,
                         "total_student_number": 1,
                         "total_guardian_number": 1,
+                        "total_guardian_unique_number": 1,
                         "total_pay_number": 1,
                         "total_pay_amount": 1,
                         "valid_reading_count": 1,
@@ -1081,6 +1121,8 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                         "student_number_last_month": 1,
                         "guardian_number_curr_month": 1,
                         "guardian_number_last_month": 1,
+                        "guardian_unique_number_curr_month": 1,
+                        "guardian_unique_number_last_month": 1,
                         "pay_number_curr_month": 1,
                         "pay_number_last_month": 1,
                         "pay_amount_curr_month": 1,

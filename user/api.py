@@ -34,39 +34,6 @@ class User(BaseHandler):
         self.user_coll = "sale_user"
         self.instance_coll = "instance"
 
-    @validate_permission()
-    async def create_account(self, request: Request):
-        """
-        批量创建用户，可以单个，可多个
-        {
-            ""
-            "users": [{"username": "","password": ""}, {"username": "", "password": ""}]
-        }
-        :param request:
-        :return:
-        """
-
-        request_data = await get_json(request)
-        print(request['user_info'])
-        req_param = {
-            "appKey": ucAppKey,
-            "appSecret": ucAppSecret,
-            "data": ujson.dumps(request_data['users'])
-
-        }
-
-        resp = await self.json_post_request(request.app['http_session'],
-                                            UC_SYSTEM_API_ADMIN_URL + '/user/bulkCreate',
-                                            data=ujson.dumps(req_param))
-
-        print (resp)
-        data = {}
-        if resp['status'] == 0:
-            data = resp['data']
-        elif resp['status'] == 1001:
-            raise UserExistError("User Already Exist")
-
-        return self.reply_ok(data)
 
     @validate_permission()
     async def profile(self, request: Request):
@@ -197,7 +164,6 @@ class User(BaseHandler):
         :return:
         """
         request_data = await get_json(request)
-        print (request_data)
         bulk_update = []
         await request.app['mongodb'][self.db][self.instance_coll].update_many({"parent_id": str(request_data['area_id']),
                                                                          "role": Roles.CHANNEL.value,
@@ -215,12 +181,12 @@ class User(BaseHandler):
             bulk_update.append(UpdateOne({"old_id": int(old_id), "role": Roles.CHANNEL.value, "status": 1},
                                          {"$set": {"parent_id": str(request_data['area_id']),
                                                    "role": Roles.CHANNEL.value,
+                                                   "create_at": time.time(),
                                                    "modify_at": time.time()
                                                    }
                                           }, upsert=True))
         if bulk_update:
             ret = await request.app['mongodb'][self.db][self.instance_coll].bulk_write(bulk_update)
-            print (ret.bulk_api_result)
         return self.reply_ok({})
 
     @validate_permission()

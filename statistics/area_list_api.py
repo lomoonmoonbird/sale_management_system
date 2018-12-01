@@ -199,6 +199,7 @@ class AreaList(BaseHandler, DataExcludeMixin):
                         "teacher_number": 1,
                         "student_number": 1,
                         "guardian_count": 1,
+                        "guardian_unique_count": 1,
                         "pay_number": 1,
                         "pay_amount": 1,
                         "valid_reading_count": {"$cond": [{"$and": [{"$lt": ["$day", yesterday_str]}, {
@@ -221,6 +222,7 @@ class AreaList(BaseHandler, DataExcludeMixin):
                             "total_teacher_number": {"$sum": "$teacher_number"},
                             "total_student_number": {"$sum": "$student_number"},
                             "total_guardian_number": {"$sum": "$guardian_count"},
+                            "total_guardian_unique_count": {"$sum": "$guardian_unique_count"},
                             "total_pay_number": {"$sum": "$pay_number"},
                             "total_pay_amount": {"$sum": "$pay_amount"},
                             "total_valid_reading_number": {"$sum": "$valid_reading_count"},
@@ -237,6 +239,7 @@ class AreaList(BaseHandler, DataExcludeMixin):
                         "total_teacher_number": 1,
                         "total_student_number": 1,
                         "total_guardian_number": 1,
+                        "total_guardian_unique_count": 1,
                         "total_pay_number": 1,
                         "total_pay_amount": 1,
                         "total_valid_reading_number": 1,
@@ -247,7 +250,7 @@ class AreaList(BaseHandler, DataExcludeMixin):
 
                         "pay_ratio": {"$cond": [{"$eq": ["$total_student_number", 0]}, 0, {"$divide": ["$total_pay_number", "$total_student_number"]}]},
                         "bind_ratio": {"$cond": [{"$eq": ["$total_student_number", 0]}, 0,
-                                                {"$divide": ["$total_guardian_number", "$total_student_number"]}]},
+                                                {"$divide": ["$total_guardian_unique_count", "$total_student_number"]}]},
                     }
 
                 }

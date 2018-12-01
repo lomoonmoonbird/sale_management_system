@@ -380,7 +380,7 @@ class PerDaySubTask_GUARDIAN(BaseTask):
         try:
             self.connection = self.get_connection()
             date_range = self._date_range("class_grade_channel_guardian_per_day_begin_time")  # 时间分段
-            # date_range = [("2018-07-1","2018-07-02")]
+            date_range = [("2018-07-01","2018-07-02")]
             self._guardian_info(date_range)
             if self.cursor:
                 self.cursor.close()
@@ -416,6 +416,13 @@ class PerDaySubTask_GUARDIAN(BaseTask):
 
             user_ids = list(set([item['user_id'] for item in guardians]))
 
+            q_users = select([us_user.c.id, us_user.c.school_id]).where(and_(us_user.c.available == 1, us_user.c.id.in_(user_ids)))
+
+            users = self._query(q_users)
+            user_school_map = {}
+            for user in users:
+                user_school_map[user['id']] = user['school_id']
+
             q_usergroup = select([ob_groupuser]).where(and_(
                 ob_groupuser.c.available == 1,
                 ob_groupuser.c.user_id.in_(user_ids),
@@ -431,7 +438,7 @@ class PerDaySubTask_GUARDIAN(BaseTask):
 
             group = self._query(q_group)
 
-            school_ids = list(set([item['school_id'] for item in group]))
+            school_ids = list(set([item['school_id'] for item in users]))
             q_school = select([ob_school.c.owner_id, ob_school.c.id]).where(and_(
                 ob_school.c.available == 1,
                 ob_school.c.id.in_(school_ids),
@@ -458,9 +465,13 @@ class PerDaySubTask_GUARDIAN(BaseTask):
 
 
             class_guardian_default_dict = defaultdict(lambda: defaultdict(dict))
+            class_unique_guardian_default_dict = defaultdict(set)
             grade_guardian_default_dict = defaultdict(lambda: defaultdict(dict))
+            grade_unique_guardian_default_dict = defaultdict(set)
             school_guardian_default_dict = defaultdict(lambda: defaultdict(dict))
+            school_unique_guardian_default_dict = defaultdict(set)
             channel_guardian_default_dict = defaultdict(lambda: defaultdict(dict))
+            channel_unique_guardian_default_dict = defaultdict(set)
 
             for guardian in guardians:
                 #班级
@@ -472,6 +483,8 @@ class PerDaySubTask_GUARDIAN(BaseTask):
                     class_guardian_default_dict[usergroup_map.get(guardian['user_id'], {}).get("group_id", -1)]['wechats'].append(guardian['wechat_id'])
                 else:
                     class_guardian_default_dict[usergroup_map.get(guardian['user_id'], {}).get("group_id", -1)]['wechats'] = [guardian['wechat_id']]
+                #班级unique
+                class_unique_guardian_default_dict[usergroup_map.get(guardian['user_id'], {}).get("group_id", -1)].add(guardian['user_id'])
 
                 # 年级
                 if grade_guardian_default_dict[str(usergroup_map.get(guardian['user_id'], {}).get("school_id", -1))+"@"+str(usergroup_map.get(guardian['user_id'], {}).get("grade", -1))]['n']:
@@ -479,41 +492,48 @@ class PerDaySubTask_GUARDIAN(BaseTask):
                 else:
                     grade_guardian_default_dict[str(usergroup_map.get(guardian['user_id'], {}).get("school_id", -1))+"@"+str(usergroup_map.get(guardian['user_id'], {}).get("grade", -1))]['n'] = [1]
 
-
                 if grade_guardian_default_dict[str(usergroup_map.get(guardian['user_id'], {}).get("school_id", -1))+"@"+str(usergroup_map.get(guardian['user_id'], {}).get("grade", -1))]['wechats']:
                     grade_guardian_default_dict[str(usergroup_map.get(guardian['user_id'], {}).get("school_id", -1))+"@"+str(usergroup_map.get(guardian['user_id'], {}).get("grade", -1))]['wechats'].append(guardian['wechat_id'])
                 else:
                     grade_guardian_default_dict[str(usergroup_map.get(guardian['user_id'], {}).get("school_id", -1))+"@"+str(usergroup_map.get(guardian['user_id'], {}).get("grade", -1))]['wechats'] = [guardian['wechat_id']]
+                    # 年级unique
+                grade_unique_guardian_default_dict[str(usergroup_map.get(guardian['user_id'], {}).get("school_id", -1))+"@"+str(usergroup_map.get(guardian['user_id'], {}).get("grade", -1))].add(guardian['user_id'])
 
                 #学校
-                if school_guardian_default_dict[usergroup_map.get(guardian['user_id'], {}).get("school_id", -1)]['n']:
-                    school_guardian_default_dict[usergroup_map.get(guardian['user_id'], {}).get("school_id", -1)]['n'].append(1)
+                if school_guardian_default_dict[user_school_map.get(guardian['user_id'], -1)]['n']:
+                    school_guardian_default_dict[user_school_map.get(guardian['user_id'], -1)]['n'].append(1)
                 else:
-                    school_guardian_default_dict[usergroup_map.get(guardian['user_id'], {}).get("school_id", -1)]['n'] = [1]
+                    school_guardian_default_dict[user_school_map.get(guardian['user_id'], -1)]['n'] = [1]
 
 
-                if school_guardian_default_dict[usergroup_map.get(guardian['user_id'], {}).get("school_id", -1)]['wechats']:
-                    school_guardian_default_dict[usergroup_map.get(guardian['user_id'], {}).get("school_id", -1)]['wechats'].append(guardian['wechat_id'])
+                if school_guardian_default_dict[user_school_map.get(guardian['user_id'], -1)]['wechats']:
+                    school_guardian_default_dict[user_school_map.get(guardian['user_id'], -1)]['wechats'].append(guardian['wechat_id'])
                 else:
-                    school_guardian_default_dict[usergroup_map.get(guardian['user_id'], {}).get("school_id", -1)]['wechats'] = [guardian['wechat_id']]
+                    school_guardian_default_dict[user_school_map.get(guardian['user_id'], -1)]['wechats'] = [guardian['wechat_id']]
 
+                #学校unique
+                school_unique_guardian_default_dict[user_school_map.get(guardian['user_id'], -1)].add(guardian['user_id'])
                 #渠道
-                if channel_guardian_default_dict[school_channel_map.get(usergroup_map.get(guardian['user_id'], {}).get("school_id", -1))]['n']:
+                if channel_guardian_default_dict[school_channel_map.get(user_school_map.get(guardian['user_id'], -1))]['n']:
                     channel_guardian_default_dict[
-                        school_channel_map.get(usergroup_map.get(guardian['user_id'], {}).get("school_id", -1))]['n'].append(1)
+                        school_channel_map.get(user_school_map.get(guardian['user_id'], -1))]['n'].append(1)
                 else:
                     channel_guardian_default_dict[
-                        school_channel_map.get(usergroup_map.get(guardian['user_id'], {}).get("school_id", -1))]['n'] = [1]
-                if channel_guardian_default_dict[school_channel_map.get(usergroup_map.get(guardian['user_id'], {}).get("school_id", -1))]['wechats']:
+                        school_channel_map.get(user_school_map.get(guardian['user_id'],-1))]['n'] = [1]
+                if channel_guardian_default_dict[school_channel_map.get(user_school_map.get(guardian['user_id'], -1))]['wechats']:
                     channel_guardian_default_dict[
-                        school_channel_map.get(usergroup_map.get(guardian['user_id'], {}).get("school_id", -1))]['wechats'].append(guardian['wechat_id'])
+                        school_channel_map.get(user_school_map.get(guardian['user_id'], -1))]['wechats'].append(guardian['wechat_id'])
                 else:
                     channel_guardian_default_dict[
-                        school_channel_map.get(usergroup_map.get(guardian['user_id'], {}).get("school_id", -1))]['wechats'] = [guardian['wechat_id']]
-
+                        school_channel_map.get(user_school_map.get(guardian['user_id'], -1))]['wechats'] = [guardian['wechat_id']]
+                #渠道unique
+                channel_unique_guardian_default_dict[school_channel_map.get(user_school_map.get(guardian['user_id'], -1))].add(guardian['user_id'])
                 class_guardian_default_dict[usergroup_map.get(guardian['user_id'], {}).get("group_id", -1)]['group_info'] = usergroup_map.get(guardian['user_id'], {})
                 grade_guardian_default_dict[str(usergroup_map.get(guardian['user_id'], {}).get("school_id", -1))+"@"+str(usergroup_map.get(guardian['user_id'], {}).get("grade", -1))]['group_info'] = usergroup_map.get(guardian['user_id'],{})
                 channel_guardian_default_dict[school_channel_map.get(usergroup_map.get(guardian['user_id'], {}).get("school_id", -1))]['group_info'] = usergroup_map.get(guardian['user_id'],{})
+
+            print(json.dumps(usergroup_map_class_key,indent=4,cls=CustomEncoder))
+
             # 班级
             class_bulk_update = []
 
@@ -528,6 +548,18 @@ class PerDaySubTask_GUARDIAN(BaseTask):
                 }
                 class_bulk_update.append(UpdateOne({"group_id": v['group_info'].get('group_id', -1), "day": one_date[0]},
                                              {'$set': guardian_schema}, upsert=True))
+            class_unique_bulk_update = []
+            for k, v in class_unique_guardian_default_dict.items():
+                guardian_schema = {
+                    "school_id": usergroup_map_class_key.get(k, {}).get("school_id", -1),
+                    "channel": school_channel_map.get(usergroup_map_class_key.get(k, {}).get("school_id", -1), -1),
+                    "grade": usergroup_map_class_key.get(k, {}).get("grade", -1),
+                    "guardian_unique_count": len(v),
+                    "wechat_user_ids": list(v),
+                }
+                class_unique_bulk_update.append(
+                    UpdateOne({"group_id": int(k), "day": one_date[0]},
+                              {'$set': guardian_schema}, upsert=True))
 
             #年级
             grade_bulk_update = []
@@ -544,6 +576,19 @@ class PerDaySubTask_GUARDIAN(BaseTask):
                 grade_bulk_update.append(
                     UpdateOne({"grade": k.split("@")[1], "school_id": int(k.split("@")[0]), "day": one_date[0]},
                               {'$set': guardian_schema}, upsert=True))
+
+            grade_unique_bulk_update = []
+            for k, v in grade_unique_guardian_default_dict.items():
+                guardian_schema = {
+                    "school_id": int(k.split("@")[0]),
+                    "channel": school_channel_map.get(int(k.split("@")[0]), -1),
+                    "guardian_unique_count": len(v),
+                    "wechat_user_ids": list(v),
+                }
+                grade_unique_bulk_update.append(
+                    UpdateOne({"grade": k.split("@")[1], "school_id": int(k.split("@")[0]), "day": one_date[0]},
+                              {'$set': guardian_schema}, upsert=True))
+
             # 学校
             school_bulk_update = []
 
@@ -557,6 +602,19 @@ class PerDaySubTask_GUARDIAN(BaseTask):
                 school_bulk_update.append(
                     UpdateOne({"school_id": k, "day": one_date[0]},
                               {'$set': guardian_schema}, upsert=True))
+
+            school_unique_bulk_update = []
+            for k, v in school_unique_guardian_default_dict.items():
+                guardian_schema = {
+                    "school_id": int(k),
+                    "channel": school_channel_map.get(k, -1),
+                    "guardian_unique_count": len(v),
+                    "wechat_user_ids": list(v),
+                }
+                school_unique_bulk_update.append(
+                    UpdateOne({"school_id": k, "day": one_date[0]},
+                              {'$set': guardian_schema}, upsert=True))
+
             #渠道
             channel_bulk_update = []
             for k, v in channel_guardian_default_dict.items():
@@ -568,9 +626,26 @@ class PerDaySubTask_GUARDIAN(BaseTask):
                     UpdateOne({"channel": k, "day": one_date[0]},
                               {'$set': guardian_schema}, upsert=True))
 
+            channel_unique_bulk_update = []
+            for k, v in channel_guardian_default_dict.items():
+                guardian_schema = {
+                    "guardian_unique_count": len(v),
+                    "wechat_user_ids": list(v),
+                }
+                channel_unique_bulk_update.append(
+                    UpdateOne({"channel": k, "day": one_date[0]},
+                              {'$set': guardian_schema}, upsert=True))
+
             if class_bulk_update:
                 try:
                     bulk_update_ret = self.mongo.class_per_day.bulk_write(class_bulk_update)
+                    print(bulk_update_ret.bulk_api_result)
+                except BulkWriteError as bwe:
+                    print(bwe.details)
+
+            if class_unique_bulk_update:
+                try:
+                    bulk_update_ret = self.mongo.class_per_day.bulk_write(class_unique_bulk_update)
                     print(bulk_update_ret.bulk_api_result)
                 except BulkWriteError as bwe:
                     print(bwe.details)
@@ -581,22 +656,41 @@ class PerDaySubTask_GUARDIAN(BaseTask):
                     print(bulk_update_ret.bulk_api_result)
                 except BulkWriteError as bwe:
                     print(bwe.details)
+
+            if grade_unique_bulk_update:
+                try:
+                    bulk_update_ret = self.mongo.grade_per_day.bulk_write(grade_unique_bulk_update)
+                    print(bulk_update_ret.bulk_api_result)
+                except BulkWriteError as bwe:
+                    print(bwe.details)
+
             if school_bulk_update:
                 try:
                     bulk_update_ret = self.mongo.school_per_day.bulk_write(school_bulk_update)
                     print(bulk_update_ret.bulk_api_result)
                 except BulkWriteError as bwe:
                     print(bwe.details)
-
+            if school_unique_bulk_update:
+                try:
+                    bulk_update_ret = self.mongo.school_per_day.bulk_write(school_unique_bulk_update)
+                    print(bulk_update_ret.bulk_api_result)
+                except BulkWriteError as bwe:
+                    print(bwe.details)
             if channel_bulk_update:
                 try:
                     bulk_update_ret = self.mongo.channel_per_day.bulk_write(channel_bulk_update)
                     print(bulk_update_ret.bulk_api_result)
                 except BulkWriteError as bwe:
                     print(bwe.details)
+            if channel_unique_bulk_update:
+                try:
+                    bulk_update_ret = self.mongo.channel_per_day.bulk_write(channel_unique_bulk_update)
+                    print(bulk_update_ret.bulk_api_result)
+                except BulkWriteError as bwe:
+                    print(bwe.details)
 
-            self._set_time_threadshold("class_grade_channel_guardian_per_day_begin_time",
-                                           datetime.datetime.strptime(one_date[1], "%Y-%m-%d"))
+            # self._set_time_threadshold("class_grade_channel_guardian_per_day_begin_time",
+            #                                datetime.datetime.strptime(one_date[1], "%Y-%m-%d"))
 
 class PerDaySubTask_PAYMENTS(BaseTask):
     def __init__(self):
@@ -1357,7 +1451,6 @@ class PerDaySubTask_USERS(BaseTask):
                     print(bwe.details)
             self._set_time_threadshold("teacher_student_number_per_day_begin_time",
                                        datetime.datetime.strptime(one_date[1], "%Y-%m-%d"))
-
 
 class PerDayTask_VALIDCONTEST(BaseTask):
     def __init__(self):
@@ -2260,6 +2353,7 @@ class PerDayTask(BaseTask):
             sales_celery.send_task("tasks.celery_per_day_task.PerDayTask_SCHOOL") #学校数
             sales_celery.send_task("tasks.celery_per_day_task.PerDayTask_VALIDCONTEST") #有效考试 有效单词
             sales_celery.send_task("tasks.celery_per_day_task.PerDayTask_VALIDREADING")  # 有效阅读
+
             # sales_celery.send_task("tasks.celery_per_day_task.PerDayTask_SCHOOLSTAGE")  # 学校阶段
             print ('finished...')
 
