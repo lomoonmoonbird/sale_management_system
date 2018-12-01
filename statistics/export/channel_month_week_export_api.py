@@ -255,7 +255,7 @@ class ChannelExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                             "total_teacher_number": {"$sum": "$teacher_number"},
                             "total_student_number": {"$sum": "$student_number"},
                             "total_guardian_number": {"$sum": "$guardian_count"},
-                            "total_guardian_unique_number": {"$sum": "$guardian_unique_count"},
+                            "total_unique_guardian_number": {"$sum": "$guardian_unique_count"},
                             "total_pay_number": {"$sum": "$pay_number"},
                             "total_pay_amount": {"$sum": "$pay_amount"},
                             "teacher_number_curr_month": {"$sum": "$teacher_number_curr_month"},
@@ -288,7 +288,7 @@ class ChannelExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                         "total_teacher_number": 1,
                         "total_student_number": 1,
                         "total_guardian_number": 1,
-                        "total_guardian_unique_number": 1,
+                        "total_unique_guardian_number": 1,
                         "total_pay_number": 1,
                         "total_pay_amount": 1,
                         "valid_reading_count": 1,
@@ -452,7 +452,7 @@ class ChannelExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                             "total_teacher_number": {"$sum": "$teacher_number"},
                             "total_student_number": {"$sum": "$student_number"},
                             "total_guardian_number": {"$sum": "$guardian_count"},
-                            "total_guardian_unique_number": {"$sum": "$guardian_unique_count"},
+                            "total_unique_guardian_number": {"$sum": "$guardian_unique_count"},
                             "total_pay_number": {"$sum": "$pay_number"},
                             "total_pay_amount": {"$sum": "$pay_amount"},
                             "teacher_number_curr_month": {"$sum": "$teacher_number_curr_month"},
@@ -485,7 +485,7 @@ class ChannelExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                         "total_teacher_number": 1,
                         "total_student_number": 1,
                         "total_guardian_number": 1,
-                        "total_guardian_unique_number": 1,
+                        "total_unique_guardian_number": 1,
                         "total_pay_number": 1,
                         "total_pay_amount": 1,
                         "valid_reading_count": 1,
@@ -649,11 +649,11 @@ class ChannelExportReport(BaseHandler, ExportBase, DataExcludeMixin):
             summary_map[27].append(mom)
             # 新增家长数量
             total_guardian_number = school_data.get("total_guardian_number", 0)
-            total_unique_guardian_number = school_data.get("total_guardian_number", 0)
+            total_unique_guardian_number = school_data.get("total_unique_guardian_number", 0)
             guardian_number_curr_month = school_data.get("guardian_number_curr_month", 0)
-            guardian_unique_number_curr_month = school_data.get("guardian_number_curr_month", 0)
+            guardian_unique_number_curr_month = school_data.get("guardian_unique_number_curr_month", 0)
             guardian_number_last_month = school_data.get("guardian_number_last_month", 0)
-            guardian_unique_number_last_month = school_data.get("guardian_number_last_month", 0)
+            guardian_unique_number_last_month = school_data.get("guardian_unique_number_last_month", 0)
             mom = (guardian_unique_number_curr_month - guardian_unique_number_last_month) / guardian_unique_number_last_month if guardian_unique_number_last_month else 0
             avg = total_unique_guardian_number / total_student_number if total_student_number > 0 else 0
             row[28].value = self.percentage(avg)
