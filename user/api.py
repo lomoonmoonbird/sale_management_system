@@ -25,9 +25,10 @@ from pymongo import UpdateOne, DeleteMany
 from bson import ObjectId
 from enumconstant import Roles, PermissionRole
 from utils import CustomEncoder
+from mixins import DataExcludeMixin
 
 
-class User(BaseHandler):
+class User(BaseHandler, DataExcludeMixin):
 
     def __init__(self):
         self.db = "sales"
@@ -258,13 +259,18 @@ class User(BaseHandler):
         """
         request_param = await get_params(request)
         # page = int(request_param['page'])
+        exclude_channels = await self._exclude_channel(request.app['mysql'])
         sql = "select * from sigma_account_us_user where available = 1 and role_id=6"
         async with request.app['mysql'].acquire() as conn:
             async with conn.cursor(DictCursor) as cur:
                 await cur.execute(sql)
                 res = await cur.fetchall()
-
-        return self.reply_ok(res)
+        data = []
+        for r in res:
+            if r['id'] in exclude_channels:
+                continue
+            data.append(r)
+        return self.reply_ok(data)
 
     @validate_permission()
     async def del_area(self, request: Request):
