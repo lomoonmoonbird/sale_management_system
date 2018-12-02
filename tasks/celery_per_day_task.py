@@ -380,7 +380,7 @@ class PerDaySubTask_GUARDIAN(BaseTask):
         try:
             self.connection = self.get_connection()
             date_range = self._date_range("class_grade_channel_guardian_per_day_begin_time")  # 时间分段
-            date_range = [("2018-07-01","2018-07-02")]
+            # date_range = [("2018-07-01","2018-07-02")]
             self._guardian_info(date_range)
             if self.cursor:
                 self.cursor.close()
