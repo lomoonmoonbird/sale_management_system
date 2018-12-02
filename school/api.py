@@ -138,7 +138,7 @@ class School(BaseHandler):
                         schools = await cur.fetchall()
                         await cur.execute(total_sql)
                         total = await cur.fetchall()
-                total_count = total_count[0]['total']
+                total_count = total[0]['total']
                 school_ids = [item['id'] for item in schools]
 
                 distributed_school = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": channel_id,
@@ -175,7 +175,7 @@ class School(BaseHandler):
                     schools = await cur.fetchall()
                     await cur.execute(total_sql)
                     total = await cur.fetchall()
-            total_count = total_count[0]['total']
+            total_count = total[0]['total']
             distributed_school = request.app['mongodb'][self.db][self.instance_coll].find({
                                                                                            "role": Roles.SCHOOL.value,
                                                                                            "status": 1})
@@ -219,7 +219,7 @@ class School(BaseHandler):
                         schools = await cur.fetchall()
                         await cur.execute(total_sql)
                         total = await cur.fetchall()
-                total_count = total_count[0]['total']
+                total_count = total[0]['total']
                 distributed_school = request.app['mongodb'][self.db][self.instance_coll].find({
                     "parent_id": {"$in": channels_ids},
                     "role": Roles.SCHOOL.value,
