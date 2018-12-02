@@ -108,14 +108,18 @@ class School(BaseHandler):
     async def get_market_school(self, request: Request):
         """
         获取市场学校列表
+        {
+            "page": "",
 
+        }
         :param request:
         :return:
         """
         request_param = await get_params(request)
 
-        # page = int(request_param['page'])
-        # per_page = 30
+        page = int(request_param['page'])
+        per_page = 30
+        total_count = 0
         schools= []
         if request['user_info']['instance_role_id'] == Roles.CHANNEL.value: #渠道
             channel_id = request['user_info']['channel_id']
@@ -126,14 +130,15 @@ class School(BaseHandler):
             old_id = channel_info.get('old_id', None)
 
             if old_id:
-                sql = "select id, full_name, time_create from sigma_account_ob_school where available = 1 and owner_id = %s " %  (old_id)
-                # total_sql = "select count(*) as total_ from sigma_account_ob_school where available = 1 and owner_id = %s" % old_id
+                sql = "select id, full_name, time_create from sigma_account_ob_school where available = 1 and owner_id = %s limit %s,%s" %  (old_id, per_page*page, per_page)
+                total_sql = "select count(id) as total from sigma_account_ob_school where available = 1 and owner_id = %s" % old_id
                 async with request.app['mysql'].acquire() as conn:
                     async with conn.cursor(DictCursor) as cur:
                         await cur.execute(sql)
                         schools = await cur.fetchall()
-
-
+                        await cur.execute(total_sql)
+                        total = await cur.fetchall()
+                total_count = total_count[0]['total']
                 school_ids = [item['id'] for item in schools]
 
                 distributed_school = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": channel_id,
@@ -162,12 +167,15 @@ class School(BaseHandler):
 
 
         elif request['user_info']['instance_role_id'] == Roles.GLOBAL.value: #总部
-            sql = "select id, full_name, time_create from sigma_account_ob_school where available = 1"
+            sql = "select id, full_name, time_create from sigma_account_ob_school where available = 1 limit %s, %s" %(per_page*page, per_page)
+            total_sql = "select count(id) as total from sigma_account_ob_school where available = 1"
             async with request.app['mysql'].acquire() as conn:
                 async with conn.cursor(DictCursor) as cur:
                     await cur.execute(sql)
                     schools = await cur.fetchall()
-
+                    await cur.execute(total_sql)
+                    total = await cur.fetchall()
+            total_count = total_count[0]['total']
             distributed_school = request.app['mongodb'][self.db][self.instance_coll].find({
                                                                                            "role": Roles.SCHOOL.value,
                                                                                            "status": 1})
@@ -198,18 +206,20 @@ class School(BaseHandler):
 
         elif request['user_info']['instance_role_id'] == Roles.AREA.value: #大区
             area_id = request['user_info']['area_id']
-            channels = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": area_id, "role": Roles.CHANNEL.value, 'status': 1})
+            channels = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": area_id, "role": Roles.CHANNEL.value, 'status': 1}).skip(per_page*page).limit(per_page)
             channels = await channels.to_list(10000)
             old_ids = [item['old_id'] for item in channels]
             channels_ids = [str(item['_id']) for item in channels]
             if old_ids:
-                sql = "select id, full_name,time_create from sigma_account_ob_school where available = 1 and owner_id in (%s) " % (2)
-
+                sql = "select id, full_name,time_create from sigma_account_ob_school where available = 1 and owner_id in (%s) limit %s,%s " % (",".join(str(id) for id in old_ids), per_page*page, per_page)
+                total_sql = "select count(id) as total from sigma_account_ob_school where available = 1 and owner_id in (%s)"  % (",".join(str(id) for id in old_ids))
                 async with request.app['mysql'].acquire() as conn:
                     async with conn.cursor(DictCursor) as cur:
                         await cur.execute(sql)
                         schools = await cur.fetchall()
-
+                        await cur.execute(total_sql)
+                        total = await cur.fetchall()
+                total_count = total_count[0]['total']
                 distributed_school = request.app['mongodb'][self.db][self.instance_coll].find({
                     "parent_id": {"$in": channels_ids},
                     "role": Roles.SCHOOL.value,
@@ -238,7 +248,7 @@ class School(BaseHandler):
                     users_info = [distributed_user_map.get(int(user_id), {}) for user_id in user_ids]
                     school['market_info'] = users_info
 
-        return self.reply_ok({"market_school": schools})
+        return self.reply_ok({"market_school": schools, "extra": {"total": total_count, "number_per_page": per_page, "curr_page": page}})
 
 
 
