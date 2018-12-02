@@ -207,7 +207,8 @@ class SchoolManage(BaseHandler):
         if not school_id or not grade or not stage:
             raise RequestError("paramter should not be empty")
         if stage in [StageEnum.Binding.value, StageEnum.Pay.value]:
-            grade_of_school_sql = "select grade, school_id, time_create from sigma_account_ob_group where available = 1 and school_id = %s group by school_id, grade" % school_id
+            grade_of_school_sql = "select grade, school_id, time_create from sigma_account_ob_group where available = 1 " \
+                                  "and school_id = %s group by school_id, grade" % school_id
             async with request.app['mysql'].acquire() as conn:
                 async with conn.cursor(DictCursor) as cur:
                     await cur.execute(grade_of_school_sql)
@@ -229,7 +230,7 @@ class SchoolManage(BaseHandler):
                                                                                     "stage": {"$in": [StageEnum.Binding.value,
                                                                                                       StageEnum.Pay.value,
                                                                                                       StageEnum.Using.value]}},
-                                                                                   {"$set": {"stage": stage, "pay_time": begin_time}})
+                                                                                   {"$set": {"stage": school_stage, "pay_time": begin_time}})
                 await request.app['mongodb'][self.db][self.grade_coll].update_one(
                     {"school_id": school_id, "grade": grade},
                     {"$set": {"stage": stage,
@@ -240,7 +241,7 @@ class SchoolManage(BaseHandler):
                                                                                         "$in": [StageEnum.Binding.value,
                                                                                                 StageEnum.Pay.value,
                                                                                                 StageEnum.Using.value]}},
-                                                                                   {"$set": {"stage": stage,
+                                                                                   {"$set": {"stage": school_stage,
                                                                                              "binding_time": begin_time}})
 
                 await request.app['mongodb'][self.db][self.grade_coll].update_one({"school_id": school_id, "grade": grade},

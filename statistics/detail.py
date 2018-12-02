@@ -6,6 +6,7 @@
 """
 
 from datetime import datetime, timedelta
+from collections import defaultdict
 import asyncio
 import json
 import time
@@ -24,7 +25,7 @@ from pymongo import UpdateOne, DeleteMany
 from bson import ObjectId
 from enumconstant import Roles, PermissionRole
 from mixins import DataExcludeMixin
-
+from models.mysql.centauri import StageEnum
 
 class QueryMixin(BaseHandler):
 
@@ -1714,14 +1715,18 @@ class ClazzDetail(BaseHandler):
 class MarketDetail(QueryMixin, DataExcludeMixin):
     """
     市场详情
-    {
-        "page": 0
-        "user_id": ""
-    }
+
     """
+    def __init__(self):
+        self.grade_coll = "grade"
+
     async def school_list(self, request: Request):
         """
         学校列表
+         {
+            "page": 0
+            "user_id": ""
+        }
         :param request:
         :return:
         """
@@ -1736,9 +1741,9 @@ class MarketDetail(QueryMixin, DataExcludeMixin):
                                                                             "status": 1})
         if total_counts <= 0:
             return self.reply_ok({"school_list": []})
-        channel_info = await request.app['mongodb'][self.db][self.instance_coll].find_one({"user_id": user_id,
-                                                                                           "role": Roles.MARKET.value,
-                                                                                           "status": 1})
+        # channel_info = await request.app['mongodb'][self.db][self.instance_coll].find_one({"user_id": user_id,
+        #                                                                                    "role": Roles.MARKET.value,
+        #                                                                                    "status": 1})
         schools = request.app['mongodb'][self.db][self.instance_coll].find({"user_id": user_id,
                                                                             "role": Roles.SCHOOL.value,
                                                                             "status": 1}).skip(page*per_page).limit(per_page)
@@ -1746,24 +1751,86 @@ class MarketDetail(QueryMixin, DataExcludeMixin):
         if not schools :
             return self.reply_ok({"school_list": []})
         school_ids = [item['school_id'] for item in schools]
-        old_ids = []
+
+        school_sql = "select id, full_name, time_create from sigma_account_ob_school where available = 1 and id in (%s)" % (",".join([str(id) for id in school_ids]))
+        async with request.app['mysql'].acquire() as conn:
+            async with conn.cursor(DictCursor) as cur:
+                await cur.execute(school_sql)
+                real_school = await cur.fetchall()
+
+        real_school_map = {}
+        for school in real_school:
+            real_school_map[school['id']] = school
+
+        school_ids = [item['id'] for item in real_school]
+
 
         school_items = await self._list_school(request, school_ids)
         grade_items = await self._list_school_grade(request, school_ids)
 
         school_items_map = {}
-        for item in school_items_map:
+        for item in school_items:
             school_items_map[item["_id"]] = item
 
-        from collections import defaultdict
+
+
+
+        school_grade_mongo = request.app['mongodb'][self.db][self.grade_coll].find({"school_id": {"$in": school_ids}})
+        school_grade_mongo = await school_grade_mongo.to_list(10000)
+        school_stage_mongo_map = defaultdict(list)
+        school_grade_stage_map = {}
+        for s_g_m in school_grade_mongo:
+            school_stage_mongo_map[s_g_m['school_id']].append(s_g_m['stage'])
+            school_grade_stage_map[str(s_g_m['school_id'])+'@'+s_g_m['grade']] = s_g_m['stage']
+        grade_of_school_sql = "select grade, school_id, time_create from sigma_account_ob_group where available = 1 " \
+                              "and school_id in (%s) group by school_id, grade" % (",".join([str(id) for id in school_ids]))
+        async with request.app['mysql'].acquire() as conn:
+            async with conn.cursor(DictCursor) as cur:
+                await cur.execute(grade_of_school_sql)
+                school_grade = await cur.fetchall()
+        real_school_stage_defaultdict = defaultdict(list)
+        grade_info_map = {}
+        for s_g in school_grade:
+            grade_info_map[str(s_g['school_id'])+"@"+s_g['grade']] = s_g
+            real_school_stage_defaultdict[s_g['school_id']] + (school_stage_mongo_map.get(s_g['school_id'],[StageEnum.Register.value]))
+
         grade_items_defaultdict = defaultdict(list)
+        grade_item_schoo_grade_id_map = {}
         for item in grade_items:
-            grade_items_defaultdict[item['_id']['school_id']].append(item)
+            grade_item_schoo_grade_id_map[str(item["_id"]['school_id'])+"@"+item["_id"]['grade']] = item
+        for school_grade_id, data in grade_info_map.items():
+            default = {
+                "total_teacher_number": 0,
+                "total_student_number": 0,
+                "total_guardian_number": 0,
+                "total_pay_number": 0,
+                "total_pay_amount": 0,
+                # "contest_coverage_ratio": 0,  # 测评覆盖率
+                # "contest_average_per_person": 0,  # 人均测评数/月
+                "total_valid_exercise_number": 0,
+                "total_valid_reading_number": 0,  # 有效阅读
+                "total_valid_word_number": 0,
+                "total_exercise_image_number": 0,
+                "total_word_image_number": 0,
+                "pay_ratio": 0,
+                "bind_ratio": 0,
+            }
+            item = grade_item_schoo_grade_id_map.get(school_grade_id, default)
+            item['stage'] = school_grade_stage_map.get(school_grade_id, StageEnum.Register.value)
+            item['school_id'] = int(school_grade_id.split('@')[0]),
+            item['grade'] = school_grade_id.split('@')[1]
+            item['time_create'] = grade_info_map.get(school_grade_id, {}).get("time_create", 0)
+            grade_items_defaultdict[int(school_grade_id.split('@')[0])]\
+                .append(item)
 
 
         for school in schools:
-            school['school_stat'] = school_items_map.get(school['_id'])
-            school['grade_stat'] = grade_items_defaultdict.get(school['_id'])
+            school['school_id'] = real_school_map.get(school['school_id']).get("id", "")
+            school['name'] = real_school_map.get(school['school_id']).get("full_name", "")
+            school['stage'] = min(real_school_stage_defaultdict.get(school['school_id'])) \
+                if real_school_stage_defaultdict.get(school['school_id']) else StageEnum.Register.value
+            school['school_stat'] = school_items_map.get(school['school_id'])
+            school['grade_stat'] = grade_items_defaultdict.get(school['school_id'])
 
         return self.reply_ok({"school_list": schools, "extra": {"total": total_counts, "number_per_page": per_page, "curr_page": page}})
 
