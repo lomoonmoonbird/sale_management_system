@@ -532,7 +532,7 @@ class PerDaySubTask_GUARDIAN(BaseTask):
                 grade_guardian_default_dict[str(usergroup_map.get(guardian['user_id'], {}).get("school_id", -1))+"@"+str(usergroup_map.get(guardian['user_id'], {}).get("grade", -1))]['group_info'] = usergroup_map.get(guardian['user_id'],{})
                 channel_guardian_default_dict[school_channel_map.get(usergroup_map.get(guardian['user_id'], {}).get("school_id", -1))]['group_info'] = usergroup_map.get(guardian['user_id'],{})
 
-            print(json.dumps(usergroup_map_class_key,indent=4,cls=CustomEncoder))
+            # print(json.dumps(usergroup_map_class_key,indent=4,cls=CustomEncoder))
 
             # 班级
             class_bulk_update = []
@@ -689,8 +689,8 @@ class PerDaySubTask_GUARDIAN(BaseTask):
                 except BulkWriteError as bwe:
                     print(bwe.details)
 
-            # self._set_time_threadshold("class_grade_channel_guardian_per_day_begin_time",
-            #                                datetime.datetime.strptime(one_date[1], "%Y-%m-%d"))
+            self._set_time_threadshold("class_grade_channel_guardian_per_day_begin_time",
+                                           datetime.datetime.strptime(one_date[1], "%Y-%m-%d"))
 
 class PerDaySubTask_PAYMENTS(BaseTask):
     def __init__(self):

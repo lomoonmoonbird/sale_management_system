@@ -30,31 +30,31 @@ class Config():
         # },
         "per_day_pay": {
             "task": "tasks.celery_per_day_task.PerDaySubTask_PAYMENTS",
-            "schedule": crontab(hour=2)
+            "schedule": crontab(hour=9, minute=22)
         },
         "per_day_image": {
             "task": "tasks.celery_per_day_task.PerDaySubTask_IMAGES",
-            "schedule": crontab(hour=2)
+            "schedule": crontab(hour=2, minute=22)
         },
         "per_day_guardian": {
             "task": "tasks.celery_per_day_task.PerDaySubTask_GUARDIAN",
-            "schedule": crontab(hour=2)
+            "schedule": crontab(hour=2, minute=22)
         },
         "per_day_users": {
             "task": "tasks.celery_per_day_task.PerDaySubTask_USERS",
-            "schedule": crontab(hour=2)
+            "schedule": crontab(hour=2, minute=22)
         },
         "per_day_school": {
             "task": "tasks.celery_per_day_task.PerDayTask_SCHOOL",
-            "schedule": crontab(hour=2)
+            "schedule": crontab(hour=2, minute=22)
         },
         "per_day_validcontest": {
             "task": "tasks.celery_per_day_task.PerDayTask_VALIDCONTEST",
-            "schedule": crontab(hour=2)
+            "schedule": crontab(hour=2, minute=22)
         },
         "per_day_validreading": {
             "task": "tasks.celery_per_day_task.PerDayTask_VALIDREADING",
-            "schedule": crontab(hour=2)
+            "schedule": crontab(hour=2, minute=22)
         },
 
 
@@ -146,7 +146,7 @@ sales_celery.register_task(per_day_exercise_images)
 
 per_day_guardian = PerDaySubTask_GUARDIAN()
 sales_celery.register_task(per_day_guardian)
-sales_celery.send_task('tasks.celery_per_day_task.PerDaySubTask_GUARDIAN')
+# sales_celery.send_task('tasks.celery_per_day_task.PerDaySubTask_GUARDIAN')
 
 per_day_payments = PerDaySubTask_PAYMENTS()
 sales_celery.register_task(per_day_payments)
