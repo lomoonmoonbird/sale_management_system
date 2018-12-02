@@ -514,6 +514,8 @@ class PerDaySubTask_GUARDIAN(BaseTask):
                 #学校unique
                 school_unique_guardian_default_dict[user_school_map.get(guardian['user_id'], -1)].add(guardian['user_id'])
                 #渠道
+                if not school_channel_map.get(user_school_map.get(guardian['user_id'], -1)):
+                    self.mongo.no_channel_school_student.insert({"user_id": guardian['user_id'],"school_id": user_school_map.get(guardian['user_id'],-1), "channel": school_channel_map.get(user_school_map.get(guardian['user_id'], -1))})
                 if channel_guardian_default_dict[school_channel_map.get(user_school_map.get(guardian['user_id'], -1))]['n']:
                     channel_guardian_default_dict[
                         school_channel_map.get(user_school_map.get(guardian['user_id'], -1))]['n'].append(1)
@@ -929,7 +931,7 @@ class PerDaySubTask_PAYMENTS(BaseTask):
 
             if channel_bulk_update:
                 try:
-                    bulk_update_ret = self.mongo.tmp_channel_per_day.bulk_write(channel_bulk_update)
+                    bulk_update_ret = self.mongo.channel_per_day.bulk_write(channel_bulk_update)
                     print(bulk_update_ret.bulk_api_result)
                 except BulkWriteError as bwe:
                     print(bwe.details)
