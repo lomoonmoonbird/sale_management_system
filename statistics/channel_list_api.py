@@ -65,8 +65,10 @@ class ChannelList(BaseHandler, DataExcludeMixin):
             channels_map = {}
             for channel in real_channels:
                 channels_map[channel["id"]] = channel
-            exclude_channels = await self.exclude_channel(request.app['mysql'])
-            old_ids = list(set(old_ids).difference(set(exclude_channels)))
+
+            if request['user_info']['instance_role_id'] == Roles.GLOBAL.value:
+                exclude_channels = await self.exclude_channel(request.app['mysql'])
+                old_ids = list(set(old_ids).difference(set(exclude_channels)))
             items = await self._list(request, old_ids)
             for item in items:
                 item['contest_coverage_ratio'] = 0

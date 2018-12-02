@@ -85,14 +85,14 @@ class Overview(BaseHandler, DataExcludeMixin):
                                   "contest_last_week_new_number": contest_last_week_new_number
                                   })
         elif request['user_info']['instance_role_id'] == Roles.AREA.value:
-            exclude_channels = await self.exclude_channel(request.app['mysql'])
+            # exclude_channels = await self.exclude_channel(request.app['mysql'])
             channels = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": request['user_info']['area_id'],
                                                                                        "role": Roles.AREA.value,
                                                                                        "status": 1})
 
             channels = await channels.to_list(10000)
             old_ids = [item['old_id'] for item in channels]
-            old_ids = list(set(old_ids).difference(set(exclude_channels)))
+            # old_ids = list(set(old_ids).difference(set(exclude_channels)))
             pay_total, pay_curr_week_new_number, pay_last_week_new_number = await self._pay_number_area(request, old_ids)
 
             pay_amount, pay_curr_week_new_amount, pay_last_week_new_amount = await self._pay_amount_area(request, old_ids)
@@ -141,11 +141,11 @@ class Overview(BaseHandler, DataExcludeMixin):
 
         elif request['user_info']['instance_role_id'] == Roles.CHANNEL.value: #渠道
             channel_id = request['user_info']['channel_id']
-            exclude_channels = await self.exclude_channel(request.app['mysql'])
+            # exclude_channels = await self.exclude_channel(request.app['mysql'])
 
             channel = await request['mongodb'][self.db][self.instance_coll].find_one({"_id": ObjectId(channel_id), 'status': 1})
             old_ids = [item['old_id'] for item in channel]
-            old_ids = list(set(old_ids).difference(set(exclude_channels)))
+            # old_ids = list(set(old_ids).difference(set(exclude_channels)))
             pay_total, pay_curr_week_new_number, pay_last_week_new_number = await self._pay_number_channel(request,
                                                                                                         old_ids)
 

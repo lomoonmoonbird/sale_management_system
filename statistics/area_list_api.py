@@ -46,7 +46,7 @@ class AreaList(BaseHandler, DataExcludeMixin):
         request_param = await get_params(request)
         page = int(request_param.get('page', 0))
         per_page = 100
-        exclude_channels = await self.exclude_channel(request.app['mysql'])
+
         areas = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": request['user_info']['global_id'],
                                                                           "role": Roles.AREA.value,
                                                                           "status": 1}).skip(page*per_page).limit(per_page)
@@ -55,6 +55,7 @@ class AreaList(BaseHandler, DataExcludeMixin):
         channels = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": {"$in": areas_ids},
                                                                              "role": Roles.CHANNEL.value, "status": 1})
         channels = await channels.to_list(100000)
+
         old_ids = list(set([item['old_id'] for item in channels]))
         areas_map = {}
         for area in areas:
@@ -63,6 +64,7 @@ class AreaList(BaseHandler, DataExcludeMixin):
         for channel in channels:
             channels_map[channel['old_id']] = channel['parent_id']
 
+        exclude_channels = await self.exclude_channel(request.app['mysql'])
         old_ids = list(set(old_ids).difference(set(exclude_channels)))
         items = await self._list(request, old_ids)
         from collections import defaultdict
