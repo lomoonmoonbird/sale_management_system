@@ -416,7 +416,7 @@ class PerDaySubTask_GUARDIAN(BaseTask):
 
             user_ids = list(set([item['user_id'] for item in guardians]))
 
-            q_users = select([us_user.c.id, us_user.c.school_id]).where(and_(us_user.c.available == 1, us_user.c.id.in_(user_ids)))
+            q_users = select([us_user.c.id, us_user.c.school_id]).where(and_( us_user.c.id.in_(user_ids)))
 
             users = self._query(q_users)
             user_school_map = {}
