@@ -349,7 +349,7 @@ class PerDaySubTask_IMAGES(BaseTask):
 
             if channel_bulk_update:
                 try:
-                    bulk_update_ret = self.mongo.tmp_channel_per_day.bulk_write(channel_bulk_update)
+                    bulk_update_ret = self.mongo.channel_per_day.bulk_write(channel_bulk_update)
                     # print(bulk_update_ret.bulk_api_result)
                 except BulkWriteError as bwe:
                     print(bwe.details)
