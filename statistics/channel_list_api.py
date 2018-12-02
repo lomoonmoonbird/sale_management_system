@@ -37,19 +37,25 @@ class ChannelList(BaseHandler, DataExcludeMixin):
     @validate_permission()
     async def channel_list(self, request: Request):
         """
-        大区列表
+        渠道列表
         :param request:
         :return:
         """
         request_param = await get_params(request)
         page = int(request_param.get('page', 0))
         per_page = 100
-
+        total_count = 0
 
         channels = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": request['user_info']['area_id'],
                                                                              "role": Roles.CHANNEL.value,
                                                                              "status": 1
                                                                              }).skip(page*per_page).limit(per_page)
+
+        total_count = request.app['mongodb'][self.db][self.instance_coll].count_documents(
+            {"parent_id": request['user_info']['area_id'],
+             "role": Roles.CHANNEL.value,
+             "status": 1
+             })
 
         channels = await channels.to_list(10000)
         items = []
@@ -75,7 +81,7 @@ class ChannelList(BaseHandler, DataExcludeMixin):
                 item['contest_average_per_person'] = 0
                 item["channel_info"] = channels_map.get(item["_id"], 0)
             items = items
-        return self.reply_ok(items)
+        return self.reply_ok({"channel_list": items, "extra": {"total": total_count, "number_per_page": per_page, "curr_page": page}})
 
 
     async def _list(self, request: Request, channel_ids: list):

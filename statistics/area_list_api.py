@@ -39,6 +39,9 @@ class AreaList(BaseHandler, DataExcludeMixin):
     async def area_list(self, request: Request):
         """
         大区列表
+        {
+            "page": ""
+        }
         :param request:
         :return:
         """
@@ -46,11 +49,14 @@ class AreaList(BaseHandler, DataExcludeMixin):
         request_param = await get_params(request)
         page = int(request_param.get('page', 0))
         per_page = 100
-
+        total_count = 0
         areas = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": request['user_info']['global_id'],
                                                                           "role": Roles.AREA.value,
                                                                           "status": 1}).skip(page*per_page).limit(per_page)
         areas = await areas.to_list(100000)
+        total_count = await request.app['mongodb'][self.db][self.instance_coll].count_documents({"parent_id": request['user_info']['global_id'],
+                                                                          "role": Roles.AREA.value,
+                                                                          "status": 1})
         areas_ids = [str(item['_id']) for item in areas]
         channels = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": {"$in": areas_ids},
                                                                              "role": Roles.CHANNEL.value, "status": 1})
@@ -169,7 +175,7 @@ class AreaList(BaseHandler, DataExcludeMixin):
                     "area_info": areas_map.get(str(area['_id']), {})
                 })
 
-        return self.reply_ok(items)
+        return self.reply_ok({"area_list": items, "extra": {'total': total_count, "number_per_page": per_page, "curr_page": page}})
 
 
     async def _list(self, request: Request, channel_ids: list):

@@ -108,9 +108,6 @@ class School(BaseHandler):
     async def get_market_school(self, request: Request):
         """
         获取市场学校列表
-        {
-            "page": ""
-        }
 
         :param request:
         :return:

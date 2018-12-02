@@ -1356,6 +1356,7 @@ class AreaDetail(QueryMixin, DataExcludeMixin):
         area_id = request_param.get("area_id", "")
         page = int(request_param.get("page", 0))
         per_page = 100
+        total_count = 0
         if not area_id:
             return self.reply_ok([])
 
@@ -1363,7 +1364,9 @@ class AreaDetail(QueryMixin, DataExcludeMixin):
                                                                              "role": Roles.CHANNEL.value,
                                                                              "status": 1}).skip(page*per_page).limit(per_page)
         channels = await channels.to_list(10000)
-
+        total_count = await request.app['mongodb'][self.db][self.instance_coll].count_documents({"parent_id": area_id,
+                                                                             "role": Roles.CHANNEL.value,
+                                                                             "status": 1})
         old_ids = [item['old_id'] for item in channels]
 
 
@@ -1387,7 +1390,7 @@ class AreaDetail(QueryMixin, DataExcludeMixin):
                 item['contest_average_per_person'] = 0
                 item['channel_info'] = channel_id_map.get(item['_id'], {})
 
-        return self.reply_ok(items)
+        return self.reply_ok({"channel_list": items, "extra": {"total": total_count, "number_per_page": per_page, "curr_page": page}})
 
 
 class ChannelDetail(QueryMixin):
@@ -1474,7 +1477,7 @@ class ChannelDetail(QueryMixin):
         """
         市场列表
         {
-            "area_id": ""
+            "channel_id": ""
             "page": ""
         }
         :param request:
@@ -1484,6 +1487,7 @@ class ChannelDetail(QueryMixin):
         channel_id = request_param.get("channel_id", "")
         page = int(request_param.get("page", 0))
         per_page = 100
+        total_count = 0
         if not channel_id:
             return self.reply_ok([])
         schools = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": channel_id, "role": Roles.SCHOOL.value, "status": 1})
@@ -1494,7 +1498,7 @@ class ChannelDetail(QueryMixin):
         market_users_user_ids = [item['user_id'] for item in market_users]
         users = request.app['mongodb'][self.db][self.user_coll].find({"user_id": {"$in": market_users_user_ids}}).skip(page*per_page).limit(per_page)
         users = await users.to_list(10000)
-
+        total_count = await request.app['mongodb'][self.db][self.user_coll].count_documents({"user_id": {"$in": market_users_user_ids}})
         market_users_map = {}
         for market in users:
             market_users_map[market['user_id']] = market
@@ -1583,11 +1587,9 @@ class ChannelDetail(QueryMixin):
                 }
             )
 
-        from utils import CustomEncoder
-        print(json.dumps(items , indent=4, cls=CustomEncoder))
 
 
-        return self.reply_ok(items)
+        return self.reply_ok({"market_list": items, "extra": {"total": total_count, "number_per_page": per_page, "curr_page": page}})
 
 class SchoolDetail(QueryMixin):
     """
