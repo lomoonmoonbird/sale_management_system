@@ -797,6 +797,8 @@ class PerDaySubTask_PAYMENTS(BaseTask):
             channel_payment_default_dict = defaultdict(lambda: defaultdict(dict))
 
             for payment in payments:
+                if payment['coupon_amount'] <=0:
+                    continue
                 #班级
                 if class_payment_default_dict[usergroup_map.get(payment['user_id'], {}).get("group_id", 0)]["pay_n"]:
                     class_payment_default_dict[usergroup_map.get(payment['user_id'], {}).get("group_id", 0)]["pay_n"].append(1)
