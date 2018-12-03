@@ -540,10 +540,10 @@ class User(BaseHandler, DataExcludeMixin):
                     channel['user_info'] = users_map.get(str(channels_oid_map.get(channel['id'], {}).get("_id", "")), [])
 
                     area_id = channels_oid_map.get(channel['id'], {}).get("parent_id", "")
-                    channel['area_info'] = area_info_map.get(area_id,  {"area_id": "", "area_name": ""})
+                    # channel['area_info'] = area_info_map.get(area_id,  {"area_id": "", "area_name": ""})
                     channel['area_info'] = {
-                        "area_id": area_info_map.get(area_id, {}).get("area_id", ""),
-                        "area_name": area_info_map.get(area_id, {}).get("area_name", "")
+                        "area_id": area_info_map.get(area_id, {}).get("_id", ""),
+                        "area_name": area_info_map.get(area_id, {}).get("name", "")
                     }
                     # for area in area_info:
                     #     if area_id == str(area['_id']):
