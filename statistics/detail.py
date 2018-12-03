@@ -1841,7 +1841,7 @@ class MarketDetail(QueryMixin, DataExcludeMixin):
             school['name'] = real_school_map.get(school['school_id']).get("full_name", "")
             school['stage'] = min(real_school_stage_defaultdict.get(school['school_id'])) \
                 if real_school_stage_defaultdict.get(school['school_id']) else StageEnum.Register.value
-            school['school_stat'] = school_items_map.get(school['school_id'], {})
+            school['school_stat'] = school_items_map.get(school['school_id'], self.default)
             school['grade_stat'] = grade_items_defaultdict.get(school['school_id'], [])
             print(school['school_id'])
 
