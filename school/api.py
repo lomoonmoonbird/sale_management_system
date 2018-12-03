@@ -159,6 +159,7 @@ class School(BaseHandler):
                         distributed_school_map[d_s_m['school_id']] = [d_s_m['user_id']]
 
                 distributed_user_ids = [str(item['user_id']) for item in distributed_school]
+                print("distributed_user_ids", distributed_user_ids)
                 distributed_user = request.app['mongodb'][self.db][self.user_coll].find({"user_id": {"$in": distributed_user_ids},
                                                                                                "status": 1})
                 distributed_user = await distributed_user.to_list(10000)
@@ -166,6 +167,7 @@ class School(BaseHandler):
                 distributed_user_map = {}
                 for d_u in distributed_user:
                     distributed_user_map[int(d_u['user_id'])] = {"user_name": d_u['nickname'], "user_id": d_u['user_id']}
+
                 for school in schools:
                     user_ids = distributed_school_map.get(school['id'], [])
                     users_info = [distributed_user_map.get(int(user_id), {}) for user_id in user_ids]
