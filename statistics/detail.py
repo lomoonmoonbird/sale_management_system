@@ -1614,6 +1614,8 @@ class SchoolDetail(QueryMixin):
         """
         request_param = await get_params(request)
         school_id = int(request_param.get("school_id"))
+        if not school_id:
+            raise RequestError("school_id must not be empty")
         items = await self._list_school_clazz(request, school_id)
         group_ids = [item["_id"] for item in items]
         if group_ids:
@@ -1650,8 +1652,13 @@ class GradeDetail(QueryMixin):
         :return:
         """
         request_param = await get_params(request)
-        school_id = int(request_param.get("school_id"))
-        grade = request_param.get("grade")
+        try:
+            school_id = int(request_param.get("school_id"))
+            grade = request_param.get("grade")
+            if not grade:
+                raise Exception
+        except:
+            raise RequestError("school_id or grade is wrong")
         items = await self._list_grade(request, school_id, grade)
         group_ids = [item["_id"] for item in items]
         if group_ids:
@@ -1686,7 +1693,8 @@ class ClazzDetail(BaseHandler):
         """
         request_param = await get_params(request)
         group_id = request_param.get("group_id")
-
+        if not group_id:
+            raise RequestError("group_id must not be empty")
         sql = "select u.id, u.name, u.student_vip_expire, sum(o.coupon_amount) as total_amount, count(uw.wechat_id) as total_wechat " \
               "from sigma_account_re_groupuser as gu " \
               "join sigma_account_us_user as u " \
@@ -1843,9 +1851,9 @@ class MarketDetail(QueryMixin, DataExcludeMixin):
                 if real_school_stage_defaultdict.get(school['school_id']) else StageEnum.Register.value
             school['school_stat'] = school_items_map.get(school['school_id'], self.default)
             school['grade_stat'] = grade_items_defaultdict.get(school['school_id'], [])
-            print(school['school_id'])
+            # print(school['school_id'])
 
-        print(json.dumps(school_items_map, indent=4))
+        # print(json.dumps(school_items_map, indent=4))
 
         return self.reply_ok({"school_list": schools, "extra": {"total": total_counts, "number_per_page": per_page, "curr_page": page}})
 
