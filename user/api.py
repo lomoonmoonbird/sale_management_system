@@ -786,7 +786,7 @@ class User(BaseHandler, DataExcludeMixin):
                           "status": 1})
             users = await users.to_list(100000)
             for user in users:
-                user['channel_info'] = {"channel_id": str(channel_info['_id'])}
+                user['channel_info'] = {"channel_id": str(channel_info['_id'])} if channel_info else {"channel_id": ""}
                 user['area_info'] = {"area_id": str(area_info['_id']), "area_name": area_info['name']}
                 users_info.append(user)
 

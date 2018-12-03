@@ -127,7 +127,7 @@ class School(BaseHandler):
             if not channel_id:
                 return self.reply_ok({"market_school": market_school})
             channel_info = await request.app['mongodb'][self.db][self.instance_coll].find_one({"_id": ObjectId(channel_id), "status": 1})
-            old_id = channel_info.get('old_id', None)
+            old_id = channel_info.get('old_id', None) if channel_info else None
 
             if old_id:
                 sql = "select id, full_name, time_create from sigma_account_ob_school where available = 1 and owner_id = %s and time_create>='%s' and time_create <='%s' limit %s,%s" %  (old_id, self.start_time.strftime("%Y-%m-%d"), datetime.now().strftime("%Y-%m-%d"), per_page*page, per_page)
