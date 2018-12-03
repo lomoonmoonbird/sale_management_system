@@ -1773,7 +1773,7 @@ class MarketDetail(QueryMixin, DataExcludeMixin):
                                                                             "role": Roles.SCHOOL.value,
                                                                         "status": 1})
         if total_counts <= 0:
-            return self.reply_ok({"school_list": []})
+            return self.reply_ok({"school_list": [], "extra": {"total": 0, "number_per_page": per_page, "curr_page": page}})
         # channel_info = await request.app['mongodb'][self.db][self.instance_coll].find_one({"user_id": user_id,
         #                                                                                    "role": Roles.MARKET.value,
         #                                                                                    "status": 1})
@@ -1782,7 +1782,7 @@ class MarketDetail(QueryMixin, DataExcludeMixin):
                                                                             "status": 1}).skip(page*per_page).limit(per_page)
         schools = await schools.to_list(10000)
         if not schools :
-            return self.reply_ok({"school_list": []})
+            return self.reply_ok({"school_list": [],"extra": {"total": 0, "number_per_page": per_page, "curr_page": page}})
         school_ids = [item['school_id'] for item in schools]
 
         school_sql = "select id, full_name, time_create from sigma_account_ob_school where available = 1 and id in (%s)" % (",".join([str(id) for id in school_ids]))
