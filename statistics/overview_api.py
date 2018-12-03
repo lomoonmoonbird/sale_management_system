@@ -143,8 +143,8 @@ class Overview(BaseHandler, DataExcludeMixin):
             channel_id = request['user_info']['channel_id']
             # exclude_channels = await self.exclude_channel(request.app['mysql'])
 
-            channel = await request['mongodb'][self.db][self.instance_coll].find_one({"_id": ObjectId(channel_id), 'status': 1})
-            old_ids = [item['old_id'] for item in channel]
+            channel = await request.app['mongodb'][self.db][self.instance_coll].find_one({"_id": ObjectId(channel_id), 'status': 1})
+            old_ids = [channel.get('old_id', -2)]
             # old_ids = list(set(old_ids).difference(set(exclude_channels)))
             pay_total, pay_curr_week_new_number, pay_last_week_new_number = await self._pay_number_channel(request,
                                                                                                         old_ids)
