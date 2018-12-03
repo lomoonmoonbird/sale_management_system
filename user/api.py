@@ -50,7 +50,7 @@ class User(BaseHandler, DataExcludeMixin):
                 "user_id": user_info['user_id'],
                 "username": user_info['username'],
                 "nickname": user_info['nickname'],
-                "phone": int(user_info['phone']),
+                "phone": user_info['phone'],
                 "role": int(user_info.get('instance_role_id', -1))
                 # "menu": Menu().show()
             }
