@@ -1109,6 +1109,8 @@ class QueryMixin(BaseHandler):
                 {
                     "$project": {
                         "channel": 1,
+                        "school_id": 1,
+                        "grade": 1,
                         "school_number": 1,
                         "teacher_number": 1,
                         "student_number": 1,
@@ -1739,14 +1741,13 @@ class MarketDetail(QueryMixin, DataExcludeMixin):
         """
         request_param = await get_params(request)
         page = int(request_param.get("page"))
-        per_page = 10 
+        per_page = 10
         user_id = request_param.get("user_id")
         if request['user_info']['instance_role_id'] == Roles.MARKET.value:
             user_id = request['user_info']['user_id']
         total_counts = await request.app['mongodb'][self.db][self.instance_coll].count_documents({"user_id": int(user_id),
                                                                             "role": Roles.SCHOOL.value,
                                                                         "status": 1})
-        print('total_counts', total_counts)
         if total_counts <= 0:
             return self.reply_ok({"school_list": []})
         # channel_info = await request.app['mongodb'][self.db][self.instance_coll].find_one({"user_id": user_id,
@@ -1775,7 +1776,6 @@ class MarketDetail(QueryMixin, DataExcludeMixin):
 
         school_items = await self._list_school(request, school_ids)
         grade_items = await self._list_school_grade(request, school_ids)
-        print(json.dumps(grade_items, indent=4))
         school_items_map = {}
         for item in school_items:
             school_items_map[item["_id"]] = item
@@ -1840,6 +1840,9 @@ class MarketDetail(QueryMixin, DataExcludeMixin):
                 if real_school_stage_defaultdict.get(school['school_id']) else StageEnum.Register.value
             school['school_stat'] = school_items_map.get(school['school_id'])
             school['grade_stat'] = grade_items_defaultdict.get(school['school_id'])
+            print(school['school_id'])
+
+        print(json.dumps(school_items_map, indent=4))
 
         return self.reply_ok({"school_list": schools, "extra": {"total": total_counts, "number_per_page": per_page, "curr_page": page}})
 
