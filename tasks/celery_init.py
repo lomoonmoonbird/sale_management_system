@@ -73,10 +73,10 @@ class Config():
     )
 
     task_routes = {
-        # 'tasks.celery_per_day_task.PerDayTask': {
-        #     'queue': 'user_per_day',
-        #     'routing_key': 'user_per_day'
-        # },
+        'tasks.celery_per_day_task.PerDayTask': {
+            'queue': 'user_per_day',
+            'routing_key': 'user_per_day'
+        },
         'tasks.celery_per_day_task.PerDaySubTask_PAYMENTS': {
             'queue': 'per_day_pay',
             'routing_key': 'per_day_pay'
@@ -138,7 +138,7 @@ sales_celery.config_from_object(Config)
 #user task
 per_day_task = PerDayTask()
 sales_celery.register_task(per_day_task)
-# sales_celery.send_task('tasks.celery_per_day_task.PerDayTask')
+sales_celery.send_task('tasks.celery_per_day_task.PerDayTask')
 
 
 per_day_exercise_images = PerDaySubTask_IMAGES()

@@ -10,7 +10,8 @@ collections = ["channel_per_day", "class_per_day", "school_per_day","grade", "gr
                "record_class_word_delta", "record_grade_exercise_delta",
                "record_grade_word_delta", "record_reading_delta", "record_school_exercise_delta",
                "record_school_word_delta", "record_schoolstage_delta", "sale_time_threshold", "school",
-               "school_tmp", "schools","tmp_channel_per_day","tmp_class_per_day","tmp_grade_per_day", "tmp_school_per_day" ]
+               "school_tmp", "schools","tmp_channel_per_day","tmp_class_per_day","tmp_grade_per_day",
+               "tmp_school_per_day","no_channel_students","no_channel_school_student","aaaaaa" ]
 
 for coll in collections:
     mongo[coll].drop()

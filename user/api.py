@@ -414,6 +414,20 @@ class User(BaseHandler, DataExcludeMixin):
         raise CreateUserError("Channel adding user failed")
 
     @validate_permission()
+    async def del_channel_user(self, request: Request):
+        """
+        删除渠道账号
+        :param request:
+        :return:
+        """
+        request_data = await get_json(request)
+        user_id = str(request_data['user_id'])
+        await request.app['mongodb'][self.db][self.user_coll].update_one({"user_id": user_id,
+                                                                          "status": 1}, {"$set": {"status": 0}})
+
+        return self.reply_ok({})
+
+    @validate_permission()
     async def get_area_user_channels(self, request: Request):
         """
         分页获取大区用户的渠道

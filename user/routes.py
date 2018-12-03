@@ -13,6 +13,7 @@ def register(router: UrlDispatcher):
     router.add_get(prefix + '/instance/area/channel', user.get_one_area_channels) #获取某一个大区渠道
     router.add_post(prefix + '/instance/area/channel', user.add_area_channel) #添加大区渠道
     router.add_post(prefix + '/instance/channel/user', user.add_channel_user) #创建大区账号
+    router.add_post(prefix + '/instance/channel/user/delete', user.del_channel_user)  # 删除渠道账号
     router.add_get(prefix + '/instance/channels', user.get_channels)#获取渠道
     router.add_get(prefix + '/instance/areas', user.get_areas) #获取大区
     router.add_post(prefix + '/instance/area/channel/delete', user.del_area) #删除大区渠道

@@ -706,8 +706,8 @@ class PerDaySubTask_PAYMENTS(BaseTask):
         执行查询 返回数据库结果
         """
         self.cursor = self.connection.cursor()
-        logger.debug(
-            query.compile(dialect=mysql.dialect(), compile_kwargs={"literal_binds": True}).string.replace("%%", "%"))
+        # logger.debug(
+        #     query.compile(dialect=mysql.dialect(), compile_kwargs={"literal_binds": True}).string.replace("%%", "%"))
 
         self.cursor.execute(
             query.compile(dialect=mysql.dialect(), compile_kwargs={"literal_binds": True}).string.replace("%%", "%"))
@@ -718,6 +718,7 @@ class PerDaySubTask_PAYMENTS(BaseTask):
         try:
             self.connection = self.get_connection()
             date_range = self._date_range("class_grade_channel_pay_per_day_begin_time")  # 时间分段
+            # date_range = [("2018-01-01", "2018-12-03")]
             self._pay_amount(date_range) #付费数 付费额
             if self.cursor:
                 self.cursor.close()
@@ -754,6 +755,13 @@ class PerDaySubTask_PAYMENTS(BaseTask):
                 ob_groupuser.c.user_id.in_(user_ids),
             ))
 
+            q_users = select([us_user.c.id, us_user.c.school_id]).where(and_(us_user.c.id.in_(user_ids)))
+
+            users = self._query(q_users)
+            user_school_map = {}
+            for user in users:
+                user_school_map[user['id']] = user['school_id']
+
             usergroup = self._query(q_usergroup)
 
             group_ids = list(set([item['group_id'] for item in usergroup]))
@@ -765,7 +773,7 @@ class PerDaySubTask_PAYMENTS(BaseTask):
 
             group = self._query(q_group)
 
-            school_ids = list(set([item['school_id'] for item in group]))
+            school_ids = list(set([item['school_id'] for item in users]))
             q_school = select([ob_school.c.owner_id, ob_school.c.id]).where(and_(
                 # ob_school.c.available == 1,
                 ob_school.c.id.in_(school_ids),
@@ -783,77 +791,101 @@ class PerDaySubTask_PAYMENTS(BaseTask):
                 group_map[g['id']] = g
 
 
-            usergroup_map = {}
+            # usergroup_map = {}
+            # usergroup_mapmulti = defaultdict(list)
+            # usergroup_map_class_key = {}
+            # usergroup_map_grade_key = {}
+            # for u_g in usergroup:
+            #
+            #     u_g.update(group_map.get(u_g['group_id'], {}))
+            #     print(u_g)
+            #     if usergroup_mapmulti[u_g['user_id']]:
+            #         usergroup_mapmulti[u_g['user_id']].append(u_g)
+            #     else:
+            #         usergroup_mapmulti[u_g['user_id']] = [u_g]
+            #     usergroup_map[u_g['user_id']] = u_g
+            #     usergroup_map_class_key[u_g['group_id']] = u_g
+            #     usergroup_map_grade_key[u_g.get("grade", -1)] = u_g
+
+            usergroup_map = defaultdict(list)
+            usergroup_single_map = {}
             usergroup_map_class_key = {}
             usergroup_map_grade_key = {}
             for u_g in usergroup:
                 u_g.update(group_map.get(u_g['group_id'], {}))
-                usergroup_map[u_g['user_id']] = u_g
+                if usergroup_map[u_g['user_id']]:
+                    usergroup_map[u_g['user_id']].append(u_g)
+                else:
+                    usergroup_map[u_g['user_id']] = [u_g]
+                usergroup_single_map[u_g['user_id']] = u_g
                 usergroup_map_class_key[u_g['group_id']] = u_g
+                # print(json.dumps(u_g, indent=4, cls=CustomEncoder))
                 usergroup_map_grade_key[u_g.get("grade", -1)] = u_g
-
-
             class_payment_default_dict = defaultdict(lambda: defaultdict(dict))
             grade_payment_default_dict = defaultdict(lambda: defaultdict(dict))
             school_payment_default_dict = defaultdict(lambda: defaultdict(dict))
             channel_payment_default_dict = defaultdict(lambda: defaultdict(dict))
-
+            # print(payments)
             for payment in payments:
-                if payment['coupon_amount'] <=0:
+                # if payment['user_id'] in [5019,5020,5021, 5024,5028,]:
+                    # print("###########!##@#@!#@#@#@@@@@", payment, usergroup_map.get(payment['user_id'], {}).get("group_id", 0))
+                if float(payment['coupon_amount']) <=0:
                     continue
-                #班级
-                if class_payment_default_dict[usergroup_map.get(payment['user_id'], {}).get("group_id", 0)]["pay_n"]:
-                    class_payment_default_dict[usergroup_map.get(payment['user_id'], {}).get("group_id", 0)]["pay_n"].append(1)
-                else:
-                    class_payment_default_dict[usergroup_map.get(payment['user_id'], {}).get("group_id", 0)][
-                        "pay_n"] = [1]
-                if class_payment_default_dict[usergroup_map.get(payment['user_id'], {}).get("group_id", 0)]["pay_amount"]:
-                    class_payment_default_dict[usergroup_map.get(payment['user_id'], {}).get("group_id", 0)][
-                        "pay_amount"].append(payment['coupon_amount'])
-                else:
-                    class_payment_default_dict[usergroup_map.get(payment['user_id'], {}).get("group_id", 0)][
-                        "pay_amount"] = [payment['coupon_amount']]
+                for data in usergroup_map.get(payment['user_id'], {}):
+                    # print(data, '@@@@####')
+                    #班级
+                    if class_payment_default_dict[data.get("group_id", 0)]["pay_n"]:
+                        class_payment_default_dict[data.get("group_id", 0)]["pay_n"].append(1)
+                    else:
+                        class_payment_default_dict[data.get("group_id", 0)][
+                            "pay_n"] = [1]
+                    if class_payment_default_dict[data.get("group_id", 0)]["pay_amount"]:
+                        class_payment_default_dict[data.get("group_id", 0)][
+                            "pay_amount"].append(payment['coupon_amount'])
+                    else:
+                        class_payment_default_dict[data.get("group_id", 0)][
+                            "pay_amount"] = [payment['coupon_amount']]
 
                 #年级
-                if grade_payment_default_dict[str(usergroup_map.get(payment['user_id'], {}).get("school_id", -1))+"@"+str(usergroup_map.get(payment['user_id'], {}).get("grade", -1))]['pay_n']:
-                    grade_payment_default_dict[str(usergroup_map.get(payment['user_id'], {}).get("school_id", -1))+"@"+str(usergroup_map.get(payment['user_id'], {}).get("grade", -1))]['pay_n'].append(1)
+                if grade_payment_default_dict[str(usergroup_single_map.get(payment['user_id'], {}).get("school_id", -1))+"@"+str(usergroup_single_map.get(payment['user_id'], {}).get("grade", -1))]['pay_n']:
+                    grade_payment_default_dict[str(usergroup_single_map.get(payment['user_id'], {}).get("school_id", -1))+"@"+str(usergroup_single_map.get(payment['user_id'], {}).get("grade", -1))]['pay_n'].append(1)
                 else:
-                    grade_payment_default_dict[str(usergroup_map.get(payment['user_id'], {}).get("school_id", -1))+"@"+str(usergroup_map.get(payment['user_id'], {}).get("grade", -1))]['pay_n'] = [1]
+                    grade_payment_default_dict[str(usergroup_single_map.get(payment['user_id'], {}).get("school_id", -1))+"@"+str(usergroup_single_map.get(payment['user_id'], {}).get("grade", -1))]['pay_n'] = [1]
 
-                if grade_payment_default_dict[str(usergroup_map.get(payment['user_id'], {}).get("school_id", -1))+"@"+str(usergroup_map.get(payment['user_id'], {}).get("grade", -1))]['pay_amount']:
-                    grade_payment_default_dict[str(usergroup_map.get(payment['user_id'], {}).get("school_id", -1))+"@"+str(usergroup_map.get(payment['user_id'], {}).get("grade", -1))]['pay_amount'].append(payment['coupon_amount'])
+                if grade_payment_default_dict[str(usergroup_single_map.get(payment['user_id'], {}).get("school_id", -1))+"@"+str(usergroup_single_map.get(payment['user_id'], {}).get("grade", -1))]['pay_amount']:
+                    grade_payment_default_dict[str(usergroup_single_map.get(payment['user_id'], {}).get("school_id", -1))+"@"+str(usergroup_single_map.get(payment['user_id'], {}).get("grade", -1))]['pay_amount'].append(payment['coupon_amount'])
                 else:
-                    grade_payment_default_dict[str(usergroup_map.get(payment['user_id'], {}).get("school_id", -1))+"@"+str(usergroup_map.get(payment['user_id'], {}).get("grade", -1))]['pay_amount'] = [payment['coupon_amount']]
+                    grade_payment_default_dict[str(usergroup_single_map.get(payment['user_id'], {}).get("school_id", -1))+"@"+str(usergroup_single_map.get(payment['user_id'], {}).get("grade", -1))]['pay_amount'] = [payment['coupon_amount']]
 
                 #学校
-                if school_payment_default_dict[usergroup_map.get(payment['user_id'], {}).get("school_id", -1)]['pay_n']:
-                    school_payment_default_dict[usergroup_map.get(payment['user_id'], {}).get("school_id", -1)]['pay_n'].append(1)
+                if school_payment_default_dict[usergroup_single_map.get(payment['user_id'], {}).get("school_id", -1)]['pay_n']:
+                    school_payment_default_dict[usergroup_single_map.get(payment['user_id'], {}).get("school_id", -1)]['pay_n'].append(1)
                 else:
-                    school_payment_default_dict[usergroup_map.get(payment['user_id'], {}).get("school_id", -1)]['pay_n'] = [1]
+                    school_payment_default_dict[usergroup_single_map.get(payment['user_id'], {}).get("school_id", -1)]['pay_n'] = [1]
 
-                if school_payment_default_dict[usergroup_map.get(payment['user_id'], {}).get("school_id", -1)]['pay_amount']:
-                    school_payment_default_dict[usergroup_map.get(payment['user_id'], {}).get("school_id", -1)]['pay_amount'].append(payment['coupon_amount'])
+                if school_payment_default_dict[usergroup_single_map.get(payment['user_id'], {}).get("school_id", -1)]['pay_amount']:
+                    school_payment_default_dict[usergroup_single_map.get(payment['user_id'], {}).get("school_id", -1)]['pay_amount'].append(payment['coupon_amount'])
                 else:
-                    school_payment_default_dict[usergroup_map.get(payment['user_id'], {}).get("school_id", -1)]['pay_amount'] = [payment['coupon_amount']]
+                    school_payment_default_dict[usergroup_single_map.get(payment['user_id'], {}).get("school_id", -1)]['pay_amount'] = [payment['coupon_amount']]
                 #渠道
-                if school_channel_map.get(usergroup_map.get(payment['user_id'], {}).get("school_id", -1), -1) == -1:
+                if school_channel_map.get(school_channel_map.get(payment['user_id'], {}).get("school_id", -1), -1) == -1:
                     self.mongo.no_channel_students.update_one({"name": "no_channels_students"}, {"$set": {"student": payment['user_id']}},upsert=True)
-                if channel_payment_default_dict[school_channel_map.get(usergroup_map.get(payment['user_id'], {}).get("school_id", -1), -1)]['pay_n']:
+                if channel_payment_default_dict[school_channel_map.get(usergroup_single_map.get(payment['user_id'], {}).get("school_id", -1), -1)]['pay_n']:
                     channel_payment_default_dict[
-                        school_channel_map.get(usergroup_map.get(payment['user_id'], {}).get("school_id", -1), -1)][
+                        school_channel_map.get(usergroup_single_map.get(payment['user_id'], {}).get("school_id", -1), -1)][
                         'pay_n'].append(1)
                 else:
                     channel_payment_default_dict[
-                        school_channel_map.get(usergroup_map.get(payment['user_id'], {}).get("school_id", -1), -1)][
+                        school_channel_map.get(usergroup_single_map.get(payment['user_id'], {}).get("school_id", -1), -1)][
                         'pay_n'] = [1]
 
-                if channel_payment_default_dict[school_channel_map.get(usergroup_map.get(payment['user_id'], {}).get("school_id", -1), -1)]['pay_amount']:
+                if channel_payment_default_dict[school_channel_map.get(usergroup_single_map.get(payment['user_id'], {}).get("school_id", -1), -1)]['pay_amount']:
                     channel_payment_default_dict[
-                        school_channel_map.get(usergroup_map.get(payment['user_id'], {}).get("school_id", -1),-1)][
+                        school_channel_map.get(usergroup_single_map.get(payment['user_id'], {}).get("school_id", -1),-1)][
                         'pay_amount'].append(payment['coupon_amount'])
                 else:
                     channel_payment_default_dict[
-                        school_channel_map.get(usergroup_map.get(payment['user_id'], {}).get("school_id", -1), -1)][
+                        school_channel_map.get(usergroup_single_map.get(payment['user_id'], {}).get("school_id", -1), -1)][
                         'pay_amount'] = [payment['coupon_amount']]
 
 
@@ -911,28 +943,28 @@ class PerDaySubTask_PAYMENTS(BaseTask):
             if class_bulk_update:
                 try:
                     bulk_update_ret = self.mongo.class_per_day.bulk_write(class_bulk_update)
-                    print(bulk_update_ret.bulk_api_result)
+                    # print(bulk_update_ret.bulk_api_result)
                 except BulkWriteError as bwe:
                     print(bwe.details)
 
             if grade_bulk_update:
                 try:
                     bulk_update_ret = self.mongo.grade_per_day.bulk_write(grade_bulk_update)
-                    print(bulk_update_ret.bulk_api_result)
+                    # print(bulk_update_ret.bulk_api_result)
                 except BulkWriteError as bwe:
                     print(bwe.details)
 
             if school_bulk_update:
                 try:
                     bulk_update_ret = self.mongo.school_per_day.bulk_write(school_bulk_update)
-                    print(bulk_update_ret.bulk_api_result)
+                    # print(bulk_update_ret.bulk_api_result)
                 except BulkWriteError as bwe:
                     print(bwe.details)
 
             if channel_bulk_update:
                 try:
                     bulk_update_ret = self.mongo.channel_per_day.bulk_write(channel_bulk_update)
-                    print(bulk_update_ret.bulk_api_result)
+                    # print(bulk_update_ret.bulk_api_result)
                 except BulkWriteError as bwe:
                     print(bwe.details)
 
