@@ -1608,7 +1608,9 @@ class SchoolDetail(QueryMixin):
     async def clazz_list(self, request: Request):
         """
         班级列表
-
+        {
+            "school_id": ""
+        }
         :param request:
         :return:
         """
