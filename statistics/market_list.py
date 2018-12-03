@@ -64,9 +64,9 @@ class MarketList(BaseHandler, DataExcludeMixin):
         #     per_page)
         markets = await markets.to_list(10000)
         market_user_ids = [int(item['user_id']) for item in markets]
-        schools = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": channel_id, "user_id": {"$in": market_user_ids}, "status": 1})
+        schools = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": channel_id, "role": Roles.SCHOOL.value,"user_id": {"$in": market_user_ids}, "status": 1})
         schools = await schools.to_list(10000)
-        school_ids = [item['school_id'] for item in schools]
+        # school_ids = [item['school_id'] for item in schools]
 
         channel_info = await request.app['mongodb'][self.db][self.instance_coll].find_one({"_id": ObjectId(channel_id), "status": 1})
         if channel_info:
@@ -100,6 +100,7 @@ class MarketList(BaseHandler, DataExcludeMixin):
                     "contest_coverage_ratio": 0,
                     "contest_average_per_person": 0,
                 }
+                print("123232321",school)
                 school.update(item_map.get(school['school_id'], default))
                 if market_school_map[school['user_id']]['n']:
                     market_school_map[school['user_id']]['n'].append(1)
