@@ -206,7 +206,9 @@ class School(BaseHandler):
 
         elif request['user_info']['instance_role_id'] == Roles.AREA.value: #大区
             area_id = request['user_info']['area_id']
-            channels = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": area_id, "role": Roles.CHANNEL.value, 'status': 1}).skip(per_page*page).limit(per_page)
+            channels = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": area_id,
+                                                                                 "role": Roles.CHANNEL.value,
+                                                                                 'status': 1}).skip(per_page*page).limit(per_page)
             channels = await channels.to_list(10000)
             old_ids = [item['old_id'] for item in channels]
             channels_ids = [str(item['_id']) for item in channels]

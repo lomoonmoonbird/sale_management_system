@@ -51,7 +51,7 @@ class ChannelList(BaseHandler, DataExcludeMixin):
                                                                              "status": 1
                                                                              }).skip(page*per_page).limit(per_page)
 
-        total_count = request.app['mongodb'][self.db][self.instance_coll].count_documents(
+        total_count = await request.app['mongodb'][self.db][self.instance_coll].count_documents(
             {"parent_id": request['user_info']['area_id'],
              "role": Roles.CHANNEL.value,
              "status": 1
