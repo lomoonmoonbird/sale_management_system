@@ -96,9 +96,12 @@ class School(BaseHandler):
         request_data = await get_json(request)
         channel_id = request['user_info']['channel_id']
         user_id = request_data.get("user_id", 0)
+        school_id = request_data.get("school_id", 0)
         await request.app['mongodb'][self.db][self.instance_coll].update_one({"parent_id": channel_id,
                                                                               "role": Roles.SCHOOL.value,
-                                                                              "user_id": user_id},
+                                                                              "user_id": user_id,
+                                                                              "school_id": school_id
+                                                                              },
                                                                          {"$set": {"status": 0}})
 
         return self.reply_ok({})
@@ -123,6 +126,7 @@ class School(BaseHandler):
         schools= []
         if request['user_info']['instance_role_id'] == Roles.CHANNEL.value: #渠道
             channel_id = request['user_info']['channel_id']
+            print( channel_id)
             market_school = []
             if not channel_id:
                 return self.reply_ok({"market_school": market_school})
@@ -144,7 +148,9 @@ class School(BaseHandler):
                 distributed_school = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": channel_id,
                                                                                                "role": Roles.SCHOOL.value,
                                                                                                "status": 1})
+
                 distributed_school = await distributed_school.to_list(10000)
+                print(distributed_school)
                 distributed_school_map = {}
                 for d_s_m in distributed_school:
                     if distributed_school_map.get("school_id", []):
@@ -205,7 +211,6 @@ class School(BaseHandler):
 
 
         elif request['user_info']['instance_role_id'] == Roles.AREA.value: #大区
-            print('area')
             area_id = request['user_info']['area_id']
             channels = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": area_id,
                                                                                  "role": Roles.CHANNEL.value,
