@@ -1182,6 +1182,7 @@ class QueryMixin(BaseHandler):
         :param channel_ids:
         :return:
         """
+        print("_list_school_grade", school_ids)
         coll = request.app['mongodb'][self.db][self.grade_per_day_coll]
         items = []
         yesterday = datetime.now() - timedelta(1)
@@ -1200,6 +1201,8 @@ class QueryMixin(BaseHandler):
                 {
                     "$project": {
                         "channel": 1,
+                        "school_id": 1,
+                        "grade": 1,
                         "school_number": 1,
                         "teacher_number": 1,
                         "student_number": 1,
@@ -1718,8 +1721,12 @@ class MarketDetail(QueryMixin, DataExcludeMixin):
 
     """
     def __init__(self):
+        super(MarketDetail, self).__init__()
+        self.db = "sales"
         self.grade_coll = "grade"
+        self.instance_coll = 'instance'
 
+    @validate_permission()
     async def school_list(self, request: Request):
         """
         学校列表
@@ -1736,15 +1743,16 @@ class MarketDetail(QueryMixin, DataExcludeMixin):
         user_id = request_param.get("user_id")
         if request['user_info']['instance_role_id'] == Roles.MARKET.value:
             user_id = request['user_info']['user_id']
-        total_counts = await request.app['mongodb'][self.db][self.instance_coll].count_documents({"user_id": user_id,
+        total_counts = await request.app['mongodb'][self.db][self.instance_coll].count_documents({"user_id": int(user_id),
                                                                             "role": Roles.SCHOOL.value,
-                                                                            "status": 1})
+                                                                        "status": 1})
+        print('total_counts', total_counts)
         if total_counts <= 0:
             return self.reply_ok({"school_list": []})
         # channel_info = await request.app['mongodb'][self.db][self.instance_coll].find_one({"user_id": user_id,
         #                                                                                    "role": Roles.MARKET.value,
         #                                                                                    "status": 1})
-        schools = request.app['mongodb'][self.db][self.instance_coll].find({"user_id": user_id,
+        schools = request.app['mongodb'][self.db][self.instance_coll].find({"user_id": int(user_id),
                                                                             "role": Roles.SCHOOL.value,
                                                                             "status": 1}).skip(page*per_page).limit(per_page)
         schools = await schools.to_list(10000)
@@ -1767,7 +1775,7 @@ class MarketDetail(QueryMixin, DataExcludeMixin):
 
         school_items = await self._list_school(request, school_ids)
         grade_items = await self._list_school_grade(request, school_ids)
-
+        print(json.dumps(grade_items, indent=4))
         school_items_map = {}
         for item in school_items:
             school_items_map[item["_id"]] = item
@@ -1796,6 +1804,7 @@ class MarketDetail(QueryMixin, DataExcludeMixin):
 
         grade_items_defaultdict = defaultdict(list)
         grade_item_schoo_grade_id_map = {}
+
         for item in grade_items:
             grade_item_schoo_grade_id_map[str(item["_id"]['school_id'])+"@"+item["_id"]['grade']] = item
         for school_grade_id, data in grade_info_map.items():
