@@ -1091,7 +1091,7 @@ class QueryMixin(BaseHandler):
         :param channel_ids:
         :return:
         """
-        coll = request.app['mongodb'][self.db][self.school_per_day_coll]
+        coll = request.app['mongodb'][self.db][self.grade_per_day_coll]
         items = []
         yesterday = datetime.now() - timedelta(1)
         yesterday_before_30day = yesterday - timedelta(30)
