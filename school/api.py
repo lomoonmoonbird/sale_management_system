@@ -95,8 +95,8 @@ class School(BaseHandler):
         """
         request_data = await get_json(request)
         channel_id = request['user_info']['channel_id']
-        user_id = request_data.get("user_id", 0)
-        school_id = request_data.get("school_id", 0)
+        user_id = int(request_data.get("user_id", 0))
+        school_id = int((request_data.get("school_id", 0)))
         await request.app['mongodb'][self.db][self.instance_coll].update_one({"parent_id": channel_id,
                                                                               "role": Roles.SCHOOL.value,
                                                                               "user_id": user_id,
