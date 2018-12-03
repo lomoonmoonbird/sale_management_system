@@ -1727,6 +1727,22 @@ class MarketDetail(QueryMixin, DataExcludeMixin):
         self.db = "sales"
         self.grade_coll = "grade"
         self.instance_coll = 'instance'
+        self.default = {
+                "total_teacher_number": 0,
+                "total_student_number": 0,
+                "total_guardian_number": 0,
+                "total_pay_number": 0,
+                "total_pay_amount": 0,
+                # "contest_coverage_ratio": 0,  # 测评覆盖率
+                # "contest_average_per_person": 0,  # 人均测评数/月
+                "total_valid_exercise_number": 0,
+                "total_valid_reading_number": 0,  # 有效阅读
+                "total_valid_word_number": 0,
+                "total_exercise_image_number": 0,
+                "total_word_image_number": 0,
+                "pay_ratio": 0,
+                "bind_ratio": 0,
+            }
 
     @validate_permission()
     async def school_list(self, request: Request):
@@ -1807,24 +1823,11 @@ class MarketDetail(QueryMixin, DataExcludeMixin):
 
         for item in grade_items:
             grade_item_schoo_grade_id_map[str(item["_id"]['school_id'])+"@"+item["_id"]['grade']] = item
+
+
         for school_grade_id, data in grade_info_map.items():
-            default = {
-                "total_teacher_number": 0,
-                "total_student_number": 0,
-                "total_guardian_number": 0,
-                "total_pay_number": 0,
-                "total_pay_amount": 0,
-                # "contest_coverage_ratio": 0,  # 测评覆盖率
-                # "contest_average_per_person": 0,  # 人均测评数/月
-                "total_valid_exercise_number": 0,
-                "total_valid_reading_number": 0,  # 有效阅读
-                "total_valid_word_number": 0,
-                "total_exercise_image_number": 0,
-                "total_word_image_number": 0,
-                "pay_ratio": 0,
-                "bind_ratio": 0,
-            }
-            item = grade_item_schoo_grade_id_map.get(school_grade_id, default)
+
+            item = grade_item_schoo_grade_id_map.get(school_grade_id, self.default)
             item['stage'] = school_grade_stage_map.get(school_grade_id, StageEnum.Register.value)
             item['school_id'] = int(school_grade_id.split('@')[0]),
             item['grade'] = school_grade_id.split('@')[1]
@@ -1838,8 +1841,8 @@ class MarketDetail(QueryMixin, DataExcludeMixin):
             school['name'] = real_school_map.get(school['school_id']).get("full_name", "")
             school['stage'] = min(real_school_stage_defaultdict.get(school['school_id'])) \
                 if real_school_stage_defaultdict.get(school['school_id']) else StageEnum.Register.value
-            school['school_stat'] = school_items_map.get(school['school_id'])
-            school['grade_stat'] = grade_items_defaultdict.get(school['school_id'])
+            school['school_stat'] = school_items_map.get(school['school_id'], {})
+            school['grade_stat'] = grade_items_defaultdict.get(school['school_id'], [])
             print(school['school_id'])
 
         print(json.dumps(school_items_map, indent=4))
