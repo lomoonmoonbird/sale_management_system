@@ -103,11 +103,14 @@ class SchoolManage(BaseHandler):
                 date_range = [self.start_time.strftime("%Y-%m-%d"), datetime.now().strftime("%Y-%m-%d")]
                 query.update({"open_time": {"$gte": datetime.strptime(date_range[0], "%Y-%m-%d"), "$lte": datetime.strptime(date_range[1], "%Y-%m-%d")}})
 
+            print(query)
             condition_schools = request.app['mongodb'][self.db][self.school_coll].find(query).skip(per_page*page).limit(per_page)
             condition_schools = await condition_schools.to_list(10000)
+            print(condition_schools)
             if not condition_schools:
                 return self.reply_ok({})
             condition_school_ids = [item['school_id'] for item in condition_schools]
+            print(condition_school_ids)
             school_page_sql = "select id,full_name, time_create  from sigma_account_ob_school" \
                               " where available = 1 and id in (%s) limit %s,%s" % (','.join(['"'+str(id)+'"' for id in condition_school_ids]), per_page*page, per_page)
             total_sql = "select count(id) as total_school_count from sigma_account_ob_school" \
@@ -139,7 +142,6 @@ class SchoolManage(BaseHandler):
 
         stage_grade = request.app['mongodb'][self.db][self.grade_coll].find({"school_id": {"$in": school_ids}})
         stage_grade = await stage_grade.to_list(10000)
-
         stage_grade_union_map = {}
         for s_g in stage_grade:
             stage_grade_union_map[str(s_g['school_id']) + "@" + s_g['grade']] = s_g
@@ -247,7 +249,9 @@ class SchoolManage(BaseHandler):
             if stage == StageEnum.Pay.value:
 
                 await request.app['mongodb'][self.db][self.school_coll].update_one({"school_id": school_id,
-                                                                                    "stage": {"$in": [StageEnum.Binding.value,
+                                                                                    "stage": {"$in": [
+                                                                                                    StageEnum.Register.value,
+                                                                                                    StageEnum.Binding.value,
                                                                                                       StageEnum.Pay.value,
                                                                                                       StageEnum.Using.value]}},
                                                                                    {"$set": {"stage": school_stage, "pay_time": begin_time}})
@@ -258,7 +262,9 @@ class SchoolManage(BaseHandler):
             elif stage == StageEnum.Binding.value:
                 await request.app['mongodb'][self.db][self.school_coll].update_one({"school_id": school_id,
                                                                                     "stage": {
-                                                                                        "$in": [StageEnum.Binding.value,
+                                                                                        "$in": [
+                                                                                             StageEnum.Register.value,
+                                                                                                StageEnum.Binding.value,
                                                                                                 StageEnum.Pay.value,
                                                                                                 StageEnum.Using.value]}},
                                                                                    {"$set": {"stage": school_stage,
