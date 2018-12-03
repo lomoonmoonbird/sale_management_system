@@ -97,8 +97,11 @@ class School(BaseHandler):
         """
         request_data = await get_json(request)
         channel_id = request['user_info']['channel_id']
-        user_id = int(request_data.get("user_id", 0))
-        await request.app['mongodb'][self.db][self.instance_coll].update_one({"parent_id": channel_id, "user_id": user_id},
+        user_id = request_data.get("user_id", 0)
+        print(user_id, "user_id", channel_id, "channel_id")
+        await request.app['mongodb'][self.db][self.instance_coll].update_one({"parent_id": channel_id,
+                                                                              "role": Roles.MARKET.value,
+                                                                              "user_id": user_id},
                                                                          {"$set": {"status": 0}})
 
         return self.reply_ok({})
