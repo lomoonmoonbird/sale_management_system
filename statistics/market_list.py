@@ -162,7 +162,7 @@ class MarketList(BaseHandler, DataExcludeMixin):
 
 
             return self.reply_ok({"market_stat": data, "extra": {"total": total_market_count, "number_per_page": per_page, "curr_page": page}})
-        return self.reply_ok({})
+        return self.reply_ok({"extra": {"total": 0, "number_per_page": per_page, "curr_page": page}})
 
 
     async def _list(self, request: Request, channel_ids: list):
