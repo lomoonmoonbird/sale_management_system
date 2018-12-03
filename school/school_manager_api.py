@@ -167,11 +167,7 @@ class SchoolManage(BaseHandler):
             grade_item_map[str(g_i['_id']['school_id']) + "@" + g_i['_id']['grade']] = g_i
 
         for index, school in enumerate(schools):
-            school['stage'] = StageEnum.Register.value if not stage else min(stage)
-            if school['stage'] == 1:
-                del schools[index]
-                print(school['id'])
-                total_school_count -= 1
+
             default = {
             "total_teacher_number": 0,
             "total_student_number": 0,
@@ -195,7 +191,11 @@ class SchoolManage(BaseHandler):
                     g_info.update(stage_grade_union_map2.get(school_grade, {}))
                     school['grade_info'].append(g_info)
                     stage.append(stage_grade_union_map2.get(school_grade, {}).get("stage", StageEnum.Register.value))
-
+            school['stage'] = StageEnum.Register.value if not stage else min(stage)
+            if school['stage'] == 1:
+                del schools[index]
+                print(school['id'])
+                total_school_count -= 1
 
 
         return self.reply_ok({"school_list": schools, "extra": {"total":total_school_count, "number_per_page": per_page, "curr_page": page}})
