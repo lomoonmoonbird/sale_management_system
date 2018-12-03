@@ -59,7 +59,11 @@ class SchoolManage(BaseHandler):
         school_page_sql = ''
         total_sql = ''
         total_school_count = 0
-        if not request_param.get('school_name') and not request_param.get('stage') and not request_param.get('open_time_range'): #全部
+        if not request_param.get('school_name') and request_param.get('stage') not in [StageEnum.Register.value,
+                                                                                       StageEnum.Using.value,
+                                                                                       StageEnum.Binding.value,
+                                                                                       StageEnum.Pay.value] \
+                and not request_param.get('open_time_range'): #全部
             school_page_sql = "select id,full_name, time_create  from sigma_account_ob_school" \
                   " where available = 1 and time_create >= '%s' " \
                   "and time_create <= '%s' limit %s,%s" % (self.start_time.strftime("%Y-%m-%d"), datetime.now().strftime("%Y-%m-%d"), per_page*page, per_page)
