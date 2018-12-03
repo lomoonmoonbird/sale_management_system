@@ -42,46 +42,44 @@ class School(BaseHandler):
         :param request:
         :return:
         """
-        try:
-            request_data = await get_json(request)
-            global_id = request['user_info']['global_id']
-            area_id = request['user_info']['area_id']
-            channel_id = request['user_info']['channel_id']
-            school_id = int(request_data.get("school_id", 0))
-            user_id = int(request_data.get("user_id", 0))
-            if not channel_id:
-                raise RequestError("No channel id")
 
-            market_schema = {
-                "parent_id": channel_id,
-                "school_id": school_id,
-                "user_id": user_id,
-                "role": Roles.SCHOOL.value,
-                "status": 1,
-                "create_at": time.time(),
-                "modify_at": time.time()
-            }
+        request_data = await get_json(request)
+        global_id = request['user_info']['global_id']
+        area_id = request['user_info']['area_id']
+        channel_id = request['user_info']['channel_id']
+        school_id = int(request_data.get("school_id", 0))
+        user_id = int(request_data.get("user_id", 0))
+        if not channel_id:
+            raise RequestError("No channel id")
 
-            await request.app['mongodb'][self.db][self.instance_coll].update_one(
-                {"parent_id": channel_id,
-                 "school_id": school_id,
-                 "user_id": user_id,
-                 },
-                {"$set": market_schema}
-            , upsert=True)
+        market_schema = {
+            "parent_id": channel_id,
+            "school_id": school_id,
+            "user_id": user_id,
+            "role": Roles.SCHOOL.value,
+            "status": 1,
+            "create_at": time.time(),
+            "modify_at": time.time()
+        }
 
-            school = await request.app['mongodb'][self.db][self.instance_coll].find_one(
-                {"parent_id": channel_id,
-                 "school_id": school_id,
-                 "user_id": user_id,
-                 "status": 1
-                 })
-            if school:
-                school['id'] = str(school['_id'])
-                del school['_id']
-        except:
-            import traceback
-            traceback.print_exc()
+        await request.app['mongodb'][self.db][self.instance_coll].update_one(
+            {"parent_id": channel_id,
+             "school_id": school_id,
+             "user_id": user_id,
+             },
+            {"$set": market_schema}
+        , upsert=True)
+
+        school = await request.app['mongodb'][self.db][self.instance_coll].find_one(
+            {"parent_id": channel_id,
+             "school_id": school_id,
+             "user_id": user_id,
+             "status": 1
+             })
+        if school:
+            school['id'] = str(school['_id'])
+            del school['_id']
+
         return self.reply_ok({"market_school": school})
 
     @validate_permission()
@@ -99,7 +97,7 @@ class School(BaseHandler):
         channel_id = request['user_info']['channel_id']
         user_id = request_data.get("user_id", 0)
         await request.app['mongodb'][self.db][self.instance_coll].update_one({"parent_id": channel_id,
-                                                                              "role": Roles.MARKET.value,
+                                                                              "role": Roles.SCHOOL.value,
                                                                               "user_id": user_id},
                                                                          {"$set": {"status": 0}})
 
@@ -216,7 +214,6 @@ class School(BaseHandler):
             old_ids = [item['old_id'] for item in channels]
             channels_ids = [str(item['_id']) for item in channels]
             if old_ids:
-                print("$$$$$$",",".join(str(id) for id in old_ids))
                 sql = "select id, full_name,time_create from sigma_account_ob_school " \
                       "where available = 1 and owner_id in (%s) " \
                       "and time_create>='%s' " \
