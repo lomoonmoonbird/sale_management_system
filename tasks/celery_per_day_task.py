@@ -1194,7 +1194,7 @@ class PerDaySubTask_USERS(BaseTask):
 
 
             q_usergroup = select([ob_groupuser]).where(and_(
-                ob_groupuser.c.available == 1,
+                # ob_groupuser.c.available == 1,
                 ob_groupuser.c.user_id.in_(user_ids),
             ))
 
@@ -1203,7 +1203,7 @@ class PerDaySubTask_USERS(BaseTask):
             group_ids = list(set([item['group_id'] for item in usergroup]))
 
             q_group = select([ob_group]).where(and_(
-                ob_group.c.available == 1,
+                # ob_group.c.available == 1,
                 ob_group.c.id.in_(group_ids),
             ))
 
@@ -1213,7 +1213,7 @@ class PerDaySubTask_USERS(BaseTask):
             # school_ids = list(set([item['school_id'] for item in group]))
             school_ids = list(set([item['school_id'] for item in teacher_student]))
             q_school = select([ob_school.c.owner_id, ob_school.c.id]).where(and_(
-                ob_school.c.available == 1,
+                # ob_school.c.available == 1,
                 ob_school.c.id.in_(school_ids),
             ))
 

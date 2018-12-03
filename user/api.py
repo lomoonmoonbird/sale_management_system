@@ -516,7 +516,6 @@ class User(BaseHandler, DataExcludeMixin):
                 area_info = request.app['mongodb'][self.db][self.instance_coll].find(
                     {"_id": {"$in": parent_ids}, "status": 1})
                 area_info = await area_info.to_list(10000)
-
                 users = request.app['mongodb'][self.db][self.user_coll].find({"instance_role_id": Roles.CHANNEL.value, "status": 1})
                 users = await users.to_list(10000)
                 from collections import defaultdict
@@ -529,6 +528,10 @@ class User(BaseHandler, DataExcludeMixin):
                 for channel in channels:
                     channels_oid_map[channel['old_id']] = channel
                     channels_id_map[str(channel['_id'])] = channel
+
+                area_info_map = {}
+                for a_i in area_info:
+                    area_info_map[str(a_i['_id'])] = a_i
                 for channel in res:
                     area_id = ''
                     channel['channel_info'] = {
@@ -537,13 +540,14 @@ class User(BaseHandler, DataExcludeMixin):
                     channel['user_info'] = users_map.get(str(channels_oid_map.get(channel['id'], {}).get("_id", "")), [])
 
                     area_id = channels_oid_map.get(channel['id'], {}).get("parent_id", "")
-
-
-                    for area in area_info:
-                        if area_id == str(area['_id']):
-                            channel['area_info'] = {"area_id": area_id, "area_name": area['name']}
-                        else:
-                            channel['area_info'] = {"area_id": "", "area_name": ""}
+                    channel['area_info'] = area_info_map.get(area_id,  {"area_id": "", "area_name": ""})
+                    # for area in area_info:
+                    #     if area_id == str(area['_id']):
+                    #         print('1')
+                    #         channel['area_info'] = {"area_id": area_id, "area_name": area['name']}
+                    #     else:
+                    #         print(2)
+                    #         channel['area_info'] = {"area_id": "", "area_name": ""}
 
 
         except:

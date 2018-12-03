@@ -1802,6 +1802,9 @@ class MarketDetail(QueryMixin, DataExcludeMixin):
 
         school_items = await self._list_school(request, school_ids)
         grade_items = await self._list_school_grade(request, school_ids)
+        print(json.dumps(school_items, indent=4))
+        print(json.dumps(grade_items, indent=4))
+
         school_items_map = {}
         for item in school_items:
             school_items_map[item["_id"]] = item
