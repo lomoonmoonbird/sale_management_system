@@ -37,7 +37,7 @@ class MarketList(BaseHandler, DataExcludeMixin):
         self.school_per_day_coll = "school_per_day"
         self.sale_user_coll = "sale_user"
 
-    # @validate_permission()
+    @validate_permission()
     async def market_list(self, request: Request):
         """
         市场列表
@@ -58,6 +58,10 @@ class MarketList(BaseHandler, DataExcludeMixin):
         markets = request.app['mongodb'][self.db][self.sale_user_coll].find({"channel_id": channel_id,
                                                                          "instance_role_id": Roles.MARKET.value,
                                                                          "status": 1}).skip(page*per_page).limit(per_page)
+        # total_market_count = request.app['mongodb'][self.db][self.sale_user_coll].find({"channel_id": channel_id,
+        #                                                                      "instance_role_id": Roles.MARKET.value,
+        #                                                                      "status": 1}).skip(page * per_page).limit(
+        #     per_page)
         markets = await markets.to_list(10000)
         market_user_ids = [int(item['user_id']) for item in markets]
         schools = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": channel_id, "user_id": {"$in": market_user_ids}, "status": 1})
@@ -114,49 +118,50 @@ class MarketList(BaseHandler, DataExcludeMixin):
             data = []
             for market in markets:
                 one_market = market_school_map.get(int(market['user_id']))
-                tmp = {
-                    "market_name": market['nickname'],
-                    "total_school_number": 0,
-                    "total_teacher_number": 0,
-                    "total_student_number": 0,
-                    "total_guardian_number": 0,
-                    "total_pay_number": 0,
-                    "total_pay_amount": 0,
-                    "total_valid_exercise_number": 0,
-                    "total_valid_word_number": 0,
-                    "total_exercise_image_number": 0,
-                    "total_word_image_number": 0,
-                    "total_valid_reading_number": 0,
-                    "pay_ratio": 0,
-                    "bind_ratio": 0,
-                    "contest_coverage_ratio": 0,
-                    "contest_average_per_person": 0,
-                }
+                if one_market:
+                    tmp = {
+                        "market_name": market['nickname'],
+                        "total_school_number": 0,
+                        "total_teacher_number": 0,
+                        "total_student_number": 0,
+                        "total_guardian_number": 0,
+                        "total_pay_number": 0,
+                        "total_pay_amount": 0,
+                        "total_valid_exercise_number": 0,
+                        "total_valid_word_number": 0,
+                        "total_exercise_image_number": 0,
+                        "total_word_image_number": 0,
+                        "total_valid_reading_number": 0,
+                        "pay_ratio": 0,
+                        "bind_ratio": 0,
+                        "contest_coverage_ratio": 0,
+                        "contest_average_per_person": 0,
+                    }
 
-                tmp["total_school_number"] = sum(one_market['n'])
-                for school in one_market['schools']:
-                    tmp["total_teacher_number"] += school['total_teacher_number']
-                    tmp['total_student_number'] += school['total_student_number']
-                    tmp['total_guardian_number'] += school['total_guardian_number']
-                    tmp['total_pay_number'] += school['total_pay_number']
-                    tmp['total_pay_amount'] += school['total_pay_amount']
-                    tmp['total_valid_exercise_number'] += school['total_valid_exercise_number']
-                    tmp['total_valid_word_number'] += school['total_valid_word_number']
-                    tmp['total_exercise_image_number'] += school['total_exercise_image_number']
-                    tmp['total_word_image_number'] += school['total_word_image_number']
-                    tmp['total_valid_reading_number'] += school['total_valid_reading_number']
-                    tmp['contest_coverage_ratio'] += school.get('contest_coverage_ratio',0)
-                    tmp['contest_average_per_person'] += school.get("contest_average_per_person", 0)
-                tmp['pay_ratio'] = tmp['total_pay_number'] / tmp['total_student_number'] if tmp['total_student_number']>0 else 0
-                tmp['bind_ratio'] = tmp['total_guardian_number'] / tmp['total_student_number'] if tmp[
+                    tmp["total_school_number"] = sum(one_market['n'])
+                    for school in one_market['schools']:
+                        tmp["total_teacher_number"] += school['total_teacher_number']
+                        tmp['total_student_number'] += school['total_student_number']
+                        tmp['total_guardian_number'] += school['total_guardian_number']
+                        tmp['total_pay_number'] += school['total_pay_number']
+                        tmp['total_pay_amount'] += school['total_pay_amount']
+                        tmp['total_valid_exercise_number'] += school['total_valid_exercise_number']
+                        tmp['total_valid_word_number'] += school['total_valid_word_number']
+                        tmp['total_exercise_image_number'] += school['total_exercise_image_number']
+                        tmp['total_word_image_number'] += school['total_word_image_number']
+                        tmp['total_valid_reading_number'] += school['total_valid_reading_number']
+                        tmp['contest_coverage_ratio'] += school.get('contest_coverage_ratio',0)
+                        tmp['contest_average_per_person'] += school.get("contest_average_per_person", 0)
+                    tmp['pay_ratio'] = tmp['total_pay_number'] / tmp['total_student_number'] if tmp['total_student_number']>0 else 0
+                    tmp['bind_ratio'] = tmp['total_guardian_number'] / tmp['total_student_number'] if tmp[
                                                                                                 'total_student_number'] > 0 else 0
 
                 data.append(tmp)
                 # print(json.dumps(data, indent=4, cls=CustomEncoder))
-            print(json.dumps(items, indent=4, cls=CustomEncoder))
+            # print(json.dumps(items, indent=4, cls=CustomEncoder))
 
 
-            return self.reply_ok(data)
+            return self.reply_ok({"market_stat": data, "extra": {"total": total_market_count, "number_per_page": per_page, "curr_page": page}})
         return self.reply_ok({})
 
 

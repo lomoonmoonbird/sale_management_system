@@ -205,16 +205,29 @@ class School(BaseHandler):
 
 
         elif request['user_info']['instance_role_id'] == Roles.AREA.value: #大区
+            print('area')
             area_id = request['user_info']['area_id']
             channels = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": area_id,
                                                                                  "role": Roles.CHANNEL.value,
-                                                                                 'status': 1}).skip(per_page*page).limit(per_page)
+                                                                                 'status': 1})
             channels = await channels.to_list(10000)
             old_ids = [item['old_id'] for item in channels]
             channels_ids = [str(item['_id']) for item in channels]
             if old_ids:
-                sql = "select id, full_name,time_create from sigma_account_ob_school where available = 1 and owner_id in (%s) and time_create>='%s' and time_create <='%s' limit %s,%s " % (",".join(str(id) for id in old_ids), self.start_time.strftime("%Y-%m-%d"), datetime.now().strftime("%Y-%m-%d"), per_page*page, per_page)
-                total_sql = "select count(id) as total from sigma_account_ob_school where available = 1 and owner_id in (%s) and time_create>='%s' and time_create <='%s'"  % (",".join(str(id) for id in old_ids), self.start_time.strftime("%Y-%m-%d"), datetime.now().strftime("%Y-%m-%d"))
+                print("$$$$$$",",".join(str(id) for id in old_ids))
+                sql = "select id, full_name,time_create from sigma_account_ob_school " \
+                      "where available = 1 and owner_id in (%s) " \
+                      "and time_create>='%s' " \
+                      "and time_create <='%s' limit %s,%s " % (",".join(str(id) for id in old_ids),
+                                                               self.start_time.strftime("%Y-%m-%d"),
+                                                               datetime.now().strftime("%Y-%m-%d"),
+                                                               per_page*page, per_page)
+                total_sql = "select count(id) as total " \
+                            "from sigma_account_ob_school " \
+                            "where available = 1 and owner_id in (%s) " \
+                            "and time_create>='%s' and time_create <='%s'"  % (",".join(str(id) for id in old_ids),
+                                                                               self.start_time.strftime("%Y-%m-%d"),
+                                                                               datetime.now().strftime("%Y-%m-%d"))
                 async with request.app['mysql'].acquire() as conn:
                     async with conn.cursor(DictCursor) as cur:
                         await cur.execute(sql)
