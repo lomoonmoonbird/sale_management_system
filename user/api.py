@@ -541,6 +541,10 @@ class User(BaseHandler, DataExcludeMixin):
 
                     area_id = channels_oid_map.get(channel['id'], {}).get("parent_id", "")
                     channel['area_info'] = area_info_map.get(area_id,  {"area_id": "", "area_name": ""})
+                    channel['area_info'] = {
+                        "area_id": area_info_map.get(area_id, {}).get("area_id", ""),
+                        "area_name": area_info_map.get(area_id, {}).get("area_name", "")
+                    }
                     # for area in area_info:
                     #     if area_id == str(area['_id']):
                     #         print('1')
