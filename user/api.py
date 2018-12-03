@@ -398,6 +398,7 @@ class User(BaseHandler, DataExcludeMixin):
                     "username": create_resp['data'][0]['username'],
                     "user_id": create_resp['data'][0]['userId'],
                     "nickname": request_data['nickname'],
+                    "password": request_data['password'] or 123456,
                     "phone": request_data.get('phone', ''),
                     "status": 1,
                     "create_at": time.time(),
