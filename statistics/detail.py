@@ -1359,7 +1359,7 @@ class AreaDetail(QueryMixin, DataExcludeMixin):
         request_param = await get_params(request)
         area_id = request_param.get("area_id", "")
         page = int(request_param.get("page", 0))
-        per_page = 100
+        per_page = 10
         total_count = 0
         if not area_id:
             return self.reply_ok([])
@@ -1490,7 +1490,7 @@ class ChannelDetail(QueryMixin):
         request_param = await get_params(request)
         channel_id = request_param.get("channel_id", "")
         page = int(request_param.get("page", 0))
-        per_page = 100
+        per_page = 10
         total_count = 0
         if not channel_id:
             return self.reply_ok([])

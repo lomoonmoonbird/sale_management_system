@@ -225,7 +225,7 @@ class User(BaseHandler, DataExcludeMixin):
         """
         request_param = await get_params(request)
         page = int(request_param['page'])
-        per_page = 100
+        per_page = 10
         total_count = 0
         total_count = await request.app['mongodb'][self.db][self.instance_coll].count_documents({"role": Roles.AREA.value, "status": 1})
         areas = request.app['mongodb'][self.db][self.instance_coll].find({"role": Roles.AREA.value, "status": 1}).skip(page*per_page).limit(per_page)
@@ -426,7 +426,7 @@ class User(BaseHandler, DataExcludeMixin):
         try:
             request_param = await get_params(request)
             page = int(request_param['page'])
-            per_page = 100
+            per_page = 10
             total_count = 0
             query_cond = {
                 "role": Roles.CHANNEL.value,
@@ -679,7 +679,7 @@ class User(BaseHandler, DataExcludeMixin):
         """
         request_param = await get_params(request)
         page = int(request_param['page'])
-        per_page = 100
+        per_page = 10
 
 
         channels = []

@@ -48,7 +48,7 @@ class AreaList(BaseHandler, DataExcludeMixin):
 
         request_param = await get_params(request)
         page = int(request_param.get('page', 0))
-        per_page = 100
+        per_page = 10
         total_count = 0
         areas = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": request['user_info']['global_id'],
                                                                           "role": Roles.AREA.value,

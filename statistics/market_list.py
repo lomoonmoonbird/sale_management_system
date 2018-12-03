@@ -49,7 +49,7 @@ class MarketList(BaseHandler, DataExcludeMixin):
         """
         request_param = await get_params(request)
         page = int(request_param.get('page', 0))
-        per_page = 100
+        per_page = 10
         channel_id = request['user_info']['channel_id']
         # channel_id = '5be57636be16fcb0232c5969'
         total_market_count = await request.app['mongodb'][self.db][self.sale_user_coll].count_documents({"channel_id": channel_id,
