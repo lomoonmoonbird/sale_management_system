@@ -59,13 +59,14 @@ class SchoolManage(BaseHandler):
         school_page_sql = ''
         total_sql = ''
         total_school_count = 0
+        flag = 0
         request_stage = int(request_param.get('stage')) if request_param.get('stage') else -1
         if not request_param.get('school_name') and request_stage not in [StageEnum.Register.value,
                                                                                        StageEnum.Using.value,
                                                                                        StageEnum.Binding.value,
                                                                                        StageEnum.Pay.value] \
                 and not request_param.get('open_time_range'): #全部
-            print('all')
+            flag = 1
             school_page_sql = "select id,full_name, time_create  from sigma_account_ob_school" \
                   " where available = 1 and time_create >= '%s' " \
                   "and time_create <= '%s' limit %s,%s" % (self.start_time.strftime("%Y-%m-%d"), datetime.now().strftime("%Y-%m-%d"), per_page*page, per_page)
@@ -77,8 +78,9 @@ class SchoolManage(BaseHandler):
         elif request_param.get('school_name'): #单个学校
             school_page_sql = "select id,full_name, time_create  from sigma_account_ob_school" \
                               " where available = 1 and full_name like %s" % ("'%"+request_param['school_name'] +"%'")
-
+            flag = 2
         elif not request_param.get('school_name'):
+            flag = 3
             stage = [StageEnum.Register.value, StageEnum.Using.value, StageEnum.Binding.value, StageEnum.Pay.value]
             request_stage = request_param.get('stage', -1)
             query = {
@@ -103,7 +105,6 @@ class SchoolManage(BaseHandler):
 
             condition_schools = request.app['mongodb'][self.db][self.school_coll].find(query).skip(per_page*page).limit(per_page)
             condition_schools = await condition_schools.to_list(10000)
-            print("query", json.dumps(condition_schools, indent=4, cls=CustomEncoder))
             if not condition_schools:
                 return self.reply_ok({})
             condition_school_ids = [item['school_id'] for item in condition_schools]
@@ -136,7 +137,6 @@ class SchoolManage(BaseHandler):
         stage_school = request.app['mongodb'][self.db][self.school_coll].find({"school_id": {"$in": school_ids}})
         stage_school = await stage_school.to_list(10000)
 
-        print(json.dumps(stage_school, indent=4, cls=CustomEncoder))
         stage_grade = request.app['mongodb'][self.db][self.grade_coll].find({"school_id": {"$in": school_ids}})
         stage_grade = await stage_grade.to_list(10000)
 
@@ -166,6 +166,7 @@ class SchoolManage(BaseHandler):
         for g_i in grade_item:
             grade_item_map[str(g_i['_id']['school_id']) + "@" + g_i['_id']['grade']] = g_i
 
+        data = []
         for index, school in enumerate(schools):
 
             default = {
@@ -192,13 +193,18 @@ class SchoolManage(BaseHandler):
                     school['grade_info'].append(g_info)
                     stage.append(stage_grade_union_map2.get(school_grade, {}).get("stage", StageEnum.Register.value))
             school['stage'] = StageEnum.Register.value if not stage else min(stage)
-            if school['stage'] == 1:
-                del schools[index]
-                print(school['id'])
-                total_school_count -= 1
+            if flag == 3 and int(request_stage) == 0:
+                if school['stage'] == 1:
+                    total_school_count -= 1
+                    continue
+            data.append(school)
+            # if school['stage'] == 1:
+            #     del schools[index]
+            #     print(school['id'], "school['id']")
+            #     total_school_count -= 1
 
 
-        return self.reply_ok({"school_list": schools, "extra": {"total":total_school_count, "number_per_page": per_page, "curr_page": page}})
+        return self.reply_ok({"school_list": data, "extra": {"total":total_school_count, "number_per_page": per_page, "curr_page": page}})
 
     @validate_permission()
     async def update_grade_stage(self, request: Request):
