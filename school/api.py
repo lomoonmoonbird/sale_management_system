@@ -23,13 +23,13 @@ from aiomysql.cursors import DictCursor
 from pymongo import UpdateOne, DeleteMany
 from bson import ObjectId
 from enumconstant import Roles, PermissionRole
-
+from tasks.celery_base import BaseTask
 class School(BaseHandler):
     def __init__(self):
         self.db = 'sales'
         self.user_coll = 'sale_user'
         self.instance_coll = 'instance'
-
+        self.start_time = BaseTask().start_time
 
     @validate_permission()
     async def add_school_market(self, request: Request):
@@ -130,8 +130,8 @@ class School(BaseHandler):
             old_id = channel_info.get('old_id', None)
 
             if old_id:
-                sql = "select id, full_name, time_create from sigma_account_ob_school where available = 1 and owner_id = %s limit %s,%s" %  (old_id, per_page*page, per_page)
-                total_sql = "select count(id) as total from sigma_account_ob_school where available = 1 and owner_id = %s" % old_id
+                sql = "select id, full_name, time_create from sigma_account_ob_school where available = 1 and owner_id = %s and time_create>='%s' and time_create <='%s' limit %s,%s" %  (old_id, self.start_time.strftime("%Y-%m-%d"), datetime.now().strftime("%Y-%m-%d"), per_page*page, per_page)
+                total_sql = "select count(id) as total from sigma_account_ob_school where available = 1 and owner_id = %s and time_create>='%s' and time_create <='%s'" % (old_id, self.start_time.strftime("%Y-%m-%d"), datetime.now().strftime("%Y-%m-%d"))
                 async with request.app['mysql'].acquire() as conn:
                     async with conn.cursor(DictCursor) as cur:
                         await cur.execute(sql)
@@ -167,8 +167,8 @@ class School(BaseHandler):
 
 
         elif request['user_info']['instance_role_id'] == Roles.GLOBAL.value: #总部
-            sql = "select id, full_name, time_create from sigma_account_ob_school where available = 1 limit %s, %s" %(per_page*page, per_page)
-            total_sql = "select count(id) as total from sigma_account_ob_school where available = 1"
+            sql = "select id, full_name, time_create from sigma_account_ob_school where available = 1 and time_create>='%s' and time_create <='%s' limit %s, %s" %(self.start_time.strftime("%Y-%m-%d"), datetime.now().strftime("%Y-%m-%d"), per_page*page, per_page)
+            total_sql = "select count(id) as total from sigma_account_ob_school where available = 1 and time_create>='%s' and time_create <='%s'" % (self.start_time.strftime("%Y-%m-%d"), datetime.now().strftime("%Y-%m-%d"))
             async with request.app['mysql'].acquire() as conn:
                 async with conn.cursor(DictCursor) as cur:
                     await cur.execute(sql)
@@ -211,8 +211,8 @@ class School(BaseHandler):
             old_ids = [item['old_id'] for item in channels]
             channels_ids = [str(item['_id']) for item in channels]
             if old_ids:
-                sql = "select id, full_name,time_create from sigma_account_ob_school where available = 1 and owner_id in (%s) limit %s,%s " % (",".join(str(id) for id in old_ids), per_page*page, per_page)
-                total_sql = "select count(id) as total from sigma_account_ob_school where available = 1 and owner_id in (%s)"  % (",".join(str(id) for id in old_ids))
+                sql = "select id, full_name,time_create from sigma_account_ob_school where available = 1 and owner_id in (%s) and time_create>='%s' and time_create <='%s' limit %s,%s " % (",".join(str(id) for id in old_ids), self.start_time.strftime("%Y-%m-%d"), datetime.now().strftime("%Y-%m-%d"), per_page*page, per_page)
+                total_sql = "select count(id) as total from sigma_account_ob_school where available = 1 and owner_id in (%s) and time_create>='%s' and time_create <='%s'"  % (",".join(str(id) for id in old_ids), self.start_time.strftime("%Y-%m-%d"), datetime.now().strftime("%Y-%m-%d"))
                 async with request.app['mysql'].acquire() as conn:
                     async with conn.cursor(DictCursor) as cur:
                         await cur.execute(sql)
