@@ -1739,7 +1739,7 @@ class MarketDetail(QueryMixin, DataExcludeMixin):
         """
         request_param = await get_params(request)
         page = int(request_param.get("page"))
-        per_page = 30
+        per_page = 10 
         user_id = request_param.get("user_id")
         if request['user_info']['instance_role_id'] == Roles.MARKET.value:
             user_id = request['user_info']['user_id']

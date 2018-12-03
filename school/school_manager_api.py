@@ -54,7 +54,7 @@ class SchoolManage(BaseHandler):
         """
         request_param = await get_params(request)
         page = int(request_param.get("page", 0))
-        per_page = 30
+        per_page = 10
 
         school_page_sql = ''
         total_sql = ''

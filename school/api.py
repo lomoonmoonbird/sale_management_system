@@ -118,7 +118,7 @@ class School(BaseHandler):
         request_param = await get_params(request)
 
         page = int(request_param['page'])
-        per_page = 30
+        per_page = 10
         total_count = 0
         schools= []
         if request['user_info']['instance_role_id'] == Roles.CHANNEL.value: #渠道
