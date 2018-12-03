@@ -685,8 +685,8 @@ class User(BaseHandler, DataExcludeMixin):
         request_data = await get_json(request)
         channel_id = request['user_info']['channel_id']
         print(channel_id, request_data['user_id'], type(request_data['user_id']))
-        await request.app['mongodb'][self.db][self.instance_coll].update_many({"parent_id": channel_id,
-                                                                          "user_id": int(request_data['user_id'])},
+        await request.app['mongodb'][self.db][self.user_coll].update_many({"channel_id": channel_id,
+                                                                          "user_id": request_data['user_id']},
                                                                          {"$set": {"status": 0}})
 
         return self.reply_ok({})
