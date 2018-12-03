@@ -754,8 +754,8 @@ class User(BaseHandler, DataExcludeMixin):
             #         async with conn.cursor(DictCursor) as cur:
             #             await cur.execute(sql)
             #             channel_info = await cur.fetchall()
-            users = request.app['mongodb'][self.db][self.user_coll].find({"channel_id": {"$in": channel_ids}, "status": 1}).skip(page*per_page).limit(per_page)
-            total_count = await request.app['mongodb'][self.db][self.user_coll].count_documents({"channel_id": {"$in": channel_ids}, "status": 1})
+            users = request.app['mongodb'][self.db][self.user_coll].find({"channel_id": {"$in": channel_ids},"instance_role_id": Roles.MARKET.value,"status": 1}).skip(page*per_page).limit(per_page)
+            total_count = await request.app['mongodb'][self.db][self.user_coll].count_documents({"channel_id": {"$in": channel_ids},"instance_role_id": Roles.MARKET.value, "status": 1})
             users = await users.to_list(10000)
             for user in users:
                 for channel in channel_of_area:
