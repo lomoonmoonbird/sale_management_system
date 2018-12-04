@@ -629,7 +629,7 @@ class PerDaySubTask_GUARDIAN(BaseTask):
                               {'$set': guardian_schema}, upsert=True))
 
             channel_unique_bulk_update = []
-            for k, v in channel_guardian_default_dict.items():
+            for k, v in channel_unique_guardian_default_dict.items():
                 guardian_schema = {
                     "guardian_unique_count": len(v),
                     "wechat_user_ids": list(v),

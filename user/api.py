@@ -498,8 +498,8 @@ class User(BaseHandler, DataExcludeMixin):
                     sql = "select * from sigma_account_us_user " \
                           "where available = 1 " \
                           "and role_id = 6 " \
-                          "and time_create_time >= %s " \
-                          "and time_create <= %s " \
+                          "and time_create_time >= '%s' " \
+                          "and time_create <= '%s' " \
                           "and id in (%s)" % (','.join(old_ids),
                                               self.start_time.strftime("%Y-%m-%d"),
                                               datetime.now().strftime("%Y-%m-%d"))
@@ -522,18 +522,19 @@ class User(BaseHandler, DataExcludeMixin):
                 sql = "select * from sigma_account_us_user " \
                       "where available = 1 " \
                       "and role_id = 6 " \
-                      "and time_create >= %s " \
-                      "and time_create <= %s " \
-                      "and  limit %s, %s " % (self.start_time.strftime("%Y-%m-%d"),
+                      "and time_create >= '%s' " \
+                      "and time_create <= '%s' " \
+                      " limit %s, %s " % (self.start_time.strftime("%Y-%m-%d"),
                                               datetime.now().strftime("%Y-%m-%d"),
                                               page*per_page,
                                               per_page)
+                
                 count_sql = "select count(id) as total_count " \
                             "from sigma_account_us_user " \
                             "where available = 1 " \
                             "and role_id = 6 " \
-                            "and time_create<=%s" \
-                            " and time_create>=%s" %(self.start_time.strftime("%Y-%m-%d"),
+                            "and time_create<='%s'" \
+                            " and time_create>='%s'" %(self.start_time.strftime("%Y-%m-%d"),
                                                      datetime.now().strftime("%Y-%m-%d"))
                 async with request.app['mysql'].acquire() as conn:
                     async with conn.cursor(DictCursor) as cur:
