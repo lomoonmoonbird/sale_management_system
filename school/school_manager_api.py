@@ -111,12 +111,21 @@ class SchoolManage(BaseHandler):
                 return self.reply_ok({})
             condition_school_ids = [item['school_id'] for item in condition_schools]
             print(condition_school_ids)
-            school_page_sql = "select id,full_name, time_create  from sigma_account_ob_school" \
-                              " where available = 1 and id in (%s) limit %s,%s" % (','.join(['"'+str(id)+'"' for id in condition_school_ids]), per_page*page, per_page)
-            total_sql = "select count(id) as total_school_count from sigma_account_ob_school" \
-                        " where available = 1 and time_create >= '%s' " \
-                        "and time_create <= '%s' and id in (%s) " % (
-                date_range[0], date_range[1],','.join(['"'+str(id)+'"' for id in condition_school_ids]))
+            if request_stage == StageEnum.Register.value:
+                school_page_sql = "select id,full_name, time_create  from sigma_account_ob_school" \
+                                  " where available = 1 and  limit %s,%s" % (per_page * page,
+                                  per_page)
+                total_sql = "select count(id) as total_school_count from sigma_account_ob_school" \
+                            " where available = 1 and time_create >= '%s' " \
+                            "and time_create <= '%s' and  " % (
+                                date_range[0], date_range[1],)
+            else:
+                school_page_sql = "select id,full_name, time_create  from sigma_account_ob_school" \
+                                  " where available = 1 and id in (%s) limit %s,%s" % (','.join(['"'+str(id)+'"' for id in condition_school_ids]), per_page*page, per_page)
+                total_sql = "select count(id) as total_school_count from sigma_account_ob_school" \
+                            " where available = 1 and time_create >= '%s' " \
+                            "and time_create <= '%s' and id in (%s) " % (
+                    date_range[0], date_range[1],','.join(['"'+str(id)+'"' for id in condition_school_ids]))
         else:
             pass
         total_school_count = 1
