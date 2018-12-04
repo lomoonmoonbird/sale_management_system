@@ -103,23 +103,26 @@ class SchoolManage(BaseHandler):
                 date_range = [self.start_time.strftime("%Y-%m-%d"), datetime.now().strftime("%Y-%m-%d")]
                 query.update({"open_time": {"$gte": datetime.strptime(date_range[0], "%Y-%m-%d"), "$lte": datetime.strptime(date_range[1], "%Y-%m-%d")}})
 
-            print(query)
+            # print(query)
             condition_schools = request.app['mongodb'][self.db][self.school_coll].find(query).skip(per_page*page).limit(per_page)
             condition_schools = await condition_schools.to_list(10000)
-            print(condition_schools)
+            # print(condition_schools)
             if not condition_schools:
                 return self.reply_ok({})
             condition_school_ids = [item['school_id'] for item in condition_schools]
-            print(condition_school_ids)
-            if request_stage == StageEnum.Register.value:
+            # print(condition_school_ids)
+             
+            if int(request_stage) == StageEnum.Register.value:
                 school_page_sql = "select id,full_name, time_create  from sigma_account_ob_school" \
-                                  " where available = 1 and  limit %s,%s" % (per_page * page,
+                                  " where available = 1  limit %s,%s" % (per_page * page,
                                   per_page)
                 total_sql = "select count(id) as total_school_count from sigma_account_ob_school" \
                             " where available = 1 and time_create >= '%s' " \
-                            "and time_create <= '%s' and  " % (
+                            "and time_create <= '%s'  " % (
                                 date_range[0], date_range[1],)
+                print('#####')
             else:
+                print('@@@@@')
                 school_page_sql = "select id,full_name, time_create  from sigma_account_ob_school" \
                                   " where available = 1 and id in (%s) limit %s,%s" % (','.join(['"'+str(id)+'"' for id in condition_school_ids]), per_page*page, per_page)
                 total_sql = "select count(id) as total_school_count from sigma_account_ob_school" \
