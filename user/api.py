@@ -459,8 +459,8 @@ class User(BaseHandler, DataExcludeMixin):
             }
             area_infos = []
             res = []
-            if not request['user_info']['area_id']:
-                return self.reply_ok({"channels": [], "extra":{"total": total_count,"number_per_page": per_page, "curr_page": page}})
+            # if not request['user_info']['area_id']:
+            #     return self.reply_ok({"channels": [], "extra":{"total": total_count,"number_per_page": per_page, "curr_page": page}})
 
             if int(request["user_info"]["instance_role_id"]) == Roles.AREA.value:
                 area_id = request['user_info']['area_id']
