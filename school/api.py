@@ -170,7 +170,11 @@ class School(BaseHandler):
 
                 for school in schools:
                     user_ids = distributed_school_map.get(school['id'], [])
-                    users_info = [distributed_user_map.get(int(user_id), {}) for user_id in user_ids]
+                    users_info = []
+                    for user_id in user_ids:
+                        one = distributed_user_map.get(int(user_id), {})
+                        if one:
+                            users_info.append(one)
                     school['market_info'] = users_info
 
 
