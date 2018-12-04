@@ -204,7 +204,6 @@ def validate_permission():
             async def get_user_id(_session, _cookie) -> int:
                 async with _session.get(UC_SYSTEM_API_URL + '/getLoginStatus', headers={'Cookie': _cookie}) as resp:
                     resp_as_json = await resp.json()
-                    print (resp_as_json)
                     success = schema.Schema({
                         'status': 0,
                         'data':
@@ -213,7 +212,6 @@ def validate_permission():
                                 'userId': int
                             }
                     }, ignore_extra_keys=True).is_valid(resp_as_json)
-                    print (_cookie)
                     if not success:
                         raise LoginError('Invalid cookie info.')
                     return resp_as_json['data']['userId']

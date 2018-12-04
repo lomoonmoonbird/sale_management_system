@@ -212,7 +212,12 @@ class School(BaseHandler):
                 distributed_user_map[int(d_u['user_id'])] = {"user_name": d_u['nickname'], "user_id": d_u['user_id']}
             for school in schools:
                 user_ids = distributed_school_map.get(school['id'], [])
-                users_info = [distributed_user_map.get(int(user_id), {}) for user_id in user_ids]
+                # users_info = [distributed_user_map.get(int(user_id), {}) for user_id in user_ids]
+                users_info = []
+                for user_id in user_ids:
+                    one = distributed_user_map.get(int(user_id), {})
+                    if one:
+                        users_info.append(one)
                 school['market_info'] = users_info
 
 
@@ -270,7 +275,12 @@ class School(BaseHandler):
                     distributed_user_map[int(d_u['user_id'])] = {"user_name": d_u['nickname'], "user_id": d_u['user_id']}
                 for school in schools:
                     user_ids = distributed_school_map.get(school['id'], [])
-                    users_info = [distributed_user_map.get(int(user_id), {}) for user_id in user_ids]
+                    # users_info = [distributed_user_map.get(int(user_id), {}) for user_id in user_ids]
+                    users_info = []
+                    for user_id in user_ids:
+                        one = distributed_user_map.get(int(user_id), {})
+                        if one:
+                            users_info.append(one)
                     school['market_info'] = users_info
 
         return self.reply_ok({"market_school": schools, "extra": {"total": total_count, "number_per_page": per_page, "curr_page": page}})
