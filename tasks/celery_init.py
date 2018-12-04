@@ -138,7 +138,7 @@ sales_celery.config_from_object(Config)
 #user task
 per_day_task = PerDayTask()
 sales_celery.register_task(per_day_task)
-# sales_celery.send_task('tasks.celery_per_day_task.PerDayTask')
+sales_celery.send_task('tasks.celery_per_day_task.PerDayTask')
 
 
 per_day_exercise_images = PerDaySubTask_IMAGES()
@@ -157,7 +157,7 @@ sales_celery.register_task(per_day_schools)
 
 per_day_users_number = PerDaySubTask_USERS()
 sales_celery.register_task(per_day_users_number)
-sales_celery.send_task('tasks.celery_per_day_task.PerDaySubTask_USERS')
+# sales_celery.send_task('tasks.celery_per_day_task.PerDaySubTask_USERS')
 
 per_day_valid_exercise_word = PerDayTask_VALIDCONTEST()
 sales_celery.register_task(per_day_valid_exercise_word)

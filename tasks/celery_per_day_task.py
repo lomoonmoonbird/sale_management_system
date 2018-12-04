@@ -1194,7 +1194,7 @@ class PerDaySubTask_USERS(BaseTask):
 
 
             q_usergroup = select([ob_groupuser]).where(and_(
-                # ob_groupuser.c.available == 1,
+                ob_groupuser.c.available == 1,
                 ob_groupuser.c.user_id.in_(user_ids),
             ))
 
@@ -1203,7 +1203,7 @@ class PerDaySubTask_USERS(BaseTask):
             group_ids = list(set([item['group_id'] for item in usergroup]))
 
             q_group = select([ob_group]).where(and_(
-                # ob_group.c.available == 1,
+                ob_group.c.available == 1,
                 ob_group.c.id.in_(group_ids),
             ))
 
@@ -1213,7 +1213,7 @@ class PerDaySubTask_USERS(BaseTask):
             # school_ids = list(set([item['school_id'] for item in group]))
             school_ids = list(set([item['school_id'] for item in teacher_student]))
             q_school = select([ob_school.c.owner_id, ob_school.c.id]).where(and_(
-                # ob_school.c.available == 1,
+                ob_school.c.available == 1,
                 ob_school.c.id.in_(school_ids),
             ))
 
@@ -1228,6 +1228,7 @@ class PerDaySubTask_USERS(BaseTask):
             usergroup_single_map = {}
             usergroup_map_class_key = {}
             usergroup_map_grade_key = {}
+            usergroup_map_grade_multi_map = defaultdict(list)
             for u_g in usergroup:
                 u_g.update(group_map.get(u_g['group_id'], {}))
                 if usergroup_map[u_g['user_id']]:
@@ -1238,6 +1239,11 @@ class PerDaySubTask_USERS(BaseTask):
                 usergroup_map_class_key[u_g['group_id']] = u_g
                 # print(json.dumps(u_g, indent=4, cls=CustomEncoder))
                 usergroup_map_grade_key[u_g.get("grade", -1)] = u_g
+                # print(u_g)
+                if usergroup_map_grade_multi_map[str(u_g.get("school_id", -1)) + "@" + str(u_g.get("grade", -1))]:
+                    usergroup_map_grade_multi_map[str(u_g.get("school_id", -1)) + "@" + str(u_g.get("grade", -1))].append(u_g)
+                else:
+                    usergroup_map_grade_multi_map[str(u_g.get("school_id", -1)) + "@" + str(u_g.get("grade", -1))] = [u_g]
 
             school_channel_map = {}
             for s_c in schools:
@@ -1263,36 +1269,85 @@ class PerDaySubTask_USERS(BaseTask):
             # print(json.dumps(teacher_student, indent=4, cls=CustomEncoder))
             # print(json.dumps(usergroup_single_map, indent=4, cls=CustomEncoder))
             for t_s in teacher_student:
-                if t_s['school_id'] == 1:
-                    print(usergroup_map.get(t_s['id'], []))
-                for ug_map in usergroup_map.get(t_s['id'], []):
-                    # print(ug_map)
-                    if int(ug_map['role_id']) == Roles.TEACHER.value: #老师
-                        # 班级
+                # if t_s['school_id'] == 1:
+                    # print(usergroup_map.get(t_s['id'], []))
+
+                if int(t_s['role_id']) == Roles.TEACHER.value: #老师
+                    for ug_map in usergroup_map.get(t_s['id'], []):
+                        # print(ug_map)
+                        # if int(ug_map['role_id']) == Roles.TEACHER.value: #老师
+                            # 班级
+                            # if t_s['school_id'] == 1 and str(ug_map.get("grade", -1)) == '2018':
+                            #     print(ug_map)
                         class_teacher_number_defaultdict[ug_map.get('group_id', -1)]['user_info'] = ug_map
                         if class_teacher_number_defaultdict[ug_map.get('group_id', -1)]['n']:
                             class_teacher_number_defaultdict[ug_map.get('group_id', -1)]['n'].append(1)
                         else:
                             class_teacher_number_defaultdict[ug_map.get('group_id', -1)]['n'] = [1]
 
-                        # 年级
-                        grade_teacher_number_defaultdict[str(ug_map.get('school_id', -1))+"@"+str(ug_map.get("grade", -1))]['user_info'] = ug_map
-                        if grade_teacher_number_defaultdict[str(ug_map.get('school_id', -1))+"@"+str(ug_map.get("grade", -1))]['n']:
-                            grade_teacher_number_defaultdict[str(ug_map.get('school_id', -1))+"@"+str(ug_map.get("grade", -1))]['n'].append(1)
+                    #年级
+
+                    # key = str(usergroup_single_map.get(t_s['id'], {}).get("school_id", -1)) + "@" + str(usergroup_single_map.get(t_s['id'], {}).get("grade", -1))
+                    # key2 = str(usergroup_single_map.get(t_s['id'], {}).get("school_id", -1)) + "@" + str(usergroup_single_map.get(t_s['id'], {}).get("grade", -1))+"@"+str(t_s['id'])
+
+
+
+                    # if key == "1@2017":
+                    #     print('------------')
+                    #     print(ug_map)
+                    #     print('-------------')
+                    for u in usergroup_map[t_s['id']]:
+
+                        key = str(u.get("school_id", -1)) + "@" + str(
+                            u.get("grade", -1))
+                        key2 = str(u.get("school_id", -1)) + "@" + str(
+                            u.get("grade", -1)) + "@" + str(u['user_id'])
+                        if grade_teacher_number_defaultdict[key]['n']:
+                            grade_teacher_number_defaultdict[key]['n'].add(key2)
                         else:
-                            grade_teacher_number_defaultdict[str(ug_map.get('school_id', -1))+"@"+str(ug_map.get("grade", -1))]['n'] = [1]
-
-
-                    elif int(ug_map['role_id']) == Roles.STUDENT.value: #学生
+                            grade_teacher_number_defaultdict[key]['n'] = set([key2])
+                        if grade_teacher_number_defaultdict[key]['u']:
+                            grade_teacher_number_defaultdict[key]['u'].append(t_s['id'])
+                        else:
+                            grade_teacher_number_defaultdict[key]['u'] = [t_s['id']]
+                    # if t_s['id'] == 3341:
+                    #     print('jinpeng/..............')
+                    #     # print(usergroup_single_map.get(t_s['id'], {}))
+                    #     # key = str(usergroup_single_map.get(t_s['id'], {}).get("school_id", -1)) + "@" + str(
+                    #     #     usergroup_single_map.get(t_s['id'], {}).get("grade", -1))
+                    #     # print(usergroup_map[t_s['id']])
+                    #     print(json.dumps(usergroup_map[t_s['id']], indent=4, cls=CustomEncoder))
+                    #     # print(usergroup_map_grade_multi_map[key])
+                    #     print('jinpeng/..............')
+                elif int(t_s['role_id']) == Roles.STUDENT.value: #学生
+                    for ug_map in usergroup_map.get(t_s['id'], []):
                         # 班级
                         class_student_number_defaultdict[ug_map.get('group_id', -1)]['user_info'] = ug_map
                         if class_student_number_defaultdict[ug_map.get('group_id', -1)]['n']:
                             class_student_number_defaultdict[ug_map.get('group_id', -1)]['n'].append(1)
                         else:
                             class_student_number_defaultdict[ug_map.get('group_id', -1)]['n'] = [1]
-                    else:
-                        pass
-
+                else:
+                    pass
+                # print("usergroup_map_grade_multi_map", usergroup_map_grade_multi_map)
+                # key = str(usergroup_single_map.get(t_s['id'], {}).get("school_id", -1)) + "@" + str(usergroup_single_map.get(t_s['id'], {}).get("grade", -1))
+                # print(len(usergroup_map_grade_multi_map.keys()))
+                # if len(usergroup_map_grade_multi_map.keys()) > 10:
+                #     print(len(usergroup_map_grade_multi_map.keys()))
+                # for ug_mul_map in usergroup_map_grade_multi_map.get(key, []):
+                #     # 年级
+                #     if int(ug_mul_map['role_id']) == Roles.TEACHER.value: #老师
+                #         # if key == "1@2017":
+                #         #     print('------------')
+                #         #     print(usergroup_map_grade_multi_map.get(key, []))
+                #         #     print('-------------')
+                #         # grade_teacher_number_defaultdict[str(ug_mul_map.get('school_id', -1))+"@"+str(ug_mul_map.get("grade", -1))]['user_info'] = ug_mul_map
+                #         if grade_teacher_number_defaultdict[key]['n']:
+                #             grade_teacher_number_defaultdict[key]['n'].append(1)
+                #         else:
+                #             grade_teacher_number_defaultdict[key]['n'] = [1]
+                #     else:
+                #         pass
 
                 if int(t_s['role_id']) == Roles.TEACHER.value:  # 老师
 
@@ -1334,7 +1389,7 @@ class PerDaySubTask_USERS(BaseTask):
                 else:
                     pass
 
-
+            # print(grade_teacher_number_defaultdict)
             # print(json.dumps(class_teacher_number_defaultdict,indent=4,cls=CustomEncoder))
             #老师
             #班级
@@ -1356,7 +1411,8 @@ class PerDaySubTask_USERS(BaseTask):
                     "school_id": int(k.split("@")[0]),
                     # "grade": v['user_info'].get("group_info", {}).get("grade", -1),
                     "channel": school_channel_map.get(int(k.split("@")[0]), -1),
-                    "teacher_number": sum(v['n']),
+                    "teacher_number": len(v['n']),
+                    "teachers": v['u']
                 }
 
                 grade_teacher_number_bulk_update.append(UpdateOne({"grade": k.split("@")[1], "school_id": int(k.split("@")[0]), "day": one_date[0]},
