@@ -26,6 +26,7 @@ from bson import ObjectId
 from enumconstant import Roles, PermissionRole
 from utils import CustomEncoder
 from mixins import DataExcludeMixin
+from tasks.celery_base import BaseTask
 
 
 class User(BaseHandler, DataExcludeMixin):
@@ -34,7 +35,7 @@ class User(BaseHandler, DataExcludeMixin):
         self.db = "sales"
         self.user_coll = "sale_user"
         self.instance_coll = "instance"
-
+        self.start_time = BaseTask().start_time
 
     @validate_permission()
     async def profile(self, request: Request):
@@ -494,7 +495,14 @@ class User(BaseHandler, DataExcludeMixin):
 
                 sql = ''
                 if old_ids:
-                    sql = "select * from sigma_account_us_user where available = 1 and role_id = 6 and id in (%s)" % ','.join(old_ids)
+                    sql = "select * from sigma_account_us_user " \
+                          "where available = 1 " \
+                          "and role_id = 6 " \
+                          "and time_create_time >= %s " \
+                          "and time_create <= %s " \
+                          "and id in (%s)" % (','.join(old_ids),
+                                              self.start_time.strftime("%Y-%m-%d"),
+                                              datetime.now().strftime("%Y-%m-%d"))
 
                     async with request.app['mysql'].acquire() as conn:
                         async with conn.cursor(DictCursor) as cur:
@@ -511,8 +519,22 @@ class User(BaseHandler, DataExcludeMixin):
 
 
             elif int(request["user_info"]["instance_role_id"]) == Roles.GLOBAL.value:
-                sql = "select * from sigma_account_us_user where available = 1 and role_id = 6 limit %s, %s " % (page*per_page, per_page)
-                count_sql = "select count(id) as total_count from sigma_account_us_user where available = 1 and role_id = 6"
+                sql = "select * from sigma_account_us_user " \
+                      "where available = 1 " \
+                      "and role_id = 6 " \
+                      "and time_create >= %s " \
+                      "and time_create <= %s " \
+                      "and  limit %s, %s " % (self.start_time.strftime("%Y-%m-%d"),
+                                              datetime.now().strftime("%Y-%m-%d"),
+                                              page*per_page,
+                                              per_page)
+                count_sql = "select count(id) as total_count " \
+                            "from sigma_account_us_user " \
+                            "where available = 1 " \
+                            "and role_id = 6 " \
+                            "and time_create<=%s" \
+                            " and time_create>=%s" %(self.start_time.strftime("%Y-%m-%d"),
+                                                     datetime.now().strftime("%Y-%m-%d"))
                 async with request.app['mysql'].acquire() as conn:
                     async with conn.cursor(DictCursor) as cur:
                         await   cur.execute(sql)
