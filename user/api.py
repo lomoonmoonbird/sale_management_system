@@ -462,7 +462,7 @@ class User(BaseHandler, DataExcludeMixin):
             if not request['user_info']['area_id']:
                 return self.reply_ok({"channels": [], "extra":{"total": total_count,"number_per_page": per_page, "curr_page": page}})
 
-            if request["user_info"]["instance_role_id"] == Roles.AREA.value:
+            if int(request["user_info"]["instance_role_id"]) == Roles.AREA.value:
                 area_id = request['user_info']['area_id']
                 query_cond.update({"parent_id": area_id})
 
@@ -510,7 +510,7 @@ class User(BaseHandler, DataExcludeMixin):
                     channel['user_info'] = users_map.get(channel['channel_id'], [])
 
 
-            elif request["user_info"]["instance_role_id"] == Roles.GLOBAL.value:
+            elif int(request["user_info"]["instance_role_id"]) == Roles.GLOBAL.value:
                 sql = "select * from sigma_account_us_user where available = 1 and role_id = 6 limit %s, %s " % (page*per_page, per_page)
                 count_sql = "select count(id) as total_count from sigma_account_us_user where available = 1 and role_id = 6"
                 async with request.app['mysql'].acquire() as conn:
