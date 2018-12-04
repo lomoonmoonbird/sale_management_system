@@ -122,7 +122,7 @@ class SchoolManage(BaseHandler):
                                 date_range[0], date_range[1],)
             else:
                 school_page_sql = "select id,full_name, time_create  from sigma_account_ob_school" \
-                                  " where available = 1 and id in (%s) limit %s,%s" % (','.join(['"'+str(id)+'"' for id in condition_school_ids]), per_page*page, per_page)
+                                  " where available = 1  limit %s,%s" % ( per_page*page, per_page)
                 total_sql = "select count(id) as total_school_count from sigma_account_ob_school" \
                             " where available = 1 and time_create >= '%s' " \
                             "and time_create <= '%s' and id in (%s) " % (
