@@ -111,7 +111,7 @@ class SchoolManage(BaseHandler):
                 return self.reply_ok({})
             condition_school_ids = [item['school_id'] for item in condition_schools]
             # print(condition_school_ids)
-             
+
             if int(request_stage) == StageEnum.Register.value:
                 school_page_sql = "select id,full_name, time_create  from sigma_account_ob_school" \
                                   " where available = 1  limit %s,%s" % (per_page * page,
