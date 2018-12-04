@@ -75,7 +75,6 @@ class AreaList(BaseHandler, DataExcludeMixin):
         items = await self._list(request, old_ids)
         from collections import defaultdict
         area_compact_data = defaultdict(dict)
-
         for item in items:
             item['contest_coverage_ratio'] = 0
             item['contest_average_per_person'] = 0
@@ -90,6 +89,9 @@ class AreaList(BaseHandler, DataExcludeMixin):
 
             area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
                 'total_guardian_number', []).append(item['total_guardian_number'])
+
+            area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
+                'total_guardian_unique_count', []).append(item['total_guardian_unique_count'])
 
             area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
                 'total_pay_number', []).append(item['total_pay_number'])
@@ -112,7 +114,7 @@ class AreaList(BaseHandler, DataExcludeMixin):
                 'total_word_image_number', []).append(item['total_word_image_number'])
 
             area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
-                'pay_ratio', []).append(item['pay_ratio'])
+                'pay_ratio', []).append(item['pay_ratio'] )
 
             area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
                 'bind_ratio', []).append(item['bind_ratio'])
@@ -141,8 +143,8 @@ class AreaList(BaseHandler, DataExcludeMixin):
                     "total_exercise_image_number": sum(item['total_exercise_image_number']),
                     "total_word_image_number": sum(item['total_word_image_number']),
                     "total_valid_reading_number": sum(item['total_valid_reading_number']),
-                    "pay_ratio": sum(item['pay_ratio']),
-                    "bind_ratio": sum(item['bind_ratio']),
+                    "pay_ratio": self.rounding(sum(item['total_pay_number']) / sum(item['total_student_number'])) if sum(item['total_student_number']) else 0,
+                    "bind_ratio": self.rounding(sum(item['total_guardian_unique_count']) / sum(item['total_student_number'])) if sum(item['total_student_number']) else 0,
                     "contest_coverage_ratio": sum(item['contest_coverage_ratio']),
                     "contest_average_per_person": sum(item['contest_average_per_person']),
                     "area_info": areas_map.get(area_id, {})

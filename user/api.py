@@ -430,6 +430,7 @@ class User(BaseHandler, DataExcludeMixin):
         channel_id = channel_user.get("channel_id", "")
         market_user = request.app['mongodb'][self.db][self.user_coll].find({"instance_role_id": Roles.MARKET.value, "channel_id": channel_id, "status": 1})
         market_user = await market_user.to_list(10000)
+        print(len(market_user),market_user)
         if market_user:
             raise DELETEERROR("channel has markets")
         await request.app['mongodb'][self.db][self.user_coll].update_one({"user_id": user_id,
