@@ -528,7 +528,7 @@ class User(BaseHandler, DataExcludeMixin):
                                               datetime.now().strftime("%Y-%m-%d"),
                                               page*per_page,
                                               per_page)
-                
+
                 count_sql = "select count(id) as total_count " \
                             "from sigma_account_us_user " \
                             "where available = 1 " \

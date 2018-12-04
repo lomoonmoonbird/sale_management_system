@@ -400,6 +400,7 @@ class PerDaySubTask_GUARDIAN(BaseTask):
         :return:
         """
         for one_date in date_range:
+
             q_guardian_counts = select([
                 re_userwechat.c.user_id,
                 re_userwechat.c.wechat_id,
@@ -474,6 +475,7 @@ class PerDaySubTask_GUARDIAN(BaseTask):
             channel_unique_guardian_default_dict = defaultdict(set)
 
             for guardian in guardians:
+
                 #班级
                 if class_guardian_default_dict[usergroup_map.get(guardian['user_id'], {}).get("group_id", -1)]['n']:
                     class_guardian_default_dict[usergroup_map.get(guardian['user_id'], {}).get("group_id", -1)]['n'].append(1)
@@ -530,6 +532,7 @@ class PerDaySubTask_GUARDIAN(BaseTask):
                         school_channel_map.get(user_school_map.get(guardian['user_id'], -1))]['wechats'] = [guardian['wechat_id']]
                 #渠道unique
                 channel_unique_guardian_default_dict[school_channel_map.get(user_school_map.get(guardian['user_id'], -1))].add(guardian['user_id'])
+                print(channel_unique_guardian_default_dict)
                 class_guardian_default_dict[usergroup_map.get(guardian['user_id'], {}).get("group_id", -1)]['group_info'] = usergroup_map.get(guardian['user_id'], {})
                 grade_guardian_default_dict[str(usergroup_map.get(guardian['user_id'], {}).get("school_id", -1))+"@"+str(usergroup_map.get(guardian['user_id'], {}).get("grade", -1))]['group_info'] = usergroup_map.get(guardian['user_id'],{})
                 channel_guardian_default_dict[school_channel_map.get(usergroup_map.get(guardian['user_id'], {}).get("school_id", -1))]['group_info'] = usergroup_map.get(guardian['user_id'],{})
@@ -641,53 +644,53 @@ class PerDaySubTask_GUARDIAN(BaseTask):
             if class_bulk_update:
                 try:
                     bulk_update_ret = self.mongo.class_per_day.bulk_write(class_bulk_update)
-                    print(bulk_update_ret.bulk_api_result)
+                    # print(bulk_update_ret.bulk_api_result)
                 except BulkWriteError as bwe:
                     print(bwe.details)
 
             if class_unique_bulk_update:
                 try:
                     bulk_update_ret = self.mongo.class_per_day.bulk_write(class_unique_bulk_update)
-                    print(bulk_update_ret.bulk_api_result)
+                    # print(bulk_update_ret.bulk_api_result)
                 except BulkWriteError as bwe:
                     print(bwe.details)
 
             if grade_bulk_update:
                 try:
                     bulk_update_ret = self.mongo.grade_per_day.bulk_write(grade_bulk_update)
-                    print(bulk_update_ret.bulk_api_result)
+                    # print(bulk_update_ret.bulk_api_result)
                 except BulkWriteError as bwe:
                     print(bwe.details)
 
             if grade_unique_bulk_update:
                 try:
                     bulk_update_ret = self.mongo.grade_per_day.bulk_write(grade_unique_bulk_update)
-                    print(bulk_update_ret.bulk_api_result)
+                    # print(bulk_update_ret.bulk_api_result)
                 except BulkWriteError as bwe:
                     print(bwe.details)
 
             if school_bulk_update:
                 try:
                     bulk_update_ret = self.mongo.school_per_day.bulk_write(school_bulk_update)
-                    print(bulk_update_ret.bulk_api_result)
+                    # print(bulk_update_ret.bulk_api_result)
                 except BulkWriteError as bwe:
                     print(bwe.details)
             if school_unique_bulk_update:
                 try:
                     bulk_update_ret = self.mongo.school_per_day.bulk_write(school_unique_bulk_update)
-                    print(bulk_update_ret.bulk_api_result)
+                    # print(bulk_update_ret.bulk_api_result)
                 except BulkWriteError as bwe:
                     print(bwe.details)
             if channel_bulk_update:
                 try:
                     bulk_update_ret = self.mongo.channel_per_day.bulk_write(channel_bulk_update)
-                    print(bulk_update_ret.bulk_api_result)
+                    # print(bulk_update_ret.bulk_api_result)
                 except BulkWriteError as bwe:
                     print(bwe.details)
             if channel_unique_bulk_update:
                 try:
                     bulk_update_ret = self.mongo.channel_per_day.bulk_write(channel_unique_bulk_update)
-                    print(bulk_update_ret.bulk_api_result)
+                    # print(bulk_update_ret.bulk_api_result)
                 except BulkWriteError as bwe:
                     print(bwe.details)
 
