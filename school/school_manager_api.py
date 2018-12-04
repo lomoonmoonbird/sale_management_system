@@ -120,9 +120,7 @@ class SchoolManage(BaseHandler):
                             " where available = 1 and time_create >= '%s' " \
                             "and time_create <= '%s'  " % (
                                 date_range[0], date_range[1],)
-                print('#####')
             else:
-                print('@@@@@')
                 school_page_sql = "select id,full_name, time_create  from sigma_account_ob_school" \
                                   " where available = 1 and id in (%s) limit %s,%s" % (','.join(['"'+str(id)+'"' for id in condition_school_ids]), per_page*page, per_page)
                 total_sql = "select count(id) as total_school_count from sigma_account_ob_school" \
@@ -315,6 +313,7 @@ class SchoolManage(BaseHandler):
                         "teacher_number": 1,
                         "student_number": 1,
                         "guardian_count": 1,
+                        "guardian_unique_count": 1,
                         "pay_number": 1,
                         "pay_amount": 1,
                         "valid_reading_count": {"$cond": [{"$and": [{"$lt": ["$day", yesterday_str]}, {
@@ -336,6 +335,7 @@ class SchoolManage(BaseHandler):
                             "total_teacher_number": {"$sum": "$teacher_number"},
                             "total_student_number": {"$sum": "$student_number"},
                             "total_guardian_number": {"$sum": "$guardian_count"},
+                            "total_guardian_unique_count": {"$sum": "$guardian_unique_count"},
                             "total_pay_number": {"$sum": "$pay_number"},
                             "total_pay_amount": {"$sum": "$pay_amount"},
                             "total_valid_reading_number": {"$sum": "$valid_reading_count"},
@@ -351,6 +351,7 @@ class SchoolManage(BaseHandler):
                         "total_teacher_number": 1,
                         "total_student_number": 1,
                         "total_guardian_number": 1,
+                        "total_guardian_unique_count": 1,
                         "total_pay_number": 1,
                         "total_pay_amount": 1,
                         "total_valid_reading_number": 1,
@@ -361,7 +362,7 @@ class SchoolManage(BaseHandler):
 
                         "pay_ratio": {"$cond": [{"$eq": ["$total_student_number", 0]}, 0, {"$divide": ["$total_pay_number", "$total_student_number"]}]},
                         "bind_ratio": {"$cond": [{"$eq": ["$total_student_number", 0]}, 0,
-                                                {"$divide": ["$total_guardian_number", "$total_student_number"]}]},
+                                                {"$divide": ["$total_guardian_unique_count", "$total_student_number"]}]},
                     }
 
                 }
@@ -399,6 +400,7 @@ class SchoolManage(BaseHandler):
                         "teacher_number": 1,
                         "student_number": 1,
                         "guardian_count": 1,
+                        "guardian_unique_count": 1,
                         "pay_number": 1,
                         "pay_amount": 1,
                         "valid_reading_count": {"$cond": [{"$and": [{"$lt": ["$day", yesterday_str]}, {
@@ -420,6 +422,7 @@ class SchoolManage(BaseHandler):
                             "total_teacher_number": {"$sum": "$teacher_number"},
                             "total_student_number": {"$sum": "$student_number"},
                             "total_guardian_number": {"$sum": "$guardian_count"},
+                            "total_guardian_unique_count": {"$sum": "$guardian_unique_count"},
                             "total_pay_number": {"$sum": "$pay_number"},
                             "total_pay_amount": {"$sum": "$pay_amount"},
                             "total_valid_reading_number": {"$sum": "$valid_reading_count"},
@@ -435,6 +438,7 @@ class SchoolManage(BaseHandler):
                         "total_teacher_number": 1,
                         "total_student_number": 1,
                         "total_guardian_number": 1,
+                        "total_guardian_unique_count": 1,
                         "total_pay_number": 1,
                         "total_pay_amount": 1,
                         "total_valid_reading_number": 1,
@@ -445,7 +449,7 @@ class SchoolManage(BaseHandler):
 
                         "pay_ratio": {"$cond": [{"$eq": ["$total_student_number", 0]}, 0, {"$divide": ["$total_pay_number", "$total_student_number"]}]},
                         "bind_ratio": {"$cond": [{"$eq": ["$total_student_number", 0]}, 0,
-                                                {"$divide": ["$total_guardian_number", "$total_student_number"]}]},
+                                                {"$divide": ["$total_guardian_unique_count", "$total_student_number"]}]},
                     }
 
                 }
