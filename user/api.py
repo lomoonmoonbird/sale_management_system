@@ -533,8 +533,8 @@ class User(BaseHandler, DataExcludeMixin):
                             "from sigma_account_us_user " \
                             "where available = 1 " \
                             "and role_id = 6 " \
-                            "and time_create<='%s'" \
-                            " and time_create>='%s'" %(self.start_time.strftime("%Y-%m-%d"),
+                            "and time_create>='%s'" \
+                            " and time_create<='%s'" %(self.start_time.strftime("%Y-%m-%d"),
                                                      datetime.now().strftime("%Y-%m-%d"))
                 async with request.app['mysql'].acquire() as conn:
                     async with conn.cursor(DictCursor) as cur:
@@ -543,6 +543,7 @@ class User(BaseHandler, DataExcludeMixin):
                         await cur.execute(count_sql)
                         total_count = await cur.fetchall()
                         total_count = total_count[0]['total_count']
+                        # print(total_count)
                 old_ids = [item['id'] for item in res]
                 channels = request.app['mongodb'][self.db][self.instance_coll].find({"old_id": {"$in": old_ids}, "role": Roles.CHANNEL.value, "status": 1})
                 channels = await channels.to_list(10000)
