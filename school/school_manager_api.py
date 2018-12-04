@@ -207,10 +207,10 @@ class SchoolManage(BaseHandler):
                     school['grade_info'].append(g_info)
                     stage.append(stage_grade_union_map2.get(school_grade, {}).get("stage", StageEnum.Register.value))
             school['stage'] = StageEnum.Register.value if not stage else min(stage)
-            if flag == 3 and int(request_stage) == 0:
-                if school['stage'] == 1:
-                    total_school_count -= 1
-                    continue
+            # if flag == 3 and int(request_stage) == 0:
+            #     if school['stage'] == 1:
+            #         total_school_count -= 1
+            #         continue
             data.append(school)
             # if school['stage'] == 1:
             #     del schools[index]
