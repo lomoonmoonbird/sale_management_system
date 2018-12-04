@@ -104,7 +104,7 @@ class SchoolManage(BaseHandler):
                 query.update({"open_time": {"$gte": datetime.strptime(date_range[0], "%Y-%m-%d"), "$lte": datetime.strptime(date_range[1], "%Y-%m-%d")}})
 
             # print(query)
-            condition_schools = request.app['mongodb'][self.db][self.school_coll].find(query).skip(per_page*page).limit(per_page)
+            condition_schools = request.app['mongodb'][self.db][self.school_coll].find(query)
             condition_schools = await condition_schools.to_list(10000)
             # print(condition_schools)
             if not condition_schools:
