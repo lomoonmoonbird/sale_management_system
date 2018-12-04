@@ -226,7 +226,7 @@ class User(BaseHandler, DataExcludeMixin):
         per_page = 10
         total_count = 0
         total_count = await request.app['mongodb'][self.db][self.instance_coll].count_documents({"role": Roles.AREA.value, "status": 1})
-        areas = request.app['mongodb'][self.db][self.instance_coll].find({"role": Roles.AREA.value, "status": 1}).skip(page*per_page).limit(per_page)
+        areas = request.app['mongodb'][self.db][self.instance_coll].find({"role": Roles.AREA.value, "status": 1}).sort('create_at', -1).skip(page*per_page).limit(per_page)
         users = request.app['mongodb'][self.db][self.user_coll].find({"instance_role_id": Roles.AREA.value, "status": 1})
         areas = await areas.to_list(10000)
         users = await users.to_list(10000)
