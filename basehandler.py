@@ -65,7 +65,7 @@ class BaseHandler():
         :param number:
         :return:
         """
-        return "{0:0.2f}%".format(number)
+        return "{0:0.2f}%".format(number*100)
 
 
     def current_week(self):
