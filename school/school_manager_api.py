@@ -120,7 +120,9 @@ class SchoolManage(BaseHandler):
                             " where available = 1 and time_create >= '%s' " \
                             "and time_create <= '%s'  " % (
                                 date_range[0], date_range[1],)
+                print('1111')
             else:
+                print('2222')
                 school_page_sql = "select id,full_name, time_create  from sigma_account_ob_school" \
                                   " where available = 1 and id in (%s) limit %s,%s" % (','.join(['"'+str(id)+'"' for id in condition_school_ids]), per_page*page, per_page)
                 total_sql = "select count(id) as total_school_count from sigma_account_ob_school" \
@@ -135,7 +137,9 @@ class SchoolManage(BaseHandler):
                 if total_sql:
                     await cur.execute(total_sql)
                     total_school = await cur.fetchall()
+                    print(total_sql)
                     total_school_count = total_school[0]['total_school_count']
+                    print(total_school_count)
                 await cur.execute(school_page_sql)
                 schools = await cur.fetchall()
         school_ids = [item['id'] for item in schools]
