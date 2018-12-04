@@ -28,10 +28,10 @@ class ExportBase():
         #        outline = Side(border_style=None,color = 'FFDDDDDD'),vertical = Side(border_style=None,color = 'FFDDDDDD'),
         #        horizontal = Side(border_style=None,color = 'FFDDDDDD')
         # )
-        thin = Side(border_style="thin", color="000000")
-        double = Side(border_style="double", color="ffdddddd")
+        thin = Side(border_style="thin", color="FF000000")
+        double = Side(border_style="double", color="FF000000")
 
-        border = Border(top=double, left=thin, right=thin, bottom=double)
+        border = Border(top=thin, left=thin, right=thin, bottom=thin)
         fill = PatternFill("solid", fgColor="DDDDDD")
         fill = GradientFill(stop=("000000", "FFFFFF"))
         font = Font(b=True, color="FF0000")

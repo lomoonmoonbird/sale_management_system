@@ -195,14 +195,25 @@ class AreaExportReport(BaseHandler, ExportBase, DataExcludeMixin):
         if report_type == 'week':
             last_week = self.last_week()
             row1[0].value =area_name+ "大区_" + last_week[0] + "-" + last_week[6] + "周报数据"
+            row1[0].border = self._border()
         elif report_type == 'month':
             _, _, last_month, _, _, _ = self._curr_and_last_and_last_last_month()
             month = datetime.strptime(last_month, "%Y-%m-%d").timetuple()[1]
             row1[0].value = area_name+" 大区" + str(month) + "月报数据"
+            row1[0].border = self._border()
 
-
+        for one in list(sheet[2:3]):
+            for cell in one:
+                cell.font = self._white_font()
+                cell.fill = self._background_header_color()
+                cell.border = self._border()
         for index, item in enumerate(items):
             row = sheet[index+4]
+
+            for cell in row:
+                cell.font = self._black_font()
+                cell.alignment = self._alignment()
+                cell.border = self._border()
             #大区名字
             row[0].value = channel_map.get(item['_id'], {}).get('name')
             # 新增学校
@@ -340,10 +351,12 @@ class AreaExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                 continue
             if index in (4, 8, 12, 16, 23, 30, 34,  38): #平均值
                 cell.value = self.percentage(sum((summary_map.get(index, [0]))) / divider if divider > 0 else 0)
+                cell.alignment = self._alignment()
             else:
                 cell.value = self.rounding(sum(summary_map.get(index,[0])))
+                cell.alignment = self._alignment()
         row = sheet[total_offset + 2]
-        row[0].value = "分析"
+        # row[0].value = "分析"
 
         # top = Border(top=self._border().top)
         # sheet[total_cell_begin_position + spare + 3 + 1 +1][0].value = "分析啊啊啊"

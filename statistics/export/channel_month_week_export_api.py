@@ -543,11 +543,19 @@ class ChannelExportReport(BaseHandler, ExportBase, DataExcludeMixin):
             _, _, last_month, _, _, _ = self._curr_and_last_and_last_last_month()
             month = datetime.strptime(last_month, "%Y-%m-%d").timetuple()[1]
             row1[0].value = "渠道" + str(month) + "月报数据"
+        for one in list(sheet[2:3]):
+            for cell in one:
+                cell.font = self._white_font()
+                cell.fill = self._background_header_color()
+                cell.border = self._border()
 
         summary_map = defaultdict(list)
         for index, school_data in enumerate(items):
             row = sheet[index + 4]
             index += 1
+            for cell in row:
+                cell.font = self._black_font()
+                cell.alignment = self._alignment()
             # 大区名字
             row[0].value = index
             row[1].value = school_map.get(school_data.get("_id", ""), {}).get("full_name", "")
@@ -691,8 +699,10 @@ class ChannelExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                 continue
             if index in (4, 8, 12, 16, 20, 23, 27, 30, 34, 35, 38, 42): #平均值
                 cell.value = self.percentage(sum((summary_map.get(index, [0]))) / divider if divider > 0 else 0)
+                cell.alignment = self._alignment()
             else:
                 cell.value = self.rounding(sum(summary_map.get(index,[0])))
+                cell.alignment = self._alignment()
         row = sheet[total_offset +3]
         # row[0].value = "分析"
         # notifications = self._analyze(area_dimesion_items, area_name_id_map, users, report_type)

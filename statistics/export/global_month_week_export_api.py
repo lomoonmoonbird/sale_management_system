@@ -312,10 +312,12 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
         if report_type == 'week':
             last_week = self.last_week()
             row1[0].value = "全局市场_" + last_week[0] + "-" + last_week[6] + "周报数据"
+            row1[0].border = self._border()
         elif report_type == 'month':
             _, _, last_month, _, _, _ = self._curr_and_last_and_last_last_month()
             month = datetime.strptime(last_month, "%Y-%m-%d").timetuple()[1]
             row1[0].value = "全局市场" + str(month) + "月报数据"
+            row1[0].border = self._border()
         for one in list(sheet[2:3]):
             for cell in one:
                 cell.font = self._white_font()
@@ -329,6 +331,7 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
             for cell in row:
                 cell.font = self._black_font()
                 cell.alignment = self._alignment()
+                cell.border = self._border()
             row[0].value = area_name.split('@')[0]
             if area_dimesion_items.get(area_name):
                 area_data = area_dimesion_items.get(area_name)
