@@ -1650,6 +1650,9 @@ class SchoolDetail(QueryMixin):
 
             for item in items:
                 item['class_name'] = clazz_map.get(item['_id'], {}).get("name", "")
+                item['total_pay_amount'] = self.rounding(item['total_pay_amount'])
+                item['pay_ratio'] = self.rounding(item['pay_ratio'])
+                item['bind_ratio'] = self.rounding(item['bind_ratio'])
             return self.reply_ok({"clazz_info": items})
         return self.reply_ok({})
 
