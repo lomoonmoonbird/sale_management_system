@@ -1495,27 +1495,42 @@ class ChannelDetail(QueryMixin):
         per_page = 10
         total_count = 0
         if not channel_id:
-            return self.reply_ok([])
-        schools = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": channel_id, "role": Roles.SCHOOL.value, "status": 1})
+            return self.reply_ok({"market_list": [], "extra": {"total": 0,"number_per_page": per_page,"curr_page": page}})
+        schools = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": channel_id,
+                                                                            "role": Roles.SCHOOL.value,
+                                                                            "status": 1})
         schools = await schools.to_list(100000)
         schools_ids = list(set([item['school_id'] for item in schools]))
-        market_users = request.app['mongodb'][self.db][self.user_coll].find({"channel_id": channel_id, "instance_role_id": Roles.MARKET.value, "status": 1})
+        market_users = request.app['mongodb'][self.db][self.user_coll].find({"channel_id": channel_id,
+                                                                             "instance_role_id": Roles.MARKET.value,
+                                                                             "status": 1}).skip(per_page*page).limit(per_page)
         market_users = await market_users.to_list(10000)
         market_users_user_ids = [item['user_id'] for item in market_users]
-        users = request.app['mongodb'][self.db][self.user_coll].find({"user_id": {"$in": market_users_user_ids}}).skip(page*per_page).limit(per_page)
-        users = await users.to_list(10000)
-        total_count = await request.app['mongodb'][self.db][self.user_coll].count_documents({"user_id": {"$in": market_users_user_ids}})
+        # users = request.app['mongodb'][self.db][self.user_coll].find({"user_id": {"$in": market_users_user_ids}, "status": 1}).skip(page*per_page).limit(per_page)
+        # users = await users.to_list(10000)
+        total_count = await request.app['mongodb'][self.db][self.user_coll].count_documents({"channel_id": channel_id,
+                                                                             "instance_role_id": Roles.MARKET.value,
+                                                                            "status": 1})
+        print(market_users)
+        print(schools)
         market_users_map = {}
-        for market in users:
+        for market in market_users:
             market_users_map[market['user_id']] = market
 
         school_market_map = {}
+        market_school_map = {}
         for school in schools:
-            school_market_map[school['school_id']] = market_users_map.get(str(school['user_id']))
+            school_market_map[school['school_id']] = market_users_map.get(str(school['user_id']), {})
+            market_school_map[school['user_id']] = school
         items = await self._list_channel(request, schools_ids)
 
+
+        # for user_id, user_data in market_users.items():
+        #     pass
         from collections import defaultdict
         channel_campact_data = defaultdict(dict)
+        print(items)
+        # print(len(items),len(school_market_map),"school_market_map", school_market_map)
         for item in items:
             item['contest_coverage_ratio'] = 0
             item['contest_average_per_person'] = 0
@@ -1571,6 +1586,7 @@ class ChannelDetail(QueryMixin):
             item["market_info"] = market_users_map.get(str(school_market_map.get(item['_id'], {}).get("user_id", "")), {})
 
         items = []
+        print(len(channel_campact_data.keys()))
         for user_id, item in channel_campact_data.items():
             items.append(
                 {

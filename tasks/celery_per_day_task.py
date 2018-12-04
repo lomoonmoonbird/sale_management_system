@@ -1147,8 +1147,8 @@ class PerDaySubTask_USERS(BaseTask):
         执行查询 返回数据库结果
         """
         self.cursor = self.connection.cursor()
-        logger.debug(
-            query.compile(dialect=mysql.dialect(), compile_kwargs={"literal_binds": True}).string.replace("%%", "%"))
+        # logger.debug(
+        #     query.compile(dialect=mysql.dialect(), compile_kwargs={"literal_binds": True}).string.replace("%%", "%"))
 
         self.cursor.execute(
             query.compile(dialect=mysql.dialect(), compile_kwargs={"literal_binds": True}).string.replace("%%", "%"))
@@ -1263,6 +1263,8 @@ class PerDaySubTask_USERS(BaseTask):
             # print(json.dumps(teacher_student, indent=4, cls=CustomEncoder))
             # print(json.dumps(usergroup_single_map, indent=4, cls=CustomEncoder))
             for t_s in teacher_student:
+                if t_s['school_id'] == 1:
+                    print(usergroup_map.get(t_s['id'], []))
                 for ug_map in usergroup_map.get(t_s['id'], []):
                     # print(ug_map)
                     if int(ug_map['role_id']) == Roles.TEACHER.value: #老师
@@ -1357,7 +1359,7 @@ class PerDaySubTask_USERS(BaseTask):
                     "teacher_number": sum(v['n']),
                 }
 
-                grade_teacher_number_bulk_update.append(UpdateOne({"grade": k.split("@")[1], "school_id": int(k.split("@")[1]), "day": one_date[0]},
+                grade_teacher_number_bulk_update.append(UpdateOne({"grade": k.split("@")[1], "school_id": int(k.split("@")[0]), "day": one_date[0]},
                                                                   {'$set': user_number_schema}, upsert=True))
             #学校
             school_teacher_number_bulk_update = []
@@ -1433,56 +1435,56 @@ class PerDaySubTask_USERS(BaseTask):
             if class_teacher_number_bulk_update:
                 try:
                     bulk_update_ret = self.mongo.class_per_day.bulk_write(class_teacher_number_bulk_update)
-                    print(bulk_update_ret.bulk_api_result)
+                    # print(bulk_update_ret.bulk_api_result)
                 except BulkWriteError as bwe:
                     print(bwe.details)
 
             if grade_teacher_number_bulk_update:
                 try:
                     bulk_update_ret = self.mongo.grade_per_day.bulk_write(grade_teacher_number_bulk_update)
-                    print(bulk_update_ret.bulk_api_result)
+                    # print(bulk_update_ret.bulk_api_result)
                 except BulkWriteError as bwe:
                     print(bwe.details)
 
             if school_teacher_number_bulk_update:
                 try:
                     bulk_update_ret = self.mongo.school_per_day.bulk_write(school_teacher_number_bulk_update)
-                    print(bulk_update_ret.bulk_api_result)
+                    # print(bulk_update_ret.bulk_api_result)
                 except BulkWriteError as bwe:
                     print(bwe.details)
 
             if channel_teacher_number_bulk_update:
                 try:
                     bulk_update_ret = self.mongo.channel_per_day.bulk_write(channel_teacher_number_bulk_update)
-                    print(bulk_update_ret.bulk_api_result)
+                    # print(bulk_update_ret.bulk_api_result)
                 except BulkWriteError as bwe:
                     print(bwe.details)
 
             if class_student_number_bulk_update:
                 try:
                     bulk_update_ret = self.mongo.class_per_day.bulk_write(class_student_number_bulk_update)
-                    print(bulk_update_ret.bulk_api_result)
+                    # print(bulk_update_ret.bulk_api_result)
                 except BulkWriteError as bwe:
                     print(bwe.details)
 
             if grade_student_number_bulk_update:
                 try:
                     bulk_update_ret = self.mongo.grade_per_day.bulk_write(grade_student_number_bulk_update)
-                    print(bulk_update_ret.bulk_api_result)
+                    # print(bulk_update_ret.bulk_api_result)
                 except BulkWriteError as bwe:
                     print(bwe.details)
 
             if school_student_number_bulk_update:
                 try:
                     bulk_update_ret = self.mongo.school_per_day.bulk_write(school_student_number_bulk_update)
-                    print(bulk_update_ret.bulk_api_result)
+                    # print(bulk_update_ret.bulk_api_result)
                 except BulkWriteError as bwe:
                     print(bwe.details)
 
             if channel_student_number_bulk_update:
                 try:
                     bulk_update_ret = self.mongo.channel_per_day.bulk_write(channel_student_number_bulk_update)
-                    print(bulk_update_ret.bulk_api_result)
+                    # print(bulk_update_ret.bulk_api_result)
                 except BulkWriteError as bwe:
                     print(bwe.details)
             self._set_time_threadshold("teacher_student_number_per_day_begin_time",
