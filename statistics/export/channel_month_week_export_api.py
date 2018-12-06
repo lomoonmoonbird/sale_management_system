@@ -58,6 +58,9 @@ class ChannelExportReport(BaseHandler, ExportBase, DataExcludeMixin):
     async def month(self, request: Request):
         """
         渠道导出月报
+        {
+            "channel_id": ""
+        }
         :param request:
         :return:
         """
@@ -556,6 +559,7 @@ class ChannelExportReport(BaseHandler, ExportBase, DataExcludeMixin):
             for cell in row:
                 cell.font = self._black_font()
                 cell.alignment = self._alignment()
+                cell.border = self._border()
             # 大区名字
             row[0].value = index
             row[1].value = school_map.get(school_data.get("_id", ""), {}).get("full_name", "")
@@ -573,7 +577,7 @@ class ChannelExportReport(BaseHandler, ExportBase, DataExcludeMixin):
             summary_map[2].append(row[2].value)
             summary_map[3].append(row[3].value)
             summary_map[4].append(row[4].value)
-            summary_map[5].append(mom)
+            summary_map[5].append(str(teacher_number_last_month) + '/' + str(teacher_number_curr_month))
 
             # 新增学生数量
             total_student_number = school_data.get("total_student_number", 0)
@@ -588,7 +592,7 @@ class ChannelExportReport(BaseHandler, ExportBase, DataExcludeMixin):
             summary_map[6].append(row[6].value)
             summary_map[7].append(row[7].value)
             summary_map[8].append(row[8].value)
-            summary_map[9].append(mom)
+            summary_map[9].append(str(student_number_last_month) + '/' + str(student_number_curr_month))
             # 新增考试数量
             valid_exercise_count = school_data.get("valid_exercise_count", 0)
             valid_exercise_count_curr_month = school_data.get("valid_exercise_count_curr_month", 0)
@@ -602,7 +606,7 @@ class ChannelExportReport(BaseHandler, ExportBase, DataExcludeMixin):
             summary_map[10].append(row[10].value)
             summary_map[11].append(row[11].value)
             summary_map[12].append(row[12].value)
-            summary_map[13].append(mom)
+            summary_map[13].append(str(valid_exercise_count_last_month) + '/' + str(valid_exercise_count_curr_month))
             # 新增考试图片数量
             e_image_c_curr_month = school_data.get("e_image_c_curr_month", 0)
             e_image_c_last_month = school_data.get("e_image_c_last_month", 0)
@@ -614,7 +618,7 @@ class ChannelExportReport(BaseHandler, ExportBase, DataExcludeMixin):
             row[16].value = self.percentage(mom)
             summary_map[14].append(row[14].value)
             summary_map[15].append(row[15].value)
-            summary_map[16].append(mom)
+            summary_map[16].append(str(e_image_c_last_month) + '/' + str(e_image_c_curr_month))
             # 新增单词数量
             valid_word_count = school_data.get("valid_word_count", 0)
             valid_word_count_curr_month = school_data.get("valid_word_count_curr_month", 0)
@@ -628,7 +632,7 @@ class ChannelExportReport(BaseHandler, ExportBase, DataExcludeMixin):
             summary_map[17].append(row[17].value)
             summary_map[18].append(row[18].value)
             summary_map[19].append(row[19].value)
-            summary_map[20].append(mom)
+            summary_map[20].append(str(valid_word_count_last_month) + '/' + str(valid_word_count_curr_month))
             # 新增单词图像数量
             w_image_c = school_data.get("w_image_c", 0)
             w_image_c_curr_month = school_data.get("w_image_c_curr_month", 0)
@@ -640,7 +644,7 @@ class ChannelExportReport(BaseHandler, ExportBase, DataExcludeMixin):
             row[23].value = self.percentage(mom)
             summary_map[21].append(row[21].value)
             summary_map[22].append(row[22].value)
-            summary_map[23].append(mom)
+            summary_map[23].append(str(w_image_c_last_month) + '/' + str(w_image_c_curr_month))
             # 新增阅读数量
             valid_reading_count = school_data.get("valid_reading_count", 0)
             valid_reading_count_curr_month = school_data.get("valid_reading_count_curr_month", 0)
@@ -654,7 +658,7 @@ class ChannelExportReport(BaseHandler, ExportBase, DataExcludeMixin):
             summary_map[24].append(row[24].value)
             summary_map[25].append(row[25].value)
             summary_map[26].append(row[26].value)
-            summary_map[27].append(mom)
+            summary_map[27].append(str(valid_reading_count_last_month) + '/' + str(valid_reading_count_curr_month))
             # 新增家长数量
             total_guardian_number = school_data.get("total_guardian_number", 0)
             total_unique_guardian_number = school_data.get("total_unique_guardian_number", 0)
@@ -671,7 +675,7 @@ class ChannelExportReport(BaseHandler, ExportBase, DataExcludeMixin):
             summary_map[28].append(avg)
             summary_map[29].append(row[29].value)
             summary_map[30].append(row[30].value)
-            summary_map[31].append(mom)
+            summary_map[31].append(str(guardian_number_last_month) + '/' + str(guardian_number_curr_month))
             # 新增付费
             total_pay_amount = school_data.get("total_pay_amount", 0)
             pay_amount_curr_month = school_data.get("pay_amount_curr_month", 0)
@@ -685,25 +689,45 @@ class ChannelExportReport(BaseHandler, ExportBase, DataExcludeMixin):
             summary_map[32].append(row[32].value)
             summary_map[33].append(row[33].value)
             summary_map[34].append(row[34].value)
-            summary_map[35].append(mom)
+            summary_map[35].append(str(pay_amount_last_month) + '/' + str(pay_amount_curr_month))
             for one in row:
                 if isinstance(one.value, (int, float)):
                     if one.value == 0:
                         one.font = self._red_font()
 
+                if isinstance(one.value, (str)):
+                    if ("/" in one.value and one.value.split('/')[0] == "0") or\
+                            ("/" in one.value and one.value.split('/')[1] == "0") or \
+                            ("%" in one.value and one.value.split("%")[0] == '0.00'):
+                        print("one.value", one.value)
+                        one.font = self._red_font()
+
         total_offset = len(items) + 4
         divider = len(items)
         for index, cell in enumerate(sheet[total_offset]):
+            cell.border = self._border()
+            cell.alignment = self._alignment()
+            # print("summary_map.get(index, [0])", index, summary_map.get(index, [0]))
             if index == 0:
                 cell.value = "总计"
                 continue
-            if index in (4, 8, 12, 16, 20, 23, 27, 30, 34, 35, 38, 42): #平均值
-                cell.value = self.percentage(sum((summary_map.get(index, [0]))) / divider if divider > 0 else 0)
-                cell.alignment = self._alignment()
+            if index in (5, 9, 13, 16, 20, 23, 27, 31, 35): #平均值
+                # print(summary_map.get(index, [0]))
+                # cell.value = self.percentage(sum((summary_map.get(index, [0]))) / divider if divider > 0 else 0)
+                last_summary = sum([float(item.split('/')[0]) for item in summary_map.get(index, ["0/0"])])
+                curr_summary = sum([float(item.split('/')[1]) for item in summary_map.get(index, ["0/0"])])
+                cell.value = self.percentage((curr_summary - last_summary) / last_summary if last_summary else 0)
             else:
                 cell.value = self.rounding(sum(summary_map.get(index,[0])))
-                cell.alignment = self._alignment()
-        row = sheet[total_offset +3]
+            if isinstance(cell.value, (int, float)):
+                if cell.value == 0:
+                    cell.font = self._red_font()
+            if isinstance(cell.value, (str)):
+                if ("/" in cell.value and cell.value.split('/')[0] == "0.0") or \
+                        ("/" in cell.value and cell.value.split('/')[1] == "0.0") or \
+                        ("%" in cell.value and cell.value.split("%")[0] == '0.00') or cell.value == '0.00':
+                    cell.font = self._red_font()
+        # row = sheet[total_offset +3]
         # row[0].value = "分析"
         # notifications = self._analyze(area_dimesion_items, area_name_id_map, users, report_type)
         # for index, notify in enumerate(notifications):

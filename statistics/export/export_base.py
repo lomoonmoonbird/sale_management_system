@@ -3,20 +3,20 @@ from openpyxl.styles import PatternFill, Border, Side, Alignment, Protection, Fo
 
 class ExportBase():
     def _red_font(self):
-        font = Font(name='Calibri', size=11, bold=False, italic=False, vertAlign=None, underline='none', strike=False,
+        font = Font(name='Arial', size=11, bold=False, italic=False, vertAlign=None, underline='none', strike=False,
                     color='FFFF0000')
         return font
 
     def _black_font(self):
-        font = Font(size=11,bold=False,italic=False,vertAlign=None,underline='none',strike=False,color='FF000000')
+        font = Font(name='Arial',size=11,bold=False,italic=False,vertAlign=None,underline='none',strike=False,color='FF000000')
         return font
 
     def _white_font(self):
-        font = Font(size=11, bold=False, italic=False, vertAlign=None, underline='none', strike=False, color='FFFFFFFF')
+        font = Font(name='Arial', size=11, bold=False, italic=False, vertAlign=None, underline='none', strike=False, color='FFFFFFFF')
         return font
 
     def _alignment(self):
-        return Alignment(horizontal='center')
+        return Alignment(horizontal='center', wrapText=True)
 
     def _background_header_color(self):
         return PatternFill(bgColor="FFC7CE", fill_type="solid")

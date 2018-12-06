@@ -191,7 +191,7 @@ class AreaExportReport(BaseHandler, ExportBase, DataExcludeMixin):
         summary_map = defaultdict(list)
         row1 = sheet[1]
 
-        #todo
+
         if report_type == 'week':
             last_week = self.last_week()
             row1[0].value =area_name+ "大区_" + last_week[0] + "-" + last_week[6] + "周报数据"
@@ -226,7 +226,7 @@ class AreaExportReport(BaseHandler, ExportBase, DataExcludeMixin):
             summary_map[1].append(row[1].value)
             summary_map[2].append(row[2].value)
             summary_map[3].append(row[3].value)
-            summary_map[4].append(mom)
+            summary_map[4].append(str(item['school_number_last_month']) + "/" + str(item['school_number_curr_month']))
 
             # 新增教师数量
             mom = (item['teacher_number_curr_month'] - item['teacher_number_last_month']) / item[
@@ -239,7 +239,7 @@ class AreaExportReport(BaseHandler, ExportBase, DataExcludeMixin):
             summary_map[5].append(row[5].value)
             summary_map[6].append(row[6].value)
             summary_map[7].append(row[7].value)
-            summary_map[8].append(mom)
+            summary_map[8].append(str(item['teacher_number_last_month']) + "/" + str(item['teacher_number_curr_month']))
 
             # 新增学生数量
             mom = (item['student_number_curr_month'] - item['student_number_last_month']) / item[
@@ -252,7 +252,7 @@ class AreaExportReport(BaseHandler, ExportBase, DataExcludeMixin):
             summary_map[9].append(row[9].value)
             summary_map[10].append(row[10].value)
             summary_map[11].append(row[11].value)
-            summary_map[12].append(mom)
+            summary_map[12].append(str(item['student_number_last_month']) + "/" + str(item['student_number_curr_month']))
             # 新增考试数量
             mom = (item['valid_exercise_count_curr_month'] - item['valid_exercise_count_last_month']) / item[
                 'valid_exercise_count_last_month'] \
@@ -264,7 +264,7 @@ class AreaExportReport(BaseHandler, ExportBase, DataExcludeMixin):
             summary_map[13].append(row[13].value)
             summary_map[14].append(row[14].value)
             summary_map[15].append(row[15].value)
-            summary_map[16].append(mom)
+            summary_map[16].append(str(item['valid_exercise_count_last_month']) + "/" + str(item['valid_exercise_count_curr_month']))
             # 新增考试图片数量
             mom = (item['e_image_c_curr_month'] - item['e_image_c_last_month']) / item[
                 'e_image_c_last_month'] \
@@ -274,7 +274,7 @@ class AreaExportReport(BaseHandler, ExportBase, DataExcludeMixin):
             row[19].value = self.percentage(mom)
             summary_map[17].append(row[17].value)
             summary_map[18].append(row[18].value)
-            summary_map[19].append(mom)
+            summary_map[19].append(str(item['e_image_c_last_month']) + "/" + str(item['e_image_c_curr_month']))
             # 新增单词数量
             mom = (item['valid_word_count_curr_month'] - item['valid_word_count_last_month']) / item[
                 'valid_word_count_last_month'] \
@@ -286,7 +286,7 @@ class AreaExportReport(BaseHandler, ExportBase, DataExcludeMixin):
             summary_map[20].append(row[20].value)
             summary_map[21].append(row[21].value)
             summary_map[22].append(row[22].value)
-            summary_map[23].append(mom)
+            summary_map[23].append(str(item['valid_word_count_last_month']) + "/" + str(item['valid_word_count_curr_month']))
             # 新增单词图像数量
             mom = (item['w_image_c_curr_month'] - item['w_image_c_last_month']) / item[
                 'w_image_c_last_month'] \
@@ -297,7 +297,7 @@ class AreaExportReport(BaseHandler, ExportBase, DataExcludeMixin):
             row[26].value = self.percentage(mom)
             summary_map[24].append(row[24].value)
             summary_map[25].append(row[25].value)
-            summary_map[26].append(mom)
+            summary_map[26].append(str(item['w_image_c_last_month']) + "/" + str(item['w_image_c_curr_month']))
 
             # 新增阅读数量
             mom = (item['valid_reading_count_curr_month'] - item['valid_reading_count_last_month']) / item[
@@ -310,7 +310,7 @@ class AreaExportReport(BaseHandler, ExportBase, DataExcludeMixin):
             summary_map[27].append(row[27].value)
             summary_map[28].append(row[28].value)
             summary_map[29].append(row[29].value)
-            summary_map[30].append(mom)
+            summary_map[30].append(str(item['valid_reading_count_last_month']) + "/" + str(item['valid_reading_count_curr_month']))
             # 新增家长数量
             mom = (item['guardian_unique_number_curr_month'] - item['guardian_unique_number_last_month']) / item[
                 'guardian_unique_number_last_month'] if item['guardian_unique_number_last_month'] else 0
@@ -322,7 +322,7 @@ class AreaExportReport(BaseHandler, ExportBase, DataExcludeMixin):
             summary_map[31].append(avg)
             summary_map[32].append(row[32].value)
             summary_map[33].append(row[33].value)
-            summary_map[34].append(mom)
+            summary_map[34].append(str(item['guardian_number_last_month']) + "/" + str(item['guardian_number_curr_month']))
             # 新增付费
             mom = (item['pay_amount_curr_month'] - item['pay_amount_last_month']) / item[
                                                                                                               'pay_amount_last_month']\
@@ -334,28 +334,45 @@ class AreaExportReport(BaseHandler, ExportBase, DataExcludeMixin):
             summary_map[35].append(row[35].value)
             summary_map[36].append(row[36].value)
             summary_map[37].append(row[37].value)
-            summary_map[38].append(mom)
+            summary_map[38].append(str(item['pay_amount_last_month']) + "/" + str(item['pay_amount_curr_month']))
             for one in row:
                 if isinstance(one.value, (int, float)):
                     if one.value == 0:
                         one.font = self._red_font()
 
-
+                if isinstance(one.value, (str)):
+                    if ("/" in one.value and one.value.split('/')[0] == "0") or\
+                            ("/" in one.value and one.value.split('/')[1] == "0") or \
+                            ("%" in one.value and one.value.split("%")[0] == '0.00'):
+                        one.font = self._red_font()
 
 
         total_offset = len(items) + 4
         divider = len(items)
         for index, cell in enumerate(sheet[total_offset]):
+            cell.border = self._border()
             if index == 0:
                 cell.value = "总计"
                 continue
-            if index in (4, 8, 12, 16, 23, 30, 34,  38): #平均值
-                cell.value = self.percentage(sum((summary_map.get(index, [0]))) / divider if divider > 0 else 0)
+            if index in (4, 8, 12, 16,19, 23, 26,30, 34,  38): #平均值
+                # cell.value = self.percentage(sum((summary_map.get(index, [0]))) / divider if divider > 0 else 0)
+                last_summary = sum([float(item.split('/')[0]) for item in summary_map.get(index, ["0/0"])])
+                curr_summary = sum([float(item.split('/')[1]) for item in summary_map.get(index, ["0/0"])])
+                cell.value = self.percentage((curr_summary - last_summary) / last_summary if last_summary else 0)
                 cell.alignment = self._alignment()
             else:
+
                 cell.value = self.rounding(sum(summary_map.get(index,[0])))
                 cell.alignment = self._alignment()
-        row = sheet[total_offset + 2]
+            if isinstance(cell.value, (int, float)):
+                if cell.value == 0:
+                    cell.font = self._red_font()
+            if isinstance(cell.value, (str)):
+                if ("/" in cell.value and cell.value.split('/')[0] == "0.0") or \
+                        ("/" in cell.value and cell.value.split('/')[1] == "0.0") or \
+                        ("%" in cell.value and cell.value.split("%")[0] == '0.00') or cell.value == '0.00':
+                    cell.font = self._red_font()
+        # row = sheet[total_offset + 2]
         # row[0].value = "分析"
 
         # top = Border(top=self._border().top)

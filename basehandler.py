@@ -31,7 +31,7 @@ class BaseHandler():
 
 
     def reply_ok(self, response_data={}, extra={}):
-        data = {"code": 0, "message": "ok", "data": response_data, "extra": extra}
+        data = {"code": 0, "message": "ok", "data": response_data}
         return json_response(data=data)
 
     async def replay_stream(self, byte_data,filename, request):

@@ -10,7 +10,6 @@ import asyncio
 import mimetypes
 import os
 from tempfile import NamedTemporaryFile
-from operator import itemgetter
 import json
 import time
 from aiohttp.web import Request
@@ -61,24 +60,23 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
         :param request:
         :return:
         """
-        instance_coll = request.app['mongodb'][self.db][self.instance_coll]
-        user_coll = request.app['mongodb'][self.db][self.user_coll]
-        areas = instance_coll.find({"role": Roles.AREA.value,
-                                    "status": 1})
+        areas = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": request['user_info']['global_id'],
+                                                                          "role": Roles.AREA.value,
+                                                                          "status": 1
+                                                                          })
         areas = await areas.to_list(100000)
-        channels = instance_coll.find({"role": Roles.CHANNEL.value,
-                                       "status": 1})
+        channels = request.app['mongodb'][self.db][self.instance_coll].find({"role": Roles.CHANNEL.value,
+                                                                          "status": 1})
 
         channels = await channels.to_list(100000)
         area_ids = [str(item['_id']) for item in areas]
-        area_users = user_coll.find({"area_id": {"$in": area_ids},
-                                     "instance_role_id": Roles.AREA.value,
-                                     "status": 1})
+        area_users = request.app['mongodb'][self.db][self.user_coll].find({"area_id": {"$in": area_ids},
+                                                                           "instance_role_id": Roles.AREA.value,
+                                                                          "status": 1})
         area_users = await area_users.to_list(10000)
         area_map = {}
         area_name_id_map = {}
         for area in areas:
-            area["_id"] = str(area['_id'])
             area_map[str(area['_id'])] = area
             area_name_id_map[str(area['name'])+"@"+str(area['_id'])] = area
         channel_map = {}
@@ -93,25 +91,17 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
 
         exclude_channels = await self.exclude_channel(request.app['mysql'])
         old_ids = list(set(old_ids).difference(set(exclude_channels)))
+        items = await self._list_month(request, old_ids)
 
-        if old_ids:
-            sql = "select id, name from sigma_account_us_user where available = 1 and id in (%s) " % \
-                  ','.join([str(id) for id in old_ids])
-            async with request.app['mysql'].acquire() as conn:
-                async with conn.cursor(DictCursor) as cur:
-                    await cur.execute(sql)
-                    real_channels = await cur.fetchall()
-            items = await self._list_month(request, old_ids)
-            template_path = os.path.dirname(__file__) + "/templates/global_month_template.xlsx"
-            sheet = await request.app.loop.run_in_executor(self.thread_pool,
-                                                           self.sheet,
-                                                           template_path,
-                                                           items,
-                                                           channel_map,
-                                                           area_name_id_map,
-                                                           real_channels,
-                                                           area_users,
-                                                           "month")
+        template_path = os.path.dirname(__file__) + "/templates/global_month_template.xlsx"
+        sheet = await request.app.loop.run_in_executor(self.thread_pool,
+                                                       self.sheet,
+                                                       template_path,
+                                                       items,
+                                                       channel_map,
+                                                       area_name_id_map,
+                                                       area_users,
+                                                       "month")
 
 
 
@@ -141,7 +131,6 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
         area_map = {}
         area_name_id_map = {}
         for area in areas:
-            area["_id"] = str(area['_id'])
             area_map[str(area['_id'])] = area
             area_name_id_map[str(area['name']) + "@" + str(area['_id'])] = area
         channel_map = {}
@@ -155,14 +144,6 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
         old_ids = [item['old_id'] for item in channels]
         exclude_channels = await self.exclude_channel(request.app['mysql'])
         old_ids = list(set(old_ids).difference(set(exclude_channels)))
-        if old_ids:
-            sql = "select id, name from sigma_account_us_user where available = 1 and id in (%s) " % \
-                  ','.join([str(id) for id in old_ids])
-            async with request.app['mysql'].acquire() as conn:
-                async with conn.cursor(DictCursor) as cur:
-                    await cur.execute(sql)
-                    real_channels = await cur.fetchall()
-
         items = await self._list_week(request, old_ids)
 
         template_path = os.path.dirname(__file__) + "/templates/global_week_template.xlsx"
@@ -172,7 +153,6 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                                                        items,
                                                        channel_map,
                                                        area_name_id_map,
-                                                       real_channels,
                                                        area_users,
                                                        "week")
 
@@ -180,19 +160,13 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
         return await self.replay_stream(sheet, "总部周报-"+datetime.now().strftime("%Y-%m-%d"), request)
 
 
-    def sheet(self, template, items, channel_map, area_name_id_map, real_channels, users, report_type):
+    def sheet(self, template, items, channel_map, area_name_id_map, users, report_type):
         file = load_workbook(template)
         sheet_names = file.sheetnames
         sheet = file[sheet_names[0]]
 
-        real_channel_id_name_map = {}
-        for r_c_id_name in real_channels:
-            real_channel_id_name_map[r_c_id_name['id']] = r_c_id_name['name']
-
         area_dimesion_items = {}
-        channel_dimesion_items = {}
         for item in items:
-            channel_dimesion_items[item['_id']] = item
             # 地市
             area_dimesion_items.setdefault(
                 channel_map.get(item["_id"], {}).get("area_info", {}).get("name", "") + '@' + str(
@@ -215,7 +189,26 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                                            {}).setdefault('school_number_curr_month', []).append(
                 item['school_number_curr_month'])
 
+            #老师
+            area_dimesion_items.setdefault(channel_map.get(item["_id"], {}).get("area_info", {}).get("name", "") + '@' + str(channel_map.get(item["_id"], {}).get("area_info", {}).get("_id", "")),
+                                           {}).setdefault('total_teacher_number', []).append(item['total_teacher_number'])
+            area_dimesion_items.setdefault(channel_map.get(item["_id"], {}).get("area_info", {}).get("name", "") + '@' + str(channel_map.get(item["_id"], {}).get("area_info", {}).get("_id", "")),
+                                           {}).setdefault('teacher_number_last_month', []).append(
+                item['teacher_number_last_month'])
+            area_dimesion_items.setdefault(channel_map.get(item["_id"], {}).get("area_info", {}).get("name", "") + '@' + str(channel_map.get(item["_id"], {}).get("area_info", {}).get("_id", "")),
+                                           {}).setdefault('teacher_number_curr_month', []).append(
+                item['teacher_number_curr_month'])
 
+            # 学生
+            area_dimesion_items.setdefault(channel_map.get(item["_id"], {}).get("area_info", {}).get("name", "") + '@' + str(channel_map.get(item["_id"], {}).get("area_info", {}).get("_id", "")),
+                                           {}).setdefault('total_student_number', []).append(
+                item['total_student_number'])
+            area_dimesion_items.setdefault(channel_map.get(item["_id"], {}).get("area_info", {}).get("name", "") + '@' + str(channel_map.get(item["_id"], {}).get("area_info", {}).get("_id", "")),
+                                           {}).setdefault('student_number_last_month', []).append(
+                item['student_number_last_month'])
+            area_dimesion_items.setdefault(channel_map.get(item["_id"], {}).get("area_info", {}).get("name", "") + '@' + str(channel_map.get(item["_id"], {}).get("area_info", {}).get("_id", "")),
+                                           {}).setdefault('student_number_curr_month', []).append(
+                item['student_number_curr_month'])
 
             # 新增考试数
             area_dimesion_items.setdefault(channel_map.get(item["_id"], {}).get("area_info", {}).get("name", "") + '@' + str(channel_map.get(item["_id"], {}).get("area_info", {}).get("_id", "")),
@@ -228,6 +221,13 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                                            {}).setdefault('valid_exercise_count_curr_month', []).append(
                 item['valid_exercise_count_curr_month'])
 
+            # 新增考试图片数
+            area_dimesion_items.setdefault(channel_map.get(item["_id"], {}).get("area_info", {}).get("name", "") + '@' + str(channel_map.get(item["_id"], {}).get("area_info", {}).get("_id", "")),
+                                           {}).setdefault('e_image_c_last_month', []).append(
+                item['e_image_c_last_month'])
+            area_dimesion_items.setdefault(channel_map.get(item["_id"], {}).get("area_info", {}).get("name", "") + '@' + str(channel_map.get(item["_id"], {}).get("area_info", {}).get("_id", "")),
+                                           {}).setdefault('e_image_c_curr_month', []).append(
+                item['e_image_c_curr_month'])
 
             # 新增单词数
             area_dimesion_items.setdefault(channel_map.get(item["_id"], {}).get("area_info", {}).get("name", "") + '@' + str(channel_map.get(item["_id"], {}).get("area_info", {}).get("_id", "")),
@@ -240,6 +240,16 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                                            {}).setdefault('valid_word_count_curr_month', []).append(
                 item['valid_word_count_curr_month'])
 
+            # 新增单词图片数
+            area_dimesion_items.setdefault(channel_map.get(item["_id"], {}).get("area_info", {}).get("name", "") + '@' + str(channel_map.get(item["_id"], {}).get("area_info", {}).get("_id", "")),
+                                           {}).setdefault('w_image_c', []).append(
+                item['w_image_c'])
+            area_dimesion_items.setdefault(channel_map.get(item["_id"], {}).get("area_info", {}).get("name", "") + '@' + str(channel_map.get(item["_id"], {}).get("area_info", {}).get("_id", "")),
+                                           {}).setdefault('w_image_c_last_month', []).append(
+                item['w_image_c_last_month'])
+            area_dimesion_items.setdefault(channel_map.get(item["_id"], {}).get("area_info", {}).get("name", "") + '@' + str(channel_map.get(item["_id"], {}).get("area_info", {}).get("_id", "")),
+                                           {}).setdefault('w_image_c_curr_month', []).append(
+                item['w_image_c_curr_month'])
 
             # 新增阅读数
             area_dimesion_items.setdefault(
@@ -257,22 +267,7 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                     channel_map.get(item["_id"], {}).get("area_info", {}).get("_id", "")),
                 {}).setdefault('valid_reading_count_curr_month', []).append(
                 item['valid_reading_count_curr_month'])
-            # 学生
-            area_dimesion_items.setdefault(
-                channel_map.get(item["_id"], {}).get("area_info", {}).get("name", "") + '@' + str(
-                    channel_map.get(item["_id"], {}).get("area_info", {}).get("_id", "")),
-                {}).setdefault('total_student_number', []).append(
-                item['total_student_number'])
-            area_dimesion_items.setdefault(
-                channel_map.get(item["_id"], {}).get("area_info", {}).get("name", "") + '@' + str(
-                    channel_map.get(item["_id"], {}).get("area_info", {}).get("_id", "")),
-                {}).setdefault('student_number_last_month', []).append(
-                item['student_number_last_month'])
-            area_dimesion_items.setdefault(
-                channel_map.get(item["_id"], {}).get("area_info", {}).get("name", "") + '@' + str(
-                    channel_map.get(item["_id"], {}).get("area_info", {}).get("_id", "")),
-                {}).setdefault('student_number_curr_month', []).append(
-                item['student_number_curr_month'])
+
             # 新增家长数
             area_dimesion_items.setdefault(channel_map.get(item["_id"], {}).get("area_info", {}).get("name", "") + '@' + str(channel_map.get(item["_id"], {}).get("area_info", {}).get("_id", "")),
                                            {}).setdefault('total_guardian_number', []).append(
@@ -318,60 +313,20 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
             last_week = self.last_week()
             row1[0].value = "全局市场_" + last_week[0] + "-" + last_week[6] + "周报数据"
             row1[0].border = self._border()
-            row1[0].font = self._black_font()
         elif report_type == 'month':
             _, _, last_month, _, _, _ = self._curr_and_last_and_last_last_month()
             month = datetime.strptime(last_month, "%Y-%m-%d").timetuple()[1]
             row1[0].value = "全局市场" + str(month) + "月报数据"
             row1[0].border = self._border()
-            row1[0].font = self._black_font()
         for one in list(sheet[2:3]):
             for cell in one:
                 cell.font = self._white_font()
                 cell.fill = self._background_header_color()
                 cell.border = self._border()
         index = 0
-        area_dimesion_items_sorted_map = {}
-        sorted_area = []
-        for name_id, data in area_name_id_map.items():
-            data = area_dimesion_items.get(name_id, {})
-            area_dimesion_items_sorted_map[name_id] = sum(data.get('valid_exercise_count_curr_month',[0]))
-            sorted_area.append({"name_id": name_id, "valid_exercise_count_curr_month": sum(data.get('valid_exercise_count_curr_month',[0]))})
-            # area_dimesion_items_sorted_map[name_id]['total_city_number'] = sum(data.get('total_city_number', [0]))
-            # area_dimesion_items_sorted_map[name_id]['city_number_last_month'] = sum(data.get('city_number_last_month',[0]))
-            # area_dimesion_items_sorted_map[name_id]['city_number_curr_month'] = sum(data.get('city_number_curr_month',[0]))
-            # area_dimesion_items_sorted_map[name_id]['total_school_number'] = sum(data.get('total_school_number',[0]))
-            # area_dimesion_items_sorted_map[name_id]['school_number_last_month'] = sum(data.get('school_number_last_month',[0]))
-            # area_dimesion_items_sorted_map[name_id]['school_number_curr_month'] = sum(data.get('school_number_curr_month',[0]))
-            # area_dimesion_items_sorted_map[name_id]['valid_exercise_count'] = sum(data.get('valid_exercise_count',[0]))
-            # area_dimesion_items_sorted_map[name_id]['valid_exercise_count_last_month'] = sum(data.get('valid_exercise_count_last_month',[0]))
-            # area_dimesion_items_sorted_map[name_id]['valid_exercise_count_curr_month'] = sum(data.get('valid_exercise_count_curr_month',[0]))
-            # area_dimesion_items_sorted_map[name_id]['valid_word_count'] = sum(data.get('valid_word_count',[0]))
-            # area_dimesion_items_sorted_map[name_id]['valid_word_count_last_month'] = sum(data.get('valid_word_count_last_month',[0]))
-            # area_dimesion_items_sorted_map[name_id]['valid_word_count_curr_month'] = sum(data.get('valid_word_count_curr_month',[0]))
-            # area_dimesion_items_sorted_map[name_id]['valid_reading_count'] = sum(data.get('valid_reading_count',[0]))
-            # area_dimesion_items_sorted_map[name_id]['valid_reading_count_last_month'] = sum(data.get('valid_reading_count_last_month',[0]))
-            # area_dimesion_items_sorted_map[name_id]['valid_reading_count_curr_month'] = sum(data.get('valid_reading_count_curr_month',[0]))
-            # area_dimesion_items_sorted_map[name_id]['total_student_number'] = sum(data.get('total_student_number',[0]))
-            # area_dimesion_items_sorted_map[name_id]['student_number_last_month'] = sum(data.get('student_number_last_month',[0]))
-            # area_dimesion_items_sorted_map[name_id]['student_number_curr_month'] = sum(data.get('student_number_curr_month',[0]))
-            # area_dimesion_items_sorted_map[name_id]['total_guardian_number'] = sum(data.get('total_guardian_number',[0]))
-            # area_dimesion_items_sorted_map[name_id]['guardian_number_last_month'] = sum(data.get('guardian_number_last_month',[0]))
-            # area_dimesion_items_sorted_map[name_id]['guardian_number_curr_month'] = sum(data.get('guardian_number_curr_month',[0]))
-            # area_dimesion_items_sorted_map[name_id]['total_unique_guardian_number'] = sum(data.get('total_unique_guardian_number',[0]))
-            # area_dimesion_items_sorted_map[name_id]['guardian_unique_number_last_month'] = sum(data.get('guardian_unique_number_last_month',[0]))
-            # area_dimesion_items_sorted_map[name_id]['guardian_unique_number_curr_month'] = sum(data.get('guardian_unique_number_curr_month',[0]))
-            # area_dimesion_items_sorted_map[name_id]['total_pay_amount'] = sum(data.get('total_pay_amount',[0]))
-            # area_dimesion_items_sorted_map[name_id]['pay_amount_last_month'] = sum(data.get('pay_amount_last_month',[0]))
-            # area_dimesion_items_sorted_map[name_id]['pay_amount_curr_month'] = sum(data.get('pay_amount_curr_month',[0]))
-
-        sorted_area = sorted(sorted_area, key = itemgetter("valid_exercise_count_curr_month"), reverse= True)
-
-
-        # for area_name, area_data in area_name_id_map.items():
-        for sort_data in sorted_area:
-            area_name = sort_data['name_id']
+        for area_name, area_data in area_name_id_map.items():
             row = sheet[index + 4]
+            index += 1
             # 大区名字
             for cell in row:
                 cell.font = self._black_font()
@@ -385,434 +340,266 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                     area_data['city_number_last_month']) \
                     if sum(area_data['city_number_last_month']) else 0
                 row[1].value = sum(area_data['total_city_number'])
-                row[2].value = str(sum(area_data['city_number_last_month'])) + "/" + str(sum(area_data['city_number_curr_month']))
-                row[3].value = self.percentage(mom) if self.percentage(mom) != '0.00%' else "无"
+                row[2].value = sum(area_data['city_number_last_month'])
+                row[3].value = sum(area_data['city_number_curr_month'])
+                row[4].value = self.percentage(mom)
                 summary_map[1].append(row[1].value)
                 summary_map[2].append(row[2].value)
-                summary_map[3].append(row[2].value)
+                summary_map[3].append(row[3].value)
+                summary_map[4].append(mom)
                 # 新增学校
                 mom = (sum(area_data['school_number_curr_month']) - sum(area_data['school_number_last_month']))/sum(area_data['school_number_last_month']) \
                     if sum(area_data['school_number_last_month']) else 0
-                row[4].value = sum(area_data['total_school_number'])
-                row[5].value = str(sum(area_data['school_number_last_month'])) + "/" + str(sum(area_data['school_number_curr_month']))
-                row[6].value = self.percentage(mom) if self.percentage(mom) != '0.00%' else "无"
-                summary_map[4].append(row[4].value)
+                row[5].value = sum(area_data['total_school_number'])
+                row[6].value = sum(area_data['school_number_last_month'])
+                row[7].value = sum(area_data['school_number_curr_month'])
+                row[8].value = self.percentage(mom)
                 summary_map[5].append(row[5].value)
-                summary_map[6].append(row[5].value)
+                summary_map[6].append(row[6].value)
+                summary_map[7].append(row[7].value)
+                summary_map[8].append(mom)
 
+                # 新增教师数量
+                mom = (sum(area_data['teacher_number_curr_month']) - sum(area_data['teacher_number_last_month'])) / sum(area_data[
+                    'teacher_number_last_month']) \
+                    if sum(area_data['teacher_number_last_month']) else 0
+                row[9].value = sum(area_data['total_teacher_number'])
+                row[10].value = sum(area_data['teacher_number_last_month'])
+                row[11].value = sum(area_data['teacher_number_curr_month'])
+                row[12].value = self.percentage(mom)
+                summary_map[9].append(row[9].value)
+                summary_map[10].append(row[10].value)
+                summary_map[11].append(row[11].value)
+                summary_map[12].append(mom)
+
+                # 新增学生数量
+                mom = (sum(area_data['student_number_curr_month']) - sum(area_data['student_number_last_month'])) / sum(area_data[
+                    'student_number_last_month']) \
+                    if sum(area_data['student_number_last_month']) else 0
+                row[13].value = sum(area_data['total_student_number'])
+                row[14].value = sum(area_data['student_number_last_month'])
+                row[15].value = sum(area_data['student_number_curr_month'])
+                row[16].value = self.percentage(mom)
+                summary_map[13].append(row[13].value)
+                summary_map[14].append(row[14].value)
+                summary_map[15].append(row[15].value)
+                summary_map[16].append(mom)
                 # 新增考试数量
                 mom = (sum(area_data['valid_exercise_count_curr_month']) - sum(area_data['valid_exercise_count_last_month'])) / sum(area_data[
                     'valid_exercise_count_last_month']) \
                     if sum(area_data['valid_exercise_count_last_month']) else 0
-                row[7].value = sum(area_data['valid_exercise_count'])
-                row[8].value = str(sum(area_data['valid_exercise_count_last_month'])) +"/"+ str(sum(area_data['valid_exercise_count_curr_month']))
-                row[9].value = self.percentage(mom) if self.percentage(mom) != '0.00%' else "无"
-                summary_map[7].append(row[7].value)
-                summary_map[8].append(row[8].value)
-                summary_map[9].append(row[8].value)
-
+                row[17].value = sum(area_data['valid_exercise_count'])
+                row[18].value = sum(area_data['valid_exercise_count_last_month'])
+                row[19].value = sum(area_data['valid_exercise_count_curr_month'])
+                row[20].value = self.percentage(mom)
+                summary_map[17].append(row[17].value)
+                summary_map[18].append(row[18].value)
+                summary_map[19].append(row[19].value)
+                summary_map[20].append(mom)
+                # 新增考试图片数量
+                mom = (sum(area_data['e_image_c_curr_month']) - sum(area_data['e_image_c_last_month'])) / sum(area_data[
+                    'e_image_c_last_month']) \
+                    if sum(area_data['e_image_c_last_month']) else 0
+                row[21].value = sum(area_data['e_image_c_last_month'])
+                row[22].value = sum(area_data['e_image_c_curr_month'])
+                row[23].value = self.percentage(mom)
+                summary_map[21].append(row[21].value)
+                summary_map[22].append(row[22].value)
+                summary_map[23].append(mom)
                 # 新增单词数量
                 mom = (sum(area_data['valid_word_count_curr_month']) - sum(area_data['valid_word_count_last_month'])) / sum(area_data[
                     'valid_word_count_last_month']) \
                     if sum(area_data['valid_word_count_last_month']) else 0
-                row[10].value = sum(area_data['valid_word_count'])
-                row[11].value = str(sum(area_data['valid_word_count_last_month'])) + "/" + str(sum(area_data['valid_word_count_curr_month']))
-                row[12].value = self.percentage(mom) if self.percentage(mom) != '0.00%' else "无"
-                summary_map[10].append(row[10].value)
-                summary_map[11].append(row[11].value)
-                summary_map[12].append(row[11].value)
-
+                row[24].value = sum(area_data['valid_word_count'])
+                row[25].value = sum(area_data['valid_word_count_last_month'])
+                row[26].value = sum(area_data['valid_word_count_curr_month'])
+                row[27].value = self.percentage(mom)
+                summary_map[24].append(row[24].value)
+                summary_map[25].append(row[25].value)
+                summary_map[26].append(row[26].value)
+                summary_map[27].append(mom)
+                # 新增单词图像数量
+                mom = (sum(area_data['w_image_c_curr_month']) - sum(area_data['w_image_c_last_month'])) / sum(area_data[
+                    'w_image_c_last_month']) \
+                    if sum(area_data['w_image_c_last_month']) else 0
+                row[27].value = sum(area_data['w_image_c'])
+                row[28].value = sum(area_data['w_image_c_last_month'])
+                row[29].value = sum(area_data['w_image_c_curr_month'])
+                row[30].value = self.percentage(mom)
+                summary_map[27].append(row[27].value)
+                summary_map[28].append(row[28].value)
+                summary_map[29].append(row[29].value)
+                summary_map[30].append(mom)
                 # 新增阅读数量
                 mom = (sum(area_data['valid_reading_count_curr_month']) - sum(
                     area_data['valid_reading_count_last_month'])) / sum(area_data[
                                                                          'valid_reading_count_last_month']) \
                     if sum(area_data['valid_reading_count_last_month']) else 0
-                row[13].value = sum(area_data['valid_reading_count'])
-                row[14].value = str(sum(area_data['valid_reading_count_last_month'])) + "/" + str(sum(area_data['valid_reading_count_curr_month']))
-                row[15].value = self.percentage(mom) if self.percentage(mom) != '0.00%' else "无"
-                summary_map[13].append(row[13].value)
-                summary_map[14].append(row[14].value)
-                summary_map[15].append(row[14].value)
+                row[31].value = sum(area_data['valid_reading_count'])
+                row[32].value = sum(area_data['valid_reading_count_last_month'])
+                row[33].value = sum(area_data['valid_reading_count_curr_month'])
+                row[34].value = self.percentage(mom)
+                summary_map[31].append(row[31].value)
+                summary_map[32].append(row[32].value)
+                summary_map[33].append(row[33].value)
+                summary_map[34].append(mom)
                 # 新增家长数量
                 mom = (sum(area_data['guardian_unique_number_curr_month']) - sum(area_data['guardian_unique_number_last_month'])) / sum(area_data[
                     'guardian_unique_number_last_month']) if sum(area_data['guardian_unique_number_last_month']) else 0
                 avg = sum(area_data['total_unique_guardian_number']) / sum(area_data['total_student_number']) if sum(area_data['total_student_number']) > 0 else 0
-                row[16].value = self.percentage(avg)
-                row[17].value = str(sum(area_data['guardian_number_last_month'])) + "/" + str(sum(area_data['guardian_number_curr_month']))
-                row[18].value = self.percentage(mom) if self.percentage(mom) != '0.00%' else "无"
-                summary_map[16].append(avg)
-                summary_map[17].append(row[17].value)
-                summary_map[18].append(row[17].value)
+                row[35].value = self.percentage(avg)
+                row[36].value = sum(area_data['guardian_number_last_month'])
+                row[37].value = sum(area_data['guardian_number_curr_month'])
+                row[38].value = self.percentage(mom)
+                summary_map[35].append(avg)
+                summary_map[36].append(row[36].value)
+                summary_map[37].append(row[37].value)
+                summary_map[38].append(mom)
                 # 新增付费
                 mom = (sum(area_data['pay_amount_curr_month']) - sum(area_data['pay_amount_last_month'])) / sum(area_data[
                                                                                                                   'pay_amount_last_month']) \
                     if sum(area_data['pay_amount_last_month']) else 0
-                row[19].value = sum(area_data['total_pay_amount'])
-                row[20].value = str(sum(area_data['pay_amount_last_month'])) + "/" + str(sum(area_data['pay_amount_curr_month']))
-                row[21].value = self.percentage(mom) if self.percentage(mom) != '0.00%' else "无"
-                summary_map[19].append(row[19].value)
-                summary_map[20].append(row[20].value)
-                summary_map[21].append(row[20].value)
+                row[39].value = sum(area_data['total_pay_amount'])
+                row[40].value = sum(area_data['pay_amount_last_month'])
+                row[41].value = sum(area_data['pay_amount_curr_month'])
+                row[42].value = self.percentage(mom)
+                summary_map[39].append(row[39].value)
+                summary_map[40].append(row[40].value)
+                summary_map[41].append(row[41].value)
+                summary_map[42].append(mom)
                 for one in row:
                     if isinstance(one.value, (int, float)):
                         if one.value == 0:
                             one.font = self._red_font()
             else:
                 # 大区名字
-                # row[0].value = area_name.split('@')[0]
+                row[0].value = area_name.split('@')[0]
                 mom = 0
                 row[1].value = 0
-                row[2].value = "0/0"
-                row[3].value = self.percentage(mom) if self.percentage(mom) != '0.00%' else "无"
+                row[2].value = 0
+                row[3].value = 0
+                row[4].value = self.percentage(mom)
                 summary_map[1].append(row[1].value)
                 summary_map[2].append(row[2].value)
-                summary_map[3].append(row[2].value)
+                summary_map[3].append(row[3].value)
+                summary_map[4].append(mom)
                 # 新增学校
                 mom = 0
-                row[4].value = 0
-                row[5].value = "0/0"
-                row[6].value = self.percentage(mom) if self.percentage(mom) != '0.00%' else "无"
-                summary_map[4].append(row[4].value)
-                summary_map[5].append(row[5].value)
-                summary_map[6].append(row[5].value)
-
-                # 新增考试数量
-                mom = 0
+                row[5].value = 0
+                row[6].value = 0
                 row[7].value = 0
-                row[8].value = "0/0"
-                row[9].value = self.percentage(mom) if self.percentage(mom) != '0.00%' else "无"
+                row[8].value = self.percentage(mom)
+                summary_map[5].append(row[5].value)
+                summary_map[6].append(row[6].value)
                 summary_map[7].append(row[7].value)
-                summary_map[8].append(row[8].value)
-                summary_map[9].append(row[8].value)
+                summary_map[8].append(mom)
 
-                # 新增单词数量
+                # 新增教师数量
                 mom = 0
+                row[9].value = 0
                 row[10].value = 0
-                row[11].value = "0/0"
-                row[12].value = self.percentage(mom) if self.percentage(mom) != '0.00%' else "无"
+                row[11].value = 0
+                row[12].value = self.percentage(mom)
+                summary_map[9].append(row[9].value)
                 summary_map[10].append(row[10].value)
                 summary_map[11].append(row[11].value)
-                summary_map[12].append(row[11].value)
+                summary_map[12].append(mom)
 
-                # 新增阅读数量
+                # 新增学生数量
                 mom = 0
                 row[13].value = 0
-                row[14].value = "0/0"
-                row[15].value = self.percentage(mom) if self.percentage(mom) != '0.00%' else "无"
+                row[14].value = 0
+                row[15].value = 0
+                row[16].value = self.percentage(mom)
                 summary_map[13].append(row[13].value)
                 summary_map[14].append(row[14].value)
-                summary_map[15].append(row[14].value)
+                summary_map[15].append(row[15].value)
+                summary_map[16].append(mom)
+                # 新增考试数量
+                mom = 0
+                row[17].value = 0
+                row[18].value = 0
+                row[19].value = 0
+                row[20].value = self.percentage(mom)
+                summary_map[17].append(row[17].value)
+                summary_map[18].append(row[18].value)
+                summary_map[19].append(row[19].value)
+                summary_map[20].append(mom)
+                # 新增考试图片数量
+                mom = 0
+                row[21].value = 0
+                row[22].value = 0
+                row[23].value = self.percentage(mom)
+                summary_map[21].append(row[21].value)
+                summary_map[22].append(row[22].value)
+                summary_map[23].append(mom)
+                # 新增单词数量
+                mom = 0
+                row[24].value = 0
+                row[25].value = 0
+                row[26].value = 0
+                row[27].value = self.percentage(mom)
+                summary_map[24].append(row[24].value)
+                summary_map[25].append(row[25].value)
+                summary_map[26].append(row[26].value)
+                summary_map[27].append(mom)
+                # 新增单词图像数量
+                mom = 0
+                row[27].value = 0
+                row[28].value = 0
+                row[29].value = 0
+                row[30].value = self.percentage(mom)
+                summary_map[27].append(row[27].value)
+                summary_map[28].append(row[28].value)
+                summary_map[29].append(row[29].value)
+                summary_map[30].append(mom)
+                # 新增阅读数量
+                row[31].value = 0
+                row[32].value = 0
+                row[33].value = 0
+                row[34].value = 0
+                summary_map[31].append(0)
+                summary_map[32].append(0)
+                summary_map[33].append(0)
+                summary_map[34].append(0)
                 # 新增家长数量
                 mom = 0
                 avg = 0
-                row[16].value = self.percentage(avg)
-                row[17].value = "0/0"
-                row[18].value = self.percentage(mom) if self.percentage(mom) != '0.00%' else "无"
-                summary_map[16].append(avg)
-                summary_map[17].append(row[17].value)
-                summary_map[18].append(row[17].value)
+                row[35].value = 0
+                row[36].value = 0
+                row[37].value = 0
+                row[38].value = self.percentage(mom)
+                summary_map[35].append(avg)
+                summary_map[36].append(row[36].value)
+                summary_map[37].append(row[37].value)
+                summary_map[38].append(mom)
                 # 新增付费
                 mom = 0
-                row[19].value = 0
-                row[20].value = "0/0"
-                row[21].value = self.percentage(mom) if self.percentage(mom) != '0.00%' else "无"
-                summary_map[19].append(row[19].value)
-                summary_map[20].append(row[20].value)
-                summary_map[21].append(row[20].value)
-            for one in row:
-                # if "大区1" in str(one.value):
-                if isinstance(one.value, (int, float)):
-                    if one.value == 0:
-                        one.font = self._red_font()
-                if isinstance(one.value, (str)):
-                    if ("/" in one.value and one.value.split('/')[0] == "0") or\
-                            ("/" in one.value and one.value.split('/')[1] == "0") or \
-                            ("%" in one.value and one.value.split("%")[0] == '0.00'):
-                        one.font = self._red_font()
-            index += 1
-
-
-        # print(json.dumps(channel_map, indent=4, cls=CustomEncoder))
+                row[39].value = 0
+                row[40].value = 0
+                row[41].value = 0
+                row[42].value = self.percentage(mom)
+                summary_map[39].append(row[39].value)
+                summary_map[40].append(row[40].value)
+                summary_map[41].append(row[41].value)
+                summary_map[42].append(0)
+                for one in row:
+                    if isinstance(one.value, (int, float)):
+                        if one.value == 0:
+                            one.font = self._red_font()
         total_offset = len(area_name_id_map) + 4
         divider = len(area_name_id_map)
         for index, cell in enumerate(sheet[total_offset]):
-            cell.font = self._black_font()
-            cell.border = self._border()
             if index == 0:
                 cell.value = "总计"
                 continue
-            cell.alignment = self._alignment()
-            if index in (3, 6, 9, 12, 15, 18, 21): #平均值
-                # cell.value = self.percentage(sum((summary_map.get(index, [0]))) / divider if divider > 0 else 0)
-                last_summary = sum([float(item.split('/')[0]) for item in summary_map.get(index, ["0/0"])])
-                curr_summary = sum([float(item.split('/')[1]) for item in summary_map.get(index, ["0/0"])])
-                cell.value = self.percentage((curr_summary - last_summary) / last_summary if last_summary else 0)
-            elif index in (2, 5, 8, 11, 14, 17, 20):
-                cell.value = str(sum([float(item.split('/')[0]) for item in summary_map.get(index, "0/0")])) + "/" + str(sum([float(item.split('/')[1]) for item in summary_map.get(index, "0/0")]))
+            if index in (4, 8, 12, 16, 20, 23, 27, 30, 34, 35, 38, 42): #平均值
+                cell.value = self.percentage(sum((summary_map.get(index, [0]))) / divider if divider > 0 else 0)
+                cell.alignment = self._alignment()
             else:
                 cell.value = self.rounding(sum(summary_map.get(index,[0])))
-            if isinstance(cell.value, (int, float)):
-                if cell.value == 0:
-                    cell.font = self._red_font()
-            if isinstance(cell.value, (str)):
-                if ("/" in cell.value and cell.value.split('/')[0] == "0.0") or \
-                        ("/" in cell.value and cell.value.split('/')[1] == "0.0") or \
-                        ("%" in cell.value and cell.value.split("%")[0] == '0.00'):
-                    cell.font = self._red_font()
-
-        #大区渠道表格
-        start_point = total_offset + 2
-
-
-        channel_id_map = {}
-        for r_c in real_channels:
-            channel_id_map[r_c['id']] = r_c['name']
-
-        area_channel_dimesion_map = defaultdict(list)
-        for old_id, data in channel_map.items():
-            data['channel_stat'] = channel_dimesion_items.get(old_id, {})
-            area_channel_dimesion_map[data['area_info']['name'] + "@"+ data['area_info']['_id']].append(data)
-
-        area_with_channel = defaultdict(dict)
-        for area_id_name, data in area_name_id_map.items():
-            area_with_channel[area_id_name] = area_channel_dimesion_map.get(area_id_name, [])
-
-        delta = 0
-        for area_name_id, data in area_with_channel.items():
-            if data:
-                summary_channel_map = defaultdict(list)
-                row = sheet[start_point+delta + 2]
-                sheet.merge_cells(start_row=start_point + delta + 2, start_column=1, end_row=start_point + delta + 3,
-                                  end_column=21)
-                if report_type == 'week':
-                    last_week = self.last_week()
-                    row[0].value = area_name_id.split("@")[0] +"大区" + last_week[0] + "-" + last_week[6] + "周报数据"
-                    row[0].border = self._border()
-                    row[0].font = self._black_font()
-                    row[0].alignment = self._alignment()
-                elif report_type == 'month':
-                    _, _, last_month, _, _, _ = self._curr_and_last_and_last_last_month()
-                    month = datetime.strptime(last_month, "%Y-%m-%d").timetuple()[1]
-                    row[0].value = area_name_id.split("@")[0] +"大区" + str(month) + "月报数据"
-                    row[0].border = self._border()
-                    row[0].font = self._black_font()
-                    row[0].alignment = self._alignment()
-
-
-                title_row1 = sheet[start_point+delta + 4]
-                title_row2 = sheet[start_point + delta + 5]
-
-                for cell in title_row1:
-                    cell.fill = self._background_header_color()
-                    cell.font = self._white_font()
-                    cell.border = self._border()
-                    cell.alignment = self._alignment()
-                for cell in title_row2:
-                    cell.fill = self._background_header_color()
-                    cell.font = self._white_font()
-                    cell.border = self._border()
-                    cell.alignment = self._alignment()
-
-                title_row1[0].value = "地市"
-                title_row1[1].value = "学校总数"
-                title_row1[2].value = "新增学校"
-                if report_type == 'week':
-                    title_row2[2].value = "上周/本周"
-                    title_row2[4].value = "上周/本周"
-                    title_row2[6].value = "上周/本周"
-                    title_row2[8].value = "上周/本周"
-                    title_row2[9].value = "上周/本周"
-                    title_row2[11].value = "上周/本周"
-                    title_row2[12].value = "上周/本周"
-                    title_row2[14].value = "上周/本周"
-                    title_row2[16].value = "上周/本周"
-                    title_row2[18].value = "上周/本周"
-                else:
-                    title_row2[2].value = "上月/本月"
-                    title_row2[4].value = "上月/本月"
-                    title_row2[6].value = "上月/本月"
-                    title_row2[8].value = "上月/本月"
-                    title_row2[9].value = "上月/本月"
-                    title_row2[11].value = "上月/本月"
-                    title_row2[12].value = "上月/本月"
-                    title_row2[14].value = "上月/本月"
-                    title_row2[16].value = "上月/本月"
-                    title_row2[18].value = "上月/本月"
-                title_row1[3].value = "教师总数"
-                title_row1[4].value = "新增教师"
-                title_row1[5].value = "学生总数"
-                title_row1[6].value = "新增学生"
-                title_row1[7].value = "考试使用总数"
-                title_row1[8].value = "新增考试次数"
-                title_row1[9].value = "新增图片数量"
-                title_row1[10].value = "单词使用总数"
-                title_row1[11].value = "新增单词使用"
-                title_row1[12].value = "新增图片数量"
-                title_row1[13].value = "阅读使用总次数"
-                title_row1[14].value = "新增阅读使用"
-                title_row1[15].value = "平均绑定率"
-                title_row1[16].value = "新增家长数量"
-                title_row1[17].value = "付费总数"
-                title_row1[18].value = "新增付费"
-
-
-
-                # if "5c0539dbc6453208d23a8c86" in area_name_id :
-                #     print('@##@!#!@#!@#@!#@!#@!#@!!@!@!', len(data))
-                index = 0
-                for channel_stat in data:
-                    row = sheet[start_point + delta + index + 6 ]
-
-                    for cell in row:
-                        cell.font = self._black_font()
-                        cell.alignment = self._alignment()
-                        cell.border = self._border()
-                    #渠道名
-                    row[0].value = channel_id_map.get(channel_stat['old_id'], "")
-                    #学校
-                    row[1].value = channel_stat.get("channel_stat", {}).get("total_school_number", 0)
-                    row[2].value = str(channel_stat.get("channel_stat", {}).get("school_number_last_month", 0)) + "/" + str(
-                        channel_stat.get("channel_stat", {}).get("school_number_curr_month", 0))
-                    summary_channel_map[1].append(row[1].value)
-                    summary_channel_map[2].append(row[2].value)
-
-                    #教师
-                    row[3].value = channel_stat.get("channel_stat", {}).get("total_teacher_number", 0)
-                    row[4].value = str(
-                        channel_stat.get("channel_stat", {}).get("teacher_number_last_month", 0)) + "/" + str(
-                        channel_stat.get("channel_stat", {}).get("teacher_number_curr_month", 0))
-                    summary_channel_map[3].append(row[3].value)
-                    summary_channel_map[4].append(row[4].value)
-
-                    #学生
-                    row[5].value = channel_stat.get("channel_stat", {}).get("total_student_number", 0)
-                    row[6].value = str(
-                        channel_stat.get("channel_stat", {}).get("student_number_last_month", 0)) + "/" + str(
-                        channel_stat.get("channel_stat", {}).get("student_number_curr_month", 0))
-                    summary_channel_map[5].append(row[5].value)
-                    summary_channel_map[6].append(row[6].value)
-
-                    #考试
-                    row[7].value = channel_stat.get("channel_stat", {}).get("valid_exercise_count", 0)
-                    row[8].value = str(
-                        channel_stat.get("channel_stat", {}).get("valid_exercise_count_last_month", 0)) + "/" + str(
-                        channel_stat.get("channel_stat", {}).get("valid_exercise_count_curr_month", 0))
-                    row[9].value = str(
-                        channel_stat.get("channel_stat", {}).get("e_image_c_last_month", 0)) + "/" + str(
-                        channel_stat.get("channel_stat", {}).get("e_image_c_curr_month", 0))
-                    summary_channel_map[7].append(row[7].value)
-                    summary_channel_map[8].append(row[8].value)
-                    summary_channel_map[9].append(row[9].value)
-
-                    #单词
-                    row[10].value = channel_stat.get("channel_stat", {}).get("valid_word_count", 0)
-                    row[11].value = str(
-                        channel_stat.get("channel_stat", {}).get("valid_word_count_last_month", 0)) + "/" + str(
-                        channel_stat.get("channel_stat", {}).get("valid_word_count_curr_month", 0))
-                    row[12].value = str(
-                        channel_stat.get("channel_stat", {}).get("w_image_c_last_month", 0)) + "/" + str(
-                        channel_stat.get("channel_stat", {}).get("w_image_c_curr_month", 0))
-                    summary_channel_map[10].append(row[10].value)
-                    summary_channel_map[11].append(row[11].value)
-                    summary_channel_map[12].append(row[12].value)
-
-                    #阅读
-                    row[13].value = channel_stat.get("channel_stat", {}).get("valid_reading_count", 0)
-                    row[14].value = str(
-                        channel_stat.get("channel_stat", {}).get("valid_reading_count_last_month", 0)) + "/" + str(
-                        channel_stat.get("channel_stat", {}).get("valid_reading_count_curr_month", 0))
-                    summary_channel_map[13].append(row[13].value)
-                    summary_channel_map[14].append(row[14].value)
-
-                    #家长
-                    avg = sum(area_data['total_unique_guardian_number']) / sum(
-                        area_data['total_student_number']) if sum(area_data['total_student_number']) > 0 else 0
-                    row[15].value = self.percentage(avg)
-                    row[16].value = str(
-                        channel_stat.get("channel_stat", {}).get("guardian_number_last_month", 0)) + "/" + str(
-                        channel_stat.get("channel_stat", {}).get("guardian_number_curr_month", 0))
-                    summary_channel_map[15].append(avg)
-                    summary_channel_map[16].append(row[16].value)
-
-                    #付费
-                    row[17].value = channel_stat.get("channel_stat", {}).get("total_pay_amount", 0)
-                    row[18].value = str(
-                        channel_stat.get("channel_stat", {}).get("pay_amount_last_month", 0)) + "/" + str(
-                        channel_stat.get("channel_stat", {}).get("pay_amount_curr_month", 0))
-                    summary_channel_map[17].append(row[17].value)
-                    summary_channel_map[18].append(row[18].value)
-
-                    for one in row:
-                        # if "大区1" in str(one.value):
-                        if isinstance(one.value, (int, float)):
-                            if one.value == 0:
-                                one.font = self._red_font()
-                        if isinstance(one.value, (str)):
-                            if ("/" in one.value and one.value.split('/')[0] == "0") or \
-                                    ("/" in one.value and one.value.split('/')[1] == "0") or \
-                                    ("%" in one.value and one.value.split("%")[0] == '0.00'):
-                                one.font = self._red_font()
-
-                    index += 1
-
-                delta += len(data) + 6
-                divider = len(data)
-                for index, cell in enumerate(sheet[start_point+delta ]):
-
-                    cell.font = self._black_font()
-                    cell.alignment = self._alignment()
-                    cell.border = self._border()
-
-                    cell.font = self._black_font()
-                    if index == 0:
-                        cell.value = "总计"
-                        continue
-                    cell.alignment = self._alignment()
-                    if index in (1, 3, 5, 7, 10, 13, 15, 17):  #不带/
-                        cell.value = self.rounding(sum((summary_channel_map.get(index, [0]))))
-                    elif index in (2, 4, 6, 8, 9, 11, 12, 14, 16, 18): #带/
-                        cell.value = str(
-                            sum([float(item.split('/')[0]) for item in summary_channel_map.get(index, "0/0")])) + "/" + str(
-                            sum([float(item.split('/')[1]) for item in summary_channel_map.get(index, "0/0")]))
-                    else:
-                        pass
-                    if isinstance(cell.value, (int, float)):
-                        if cell.value == 0:
-                            cell.font = self._red_font()
-                    if isinstance(cell.value, (str)):
-                        if ("/" in cell.value and cell.value.split('/')[0] == "0.0") or \
-                                ("/" in cell.value and cell.value.split('/')[1] == "0.0") or \
-                                ("%" in cell.value and cell.value.split("%")[0] == '0.00'):
-                            cell.font = self._red_font()
-                delta += 1
-                for index, cell in enumerate(sheet[start_point+delta ]):
-                    cell.font = self._black_font()
-                    cell.font = self._black_font()
-                    cell.alignment = self._alignment()
-                    cell.border = self._border()
-                    if index == 0:
-                        cell.value = "同比新增率"
-                        continue
-                    cell.alignment = self._alignment()
-                    if index in (1, 3, 5, 7, 10, 13, 15, 17):  #不带/last_summary
-                        cell.value = "/"
-                    elif index in (2, 4, 6, 8, 9, 11, 12, 14, 16, 18): #带/
-                        last_summary = sum([float(item.split('/')[0]) for item in summary_channel_map.get(index, ["0/0"])])
-                        curr_summary = sum([float(item.split('/')[1]) for item in summary_channel_map.get(index, ["0/0"])])
-                        cell.value = self.percentage((curr_summary-last_summary) / last_summary if last_summary else 0)
-                    else:
-                        pass
-                    if isinstance(cell.value, (int, float)):
-                        if cell.value == 0:
-                            cell.font = self._red_font()
-                    if isinstance(cell.value, (str)):
-                        if ("/" in cell.value and cell.value.split('/')[0] == "0") or \
-                                ("/" in cell.value and cell.value.split('/')[1] == "0") or \
-                                ("%" in cell.value and cell.value.split("%")[0] == '0.00'):
-                            cell.font = self._red_font()
-
-                delta += 2
-                print(json.dumps(area_with_channel, indent=4, cls=CustomEncoder))
+                cell.alignment = self._alignment()
+        row = sheet[total_offset +3]
         # row[0].value = "分析"
         # notifications = self._analyze(area_dimesion_items, area_name_id_map, users, report_type)
         # for index, notify in enumerate(notifications):
@@ -1144,7 +931,7 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                         "pay_ratio": {"$cond": [{"$eq": ["$total_student_number", 0]}, 0,
                                                 {"$divide": ["$total_pay_number", "$total_student_number"]}]},
                         "bind_ratio": {"$cond": [{"$eq": ["$total_student_number", 0]}, 0,
-                                                 {"$divide": ["$total_unique_guardian_number", "$total_student_number"]}]},
+                                                 {"$divide": ["$total_guardian_unique_count", "$total_student_number"]}]},
                         # "pay_ratio": {"$divide": ["$total_pay_number", "$total_student_number"]},
                         # "bind_ratio": {"$divide": ["$total_guardian_number", "$total_student_number"]},
                         # "school_MoM":
@@ -1365,7 +1152,7 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
 
                         "pay_ratio": {"$cond": [{"$eq": ["$total_student_number", 0]}, 0, {"$divide": ["$total_pay_number", "$total_student_number"]}]},
                         "bind_ratio": {"$cond": [{"$eq": ["$total_student_number", 0]}, 0,
-                                                {"$divide": ["$total_unique_guardian_number", "$total_student_number"]}]},
+                                                {"$divide": ["$total_guardian_number", "$total_student_number"]}]},
                     }
 
                 }

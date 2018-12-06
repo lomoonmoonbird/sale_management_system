@@ -5,32 +5,28 @@
 注册 登录
 """
 
-from datetime import datetime, timedelta
-import asyncio
-import json
+from datetime import datetime
 import time
 from aiohttp.web import Request
 from configs import UC_SYSTEM_API_ADMIN_URL, THEMIS_SYSTEM_ADMIN_URL,THEMIS_SYSTEM_OPEN_URL, ucAppKey, \
     ucAppSecret, permissionAppKey, permissionAppSecret
-import aiohttp
 import ujson
 from utils import get_json, get_params, validate_permission
 from basehandler import BaseHandler
-from exceptions import InternalError, UserExistError, CreateUserError, DELETEERROR, RequestError
-from menu.menu import Menu
+from exceptions import InternalError, UserExistError, CreateUserError, DELETEERROR, RequestError, InstanceExistError
 from motor.core import Collection
-
 from aiomysql.cursors import DictCursor
-from pymongo import UpdateOne, DeleteMany
+from pymongo import UpdateOne
 from bson import ObjectId
 from enumconstant import Roles, PermissionRole
-from utils import CustomEncoder
 from mixins import DataExcludeMixin
 from tasks.celery_base import BaseTask
 
 
 class User(BaseHandler, DataExcludeMixin):
-
+    """
+    账号 用户 实例 管理
+    """
     def __init__(self):
         self.db = "sales"
         self.user_coll = "sale_user"
@@ -44,7 +40,8 @@ class User(BaseHandler, DataExcludeMixin):
         :param request:
         :return:
         """
-        user_info = await request.app['mongodb'][self.db][self.user_coll].find_one({"user_id": str(request['user_info']['user_id'])})
+        user_coll = request.app['mongodb'][self.db][self.user_coll]
+        user_info = await user_coll.find_one({"user_id": str(request['user_info']['user_id'])})
         user_data = {}
         if user_info:
             user_data = {
@@ -53,7 +50,6 @@ class User(BaseHandler, DataExcludeMixin):
                 "nickname": user_info['nickname'],
                 "phone": user_info['phone'],
                 "role": int(user_info.get('instance_role_id', -1))
-                # "menu": Menu().show()
             }
 
         return self.reply_ok(user_data)
@@ -75,8 +71,11 @@ class User(BaseHandler, DataExcludeMixin):
             "create_at": time.time(),
             "modify_at": time.time()
         }
-
-        await self._create_area(request.app['mongodb'].sales.instance, area_data)
+        area_coll = request.app['mongodb'][self.db][self.instance_coll]
+        area = await area_coll.find_one({"name": req_data['area_name'], "status": 1})
+        if area:
+            raise InstanceExistError("area exist")
+        await self._create_area(area_coll, area_data)
         area = await request.app['mongodb'].sales.instance.find_one({"name": req_data['area_name']})
         area_data.update({"area_id": str(area['_id']), "parent_id": str(area['parent_id'])})
 

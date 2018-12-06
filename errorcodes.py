@@ -10,6 +10,9 @@ class ErrorCode(Enum):
     USERBANNED = 3003
     DELETEERROR = 3004
     CHANNELNOTEXIST = 3005
+    InstanceExist = 3006
+
+
 
     HTTP200 = 200
     PARAMETERERROR = 3900

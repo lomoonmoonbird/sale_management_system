@@ -2436,9 +2436,6 @@ class PerDayTask(BaseTask):
     def __init__(self):
         super(PerDayTask, self).__init__()
 
-        self.mongo = pymongo.MongoClient(MONGODB_CONN_URL).sales
-
-
     def run(self):
         try:
             print ('begin...')
@@ -2458,6 +2455,5 @@ class PerDayTask(BaseTask):
             import traceback
             traceback.print_exc()
 
-            # raise self.retry(exc=e, countdown=30, max_retries=5)
 
 

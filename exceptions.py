@@ -29,6 +29,12 @@ class UserExistError(RequestError):
     """
     status_code = ErrorCode.USEREXIST
 
+class InstanceExistError(RequestError):
+    """
+    实例已经存在
+    """
+    status_code = ErrorCode.InstanceExist
+
 class CreateUserError(RequestError):
     status_code = ErrorCode.CREATEUSERFAIL
 
