@@ -93,7 +93,7 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
 
         exclude_channels = await self.exclude_channel(request.app['mysql'])
         old_ids = list(set(old_ids).difference(set(exclude_channels)))
-
+        sheet = b''
         if old_ids:
             sql = "select id, name from sigma_account_us_user where available = 1 and id in (%s) " % \
                   ','.join([str(id) for id in old_ids])
@@ -155,6 +155,7 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
         old_ids = [item['old_id'] for item in channels]
         exclude_channels = await self.exclude_channel(request.app['mysql'])
         old_ids = list(set(old_ids).difference(set(exclude_channels)))
+        sheet = b''
         if old_ids:
             sql = "select id, name from sigma_account_us_user where available = 1 and id in (%s) " % \
                   ','.join([str(id) for id in old_ids])
