@@ -1083,7 +1083,6 @@ class QueryMixin(BaseHandler):
 
         return items
 
-
     async def _list_school(self, request: Request, school_ids: list, exclude_channels=[]):
         """
         渠道维度统计
@@ -1260,6 +1259,70 @@ class QueryMixin(BaseHandler):
                         "pay_ratio": {"$cond": [{"$eq": ["$total_student_number", 0]}, 0, {"$divide": ["$total_pay_number", "$total_student_number"]}]},
                         "bind_ratio": {"$cond": [{"$eq": ["$total_student_number", 0]}, 0,
                                                 {"$divide": ["$total_guardian_unique_count", "$total_student_number"]}]},
+                    }
+
+                }
+
+            ])
+
+        async for item in item_count:
+            items.append(item)
+
+        return items
+
+
+    async def _wap_list_grade_clazz(self, request: Request, school_id: int, grade: str):
+        """
+        渠道维度统计
+        :param request:
+        :param channel_ids:
+        :return:
+        """
+        coll = request.app['mongodb'][self.db][self.class_per_day_coll]
+        items = []
+        yesterday = datetime.now() - timedelta(1)
+        yesterday_before_30day = yesterday - timedelta(30)
+        yesterday_str = yesterday.strftime("%Y-%m-%d")
+        yesterday_before_30day_str = yesterday_before_30day.strftime("%Y-%m-%d")
+
+
+        item_count = coll.aggregate(
+            [
+                {
+                    "$match": {
+                        "school_id": school_id,
+                        "grade": grade
+                    }
+                },
+                {
+                    "$project": {
+                        "channel": 1,
+                        "school_id": 1,
+                        "grade": 1,
+                        "group_id": 1,
+                        "valid_reading_count": {"$cond": [{"$and": [{"$lt": ["$day", yesterday_str]}, {
+                            "$gte": ["$day", yesterday_before_30day_str]}]}, "$valid_reading_count", 0]},
+                        "valid_exercise_count": {"$cond": [{"$and": [{"$lt": ["$day", yesterday_str]}, {
+                            "$gte": ["$day", yesterday_before_30day_str]}]}, "$valid_exercise_count", 0]},
+                        "valid_word_count": {"$cond": [{"$and": [{"$lt": ["$day", yesterday_str]}, {
+                            "$gte": ["$day", yesterday_before_30day_str]}]}, "$valid_word_count", 0]},
+
+                        "day": 1
+                    }
+                },
+
+                {"$group": {"_id": "$group_id",
+                            "total_valid_reading_number": {"$sum": "$valid_reading_count"},
+                            "total_valid_exercise_number": {"$sum": "$valid_exercise_count"},
+                            "total_valid_word_number": {"$sum": "$valid_word_count"},
+                            }
+                 },
+                {
+                    "$project": {
+                        "_id": 1,
+                        "total_valid_reading_number": 1,
+                        "total_valid_exercise_number": 1,
+                        "total_valid_word_number": 1,
                     }
 
                 }
@@ -1697,6 +1760,56 @@ class GradeDetail(QueryMixin):
                 item['class_name'] = clazz_map.get(item['_id'], {}).get("name", "")
             return self.reply_ok({"grade_info": items})
         return self.reply_ok({})
+
+    @validate_permission()
+    async def wap_grade_list(self, request: Request):
+        """
+        移动端年级班级详情
+        {
+            "school_id": "",
+            "grade": ""
+        }
+        :param request:
+        :return:
+        """
+        request_param = await get_params(request)
+        school_id = int(request_param.get("school_id"))
+        grade = str(request_param.get('grade'))
+
+        data = []
+
+        sql = "select id, name, time_create " \
+              "from sigma_account_ob_group " \
+              "where available = 1 and school_id = %s " \
+              "and grade = %s" % (school_id, grade)
+
+        async with request.app['mysql'].acquire() as conn:
+            async with conn.cursor(DictCursor) as cur:
+                await cur.execute(sql)
+                clazz = await cur.fetchall()
+        if clazz:
+            default = {
+                'total_valid_reading_number': 0,
+                'total_valid_exercise_number': 0,
+                'total_valid_word_number': 0
+            }
+            items = await self._wap_list_grade_clazz(request, school_id, grade)
+            item_map = {}
+            for item in items:
+                item_map[item['_id']] = item
+
+            for cla in clazz:
+                data.append(
+                    {
+                        "clazz_name": cla['name'],
+                        "open_time": cla['time_create'],
+                        "clazz_stat": item_map.get(cla['id'], default)
+                    }
+                )
+
+        return self.reply_ok({"clazz_list": data})
+
+
 
 class ClazzDetail(BaseHandler):
     """

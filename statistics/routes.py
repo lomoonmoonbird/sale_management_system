@@ -33,5 +33,6 @@ def register(router: UrlDispatcher):
     router.add_get('/api/stat/detail/market/schoolist', marketdetail.school_list) #统计 某市场学校列表
 
     router.add_get('/api/stat/detail/grade/gradelist', gradedetail.grade_list) #统计 年级详情
+    router.add_get('/api/wap/stat/detail/grade/gradelist', gradedetail.wap_grade_list)  # 移动端 统计 年级详情
     router.add_get('/api/stat/detail/clazz/clazzlist', clazzdetail.clazz_list) #统计 班级详情
     router.add_get('/api/stat/detail/school/clazzlist', schooldetail.clazz_list) #统计 学校班级详情
