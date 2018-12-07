@@ -19,7 +19,10 @@ class ExportBase():
         return Alignment(horizontal='center', wrapText=True)
 
     def _background_header_color(self):
-        return PatternFill(bgColor="FFC7CE", fill_type="solid")
+        return PatternFill(bgColor="FFC7CE",fgColor="000000", fill_type="solid")
+
+    def _white_background_color(self):
+        return PatternFill(fgColor="FFFFFF", fill_type="solid")
 
     def _border(self):
         # border = Border(left=Side(border_style=None,color = 'FFDDDDDD'),right = Side(border_style=None,color = 'FFDDDDDD'),
