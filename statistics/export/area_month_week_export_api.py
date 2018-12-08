@@ -319,7 +319,7 @@ class AreaExportReport(BaseHandler, ExportBase, DataExcludeMixin):
             row[32].value = item['guardian_number_last_month']
             row[33].value = item['guardian_number_curr_month']
             row[34].value = self.percentage(mom)
-            summary_map[31].append(avg)
+            summary_map[31].append(str(item['total_unique_guardian_number']) +"/"+ str(item['total_student_number']))
             summary_map[32].append(row[32].value)
             summary_map[33].append(row[33].value)
             summary_map[34].append(str(item['guardian_number_last_month']) + "/" + str(item['guardian_number_curr_month']))
@@ -360,6 +360,10 @@ class AreaExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                 curr_summary = sum([float(item.split('/')[1]) for item in summary_map.get(index, ["0/0"])])
                 cell.value = self.percentage((curr_summary - last_summary) / last_summary if last_summary else 0)
                 cell.alignment = self._alignment()
+            elif index in (31,):
+                total_guardian = sum([float(item.split('/')[0]) for item in summary_map.get(index, ["0/0"])])
+                total_student = sum([float(item.split('/')[1]) for item in summary_map.get(index, ["0/0"])])
+                cell.value = self.percentage(total_guardian / total_student if total_student else 0)
             else:
 
                 cell.value = self.rounding(sum(summary_map.get(index,[0])))

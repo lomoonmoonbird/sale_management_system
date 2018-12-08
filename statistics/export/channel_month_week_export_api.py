@@ -672,7 +672,7 @@ class ChannelExportReport(BaseHandler, ExportBase, DataExcludeMixin):
             row[29].value = guardian_number_last_month
             row[30].value = guardian_number_curr_month
             row[31].value = self.percentage(mom)
-            summary_map[28].append(avg)
+            summary_map[28].append(str(total_unique_guardian_number) + "/" + str(total_student_number))
             summary_map[29].append(row[29].value)
             summary_map[30].append(row[30].value)
             summary_map[31].append(str(guardian_number_last_month) + '/' + str(guardian_number_curr_month))
@@ -717,6 +717,10 @@ class ChannelExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                 last_summary = sum([float(item.split('/')[0]) for item in summary_map.get(index, ["0/0"])])
                 curr_summary = sum([float(item.split('/')[1]) for item in summary_map.get(index, ["0/0"])])
                 cell.value = self.percentage((curr_summary - last_summary) / last_summary if last_summary else 0)
+            elif index in (28,):
+                total_guardian = sum([float(item.split('/')[0]) for item in summary_map.get(index, ["0/0"])])
+                total_student = sum([float(item.split('/')[1]) for item in summary_map.get(index, ["0/0"])])
+                cell.value = self.percentage(total_guardian / total_student if total_student else 0)
             else:
                 cell.value = self.rounding(sum(summary_map.get(index,[0])))
             if isinstance(cell.value, (int, float)):

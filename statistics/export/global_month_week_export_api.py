@@ -441,7 +441,7 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                 row[16].value = self.percentage(avg)
                 row[17].value = str(sum(area_data['guardian_number_last_month'])) + "/" + str(sum(area_data['guardian_number_curr_month']))
                 row[18].value = self.percentage(mom) if self.percentage(mom) != '0.00%' else "无"
-                summary_map[16].append(avg)
+                summary_map[16].append(str(sum(area_data['total_unique_guardian_number'])) +"/"+ str(sum(area_data['total_student_number'])))
                 summary_map[17].append(row[17].value)
                 summary_map[18].append(row[17].value)
                 # 新增付费
@@ -509,7 +509,7 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                 row[16].value = self.percentage(avg)
                 row[17].value = "0/0"
                 row[18].value = self.percentage(mom) if self.percentage(mom) != '0.00%' else "无"
-                summary_map[16].append(avg)
+                summary_map[16].append("0/0")
                 summary_map[17].append(row[17].value)
                 summary_map[18].append(row[17].value)
                 # 新增付费
@@ -545,14 +545,19 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
             cell.alignment = self._alignment()
             if index in (3, 6, 9, 12, 15, 18, 21): #平均值
                 # cell.value = self.percentage(sum((summary_map.get(index, [0]))) / divider if divider > 0 else 0)
-                print('summary_map.get(index, ["0/0"])',index, summary_map.get(index, ["0/0"]))
+                # print('summary_map.get(index, ["0/0"])',index, summary_map.get(index, ["0/0"]))
                 last_summary = sum([float(item.split('/')[0]) for item in summary_map.get(index, ["0/0"])])
                 curr_summary = sum([float(item.split('/')[1]) for item in summary_map.get(index, ["0/0"])])
                 cell.value = self.percentage((curr_summary - last_summary) / last_summary if last_summary else 0)
             elif index in (2, 5, 8, 11, 14, 17, 20):
                 cell.value = str(sum([float(item.split('/')[0]) for item in summary_map.get(index, "0/0")])) + "/" + str(sum([float(item.split('/')[1]) for item in summary_map.get(index, "0/0")]))
+            elif index in (16,):
+                # print('summary_map.get(index, ["0/0"])', index, summary_map.get(index, ["0/0"]))
+                total_guardian = sum([float(item.split('/')[0]) for item in summary_map.get(index, ["0/0"])])
+                total_student = sum([float(item.split('/')[1]) for item in summary_map.get(index, ["0/0"])])
+                cell.value = self.percentage(total_guardian/total_student if total_student else 0)
             else:
-                cell.value = self.rounding(sum(summary_map.get(index,[0])))
+                cell.value = self.rounding(sum(summary_map.get(index, [0])))
             if isinstance(cell.value, (int, float)):
                 if cell.value == 0:
                     cell.font = self._red_font()
@@ -727,14 +732,17 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                     summary_channel_map[14].append(row[14].value)
 
                     #家长
-                    avg = sum(area_data['total_unique_guardian_number']) / sum(
-                        area_data['total_student_number']) if sum(area_data['total_student_number']) > 0 else 0
+                    avg = channel_stat.get("channel_stat", {}).get("total_unique_guardian_number", 0) / \
+                          channel_stat.get("channel_stat", {}).get("total_student_number", 0) \
+                        if channel_stat.get("channel_stat", {}).get("total_student_number", 0) > 0 else 0
                     row[15].value = self.percentage(avg)
                     row[16].value = str(
                         channel_stat.get("channel_stat", {}).get("guardian_number_last_month", 0)) + "/" + str(
                         channel_stat.get("channel_stat", {}).get("guardian_number_curr_month", 0))
-                    summary_channel_map[15].append(avg)
+                    summary_channel_map[15].append(str(channel_stat.get("channel_stat", {}).get("total_unique_guardian_number", 0))
+                                                   + "/" + str(channel_stat.get("channel_stat", {}).get("total_student_number", 0)))
                     summary_channel_map[16].append(row[16].value)
+
 
                     #付费
                     row[17].value = channel_stat.get("channel_stat", {}).get("total_pay_amount", 0)
@@ -770,12 +778,16 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                         cell.value = "总计"
                         continue
                     cell.alignment = self._alignment()
-                    if index in (1, 3, 5, 7, 10, 13, 15, 17):  #不带/
+                    if index in (1, 3, 5, 7, 10, 13, 17):  #不带/
                         cell.value = self.rounding(sum((summary_channel_map.get(index, [0]))))
                     elif index in (2, 4, 6, 8, 9, 11, 12, 14, 16, 18): #带/
                         cell.value = str(
                             sum([float(item.split('/')[0]) for item in summary_channel_map.get(index, "0/0")])) + "/" + str(
                             sum([float(item.split('/')[1]) for item in summary_channel_map.get(index, "0/0")]))
+                    elif index in (15, ):
+                        total_guardian = sum([float(item.split('/')[0]) for item in summary_channel_map.get(index, ["0/0"])])
+                        total_student = sum([float(item.split('/')[1]) for item in summary_channel_map.get(index, ["0/0"])])
+                        cell.value = self.percentage(total_guardian/total_student if total_student else 0)
                     else:
                         pass
                     if isinstance(cell.value, (int, float)):
@@ -814,7 +826,7 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                             cell.font = self._red_font()
 
                 delta += 2
-                print(json.dumps(area_with_channel, indent=4, cls=CustomEncoder))
+                # print(json.dumps(area_with_channel, indent=4, cls=CustomEncoder))
         # row[0].value = "分析"
         # notifications = self._analyze(area_dimesion_items, area_name_id_map, users, report_type)
         # for index, notify in enumerate(notifications):
@@ -856,7 +868,7 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                                   "w_image_c_last_month": [], "w_image_c_curr_month": [], "total_guardian_number": [],
                                   "guardian_number_last_month": [], "guardian_number_curr_month":[], "total_pay_amount": [],
                                   "pay_amount_last_month": [], "pay_amount_curr_month": []})
-        print(json.dumps(area_name_id_map, indent=4, cls=CustomEncoder))
+        # print(json.dumps(area_name_id_map, indent=4, cls=CustomEncoder))
         for area_name, area_data in area_name_id_map.items():
             #大区无任何新增
             condition_1 = sum(  area_data['school_number_last_month'] + area_data['teacher_number_last_month'] +
