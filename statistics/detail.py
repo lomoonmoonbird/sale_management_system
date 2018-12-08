@@ -1791,7 +1791,7 @@ class GradeDetail(QueryMixin):
             default = {
                 'total_valid_reading_number': 0,
                 'total_valid_exercise_number': 0,
-                'total_valid_word_number': 0
+                'total_valid_word_number': 0,
             }
             items = await self._wap_list_grade_clazz(request, school_id, grade)
             item_map = {}
@@ -1901,7 +1901,7 @@ class MarketDetail(QueryMixin, DataExcludeMixin):
         page = int(request_param.get("page"))
         per_page = 10
         user_id = request_param.get("user_id")
-        if request['user_info']['instance_role_id'] == Roles.MARKET.value:
+        if request['user_info']['instance_role_id'] == Roles.MARKET.value: #市场
             user_id = request['user_info']['user_id']
         total_counts = await request.app['mongodb'][self.db][self.instance_coll].count_documents({"user_id": int(user_id),
                                                                             "role": Roles.SCHOOL.value,
@@ -1919,7 +1919,9 @@ class MarketDetail(QueryMixin, DataExcludeMixin):
             return self.reply_ok({"school_list": [],"extra": {"total": 0, "number_per_page": per_page, "curr_page": page}})
         school_ids = [item['school_id'] for item in schools]
 
-        school_sql = "select id, full_name, time_create from sigma_account_ob_school where available = 1 and id in (%s)" % (",".join([str(id) for id in school_ids]))
+        school_sql = "select id, full_name, time_create " \
+                     "from sigma_account_ob_school " \
+                     "where available = 1 and id in (%s)" % (",".join([str(id) for id in school_ids]))
         async with request.app['mysql'].acquire() as conn:
             async with conn.cursor(DictCursor) as cur:
                 await cur.execute(school_sql)
@@ -1934,15 +1936,11 @@ class MarketDetail(QueryMixin, DataExcludeMixin):
 
         school_items = await self._list_school(request, school_ids)
         grade_items = await self._list_school_grade(request, school_ids)
-        print(json.dumps(school_items, indent=4))
-        print(json.dumps(grade_items, indent=4))
+
 
         school_items_map = {}
         for item in school_items:
             school_items_map[item["_id"]] = item
-
-
-
 
         school_grade_mongo = request.app['mongodb'][self.db][self.grade_coll].find({"school_id": {"$in": school_ids}})
         school_grade_mongo = await school_grade_mongo.to_list(10000)

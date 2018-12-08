@@ -120,9 +120,7 @@ class SchoolManage(BaseHandler):
                             " where available = 1 and time_create >= '%s' " \
                             "and time_create <= '%s'  " % (
                                 date_range[0], date_range[1],)
-                print('1111')
             else:
-                print('2222')
                 school_page_sql = "select id,full_name, time_create  from sigma_account_ob_school" \
                                   " where available = 1 and id in (%s) limit %s,%s" % (','.join(['"'+str(id)+'"' for id in condition_school_ids]), per_page*page, per_page)
                 total_sql = "select count(id) as total_school_count from sigma_account_ob_school" \
@@ -137,9 +135,7 @@ class SchoolManage(BaseHandler):
                 if total_sql:
                     await cur.execute(total_sql)
                     total_school = await cur.fetchall()
-                    print(total_sql)
                     total_school_count = total_school[0]['total_school_count']
-                    print(total_school_count)
                 await cur.execute(school_page_sql)
                 schools = await cur.fetchall()
         school_ids = [item['id'] for item in schools]
@@ -151,8 +147,8 @@ class SchoolManage(BaseHandler):
                     await cur.execute(grade_sql)
                     grades = await cur.fetchall()
 
-        stage_school = request.app['mongodb'][self.db][self.school_coll].find({"school_id": {"$in": school_ids}})
-        stage_school = await stage_school.to_list(10000)
+        # stage_school = request.app['mongodb'][self.db][self.school_coll].find({"school_id": {"$in": school_ids}})
+        # stage_school = await stage_school.to_list(10000)
 
         stage_grade = request.app['mongodb'][self.db][self.grade_coll].find({"school_id": {"$in": school_ids}})
         stage_grade = await stage_grade.to_list(10000)
@@ -209,15 +205,9 @@ class SchoolManage(BaseHandler):
                     school['grade_info'].append(g_info)
                     stage.append(stage_grade_union_map2.get(school_grade, {}).get("stage", StageEnum.Register.value))
             school['stage'] = StageEnum.Register.value if not stage else min(stage)
-            # if flag == 3 and int(request_stage) == 0:
-            #     if school['stage'] == 1:
-            #         total_school_count -= 1
-            #         continue
+
             data.append(school)
-            # if school['stage'] == 1:
-            #     del schools[index]
-            #     print(school['id'], "school['id']")
-            #     total_school_count -= 1
+
 
 
         return self.reply_ok({"school_list": data, "extra": {"total":total_school_count, "number_per_page": per_page, "curr_page": page}})
@@ -257,23 +247,28 @@ class SchoolManage(BaseHandler):
                 school_grade_mongo_map[s_g_m['grade']] = s_g_m['stage']
 
             for s_g in school_grade:
-                s_g['stage'] = school_grade_mongo_map.get(s_g['grade'], StageEnum.Register.value)
+                if s_g['grade'] == grade:
+                    s_g['stage'] = stage
+                else:
+                    s_g['stage'] = school_grade_mongo_map.get(s_g['grade'], StageEnum.Register.value)
             school_stage = min([item['stage'] for item in school_grade]) if school_grade else StageEnum.Register.value
-
+            print("school_stage", school_stage)
             if stage == StageEnum.Pay.value:
-
+                print('pay')
                 await request.app['mongodb'][self.db][self.school_coll].update_one({"school_id": school_id,
                                                                                     "stage": {"$in": [
                                                                                                     StageEnum.Register.value,
                                                                                                     StageEnum.Binding.value,
                                                                                                       StageEnum.Pay.value,
                                                                                                       StageEnum.Using.value]}},
-                                                                                   {"$set": {"stage": school_stage, "pay_time": begin_time}})
+                                                                                   {"$set": {"stage": school_stage,
+                                                                                             "pay_time": begin_time}})
                 await request.app['mongodb'][self.db][self.grade_coll].update_one(
                     {"school_id": school_id, "grade": grade},
                     {"$set": {"stage": stage,
                               "pay_time": begin_time}})
             elif stage == StageEnum.Binding.value:
+                print("binding")
                 await request.app['mongodb'][self.db][self.school_coll].update_one({"school_id": school_id,
                                                                                     "stage": {
                                                                                         "$in": [
