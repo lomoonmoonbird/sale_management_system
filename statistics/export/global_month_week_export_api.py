@@ -390,7 +390,7 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                 row[3].value = self.percentage(mom) if self.percentage(mom) != '0.00%' else "无"
                 summary_map[1].append(row[1].value)
                 summary_map[2].append(row[2].value)
-                summary_map[3].append(row[3].value)
+                summary_map[3].append(row[2].value)
                 # 新增学校
                 mom = (sum(area_data['school_number_curr_month']) - sum(area_data['school_number_last_month']))/sum(area_data['school_number_last_month']) \
                     if sum(area_data['school_number_last_month']) else 0
@@ -399,7 +399,7 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                 row[6].value = self.percentage(mom) if self.percentage(mom) != '0.00%' else "无"
                 summary_map[4].append(row[4].value)
                 summary_map[5].append(row[5].value)
-                summary_map[6].append(row[6].value)
+                summary_map[6].append(row[5].value)
 
                 # 新增考试数量
                 mom = (sum(area_data['valid_exercise_count_curr_month']) - sum(area_data['valid_exercise_count_last_month'])) / sum(area_data[
@@ -410,7 +410,7 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                 row[9].value = self.percentage(mom) if self.percentage(mom) != '0.00%' else "无"
                 summary_map[7].append(row[7].value)
                 summary_map[8].append(row[8].value)
-                summary_map[9].append(row[9].value)
+                summary_map[9].append(row[8].value)
 
                 # 新增单词数量
                 mom = (sum(area_data['valid_word_count_curr_month']) - sum(area_data['valid_word_count_last_month'])) / sum(area_data[
@@ -421,7 +421,7 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                 row[12].value = self.percentage(mom) if self.percentage(mom) != '0.00%' else "无"
                 summary_map[10].append(row[10].value)
                 summary_map[11].append(row[11].value)
-                summary_map[12].append(row[12].value)
+                summary_map[12].append(row[11].value)
 
                 # 新增阅读数量
                 mom = (sum(area_data['valid_reading_count_curr_month']) - sum(
@@ -433,7 +433,7 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                 row[15].value = self.percentage(mom) if self.percentage(mom) != '0.00%' else "无"
                 summary_map[13].append(row[13].value)
                 summary_map[14].append(row[14].value)
-                summary_map[15].append(row[15].value)
+                summary_map[15].append(row[14].value)
                 # 新增家长数量
                 mom = (sum(area_data['guardian_unique_number_curr_month']) - sum(area_data['guardian_unique_number_last_month'])) / sum(area_data[
                     'guardian_unique_number_last_month']) if sum(area_data['guardian_unique_number_last_month']) else 0
@@ -443,7 +443,7 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                 row[18].value = self.percentage(mom) if self.percentage(mom) != '0.00%' else "无"
                 summary_map[16].append(avg)
                 summary_map[17].append(row[17].value)
-                summary_map[18].append(row[18].value)
+                summary_map[18].append(row[17].value)
                 # 新增付费
                 mom = (sum(area_data['pay_amount_curr_month']) - sum(area_data['pay_amount_last_month'])) / sum(area_data[
                                                                                                                   'pay_amount_last_month']) \
@@ -453,7 +453,7 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                 row[21].value = self.percentage(mom) if self.percentage(mom) != '0.00%' else "无"
                 summary_map[19].append(row[19].value)
                 summary_map[20].append(row[20].value)
-                summary_map[21].append(row[21].value)
+                summary_map[21].append(row[20].value)
                 for one in row:
                     if isinstance(one.value, (int, float)):
                         if one.value == 0:
@@ -475,7 +475,7 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                 row[6].value = self.percentage(mom) if self.percentage(mom) != '0.00%' else "无"
                 summary_map[4].append(row[4].value)
                 summary_map[5].append(row[5].value)
-                summary_map[6].append(row[6].value)
+                summary_map[6].append(row[5].value)
 
                 # 新增考试数量
                 mom = 0
@@ -484,7 +484,7 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                 row[9].value = self.percentage(mom) if self.percentage(mom) != '0.00%' else "无"
                 summary_map[7].append(row[7].value)
                 summary_map[8].append(row[8].value)
-                summary_map[9].append(row[9].value)
+                summary_map[9].append(row[8].value)
 
                 # 新增单词数量
                 mom = 0
@@ -493,7 +493,7 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                 row[12].value = self.percentage(mom) if self.percentage(mom) != '0.00%' else "无"
                 summary_map[10].append(row[10].value)
                 summary_map[11].append(row[11].value)
-                summary_map[12].append(row[12].value)
+                summary_map[12].append(row[11].value)
 
                 # 新增阅读数量
                 mom = 0
@@ -502,7 +502,7 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                 row[15].value = self.percentage(mom) if self.percentage(mom) != '0.00%' else "无"
                 summary_map[13].append(row[13].value)
                 summary_map[14].append(row[14].value)
-                summary_map[15].append(row[15].value)
+                summary_map[15].append(row[14].value)
                 # 新增家长数量
                 mom = 0
                 avg = 0
@@ -511,7 +511,7 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                 row[18].value = self.percentage(mom) if self.percentage(mom) != '0.00%' else "无"
                 summary_map[16].append(avg)
                 summary_map[17].append(row[17].value)
-                summary_map[18].append(row[18].value)
+                summary_map[18].append(row[17].value)
                 # 新增付费
                 mom = 0
                 row[19].value = 0
@@ -519,7 +519,7 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                 row[21].value = self.percentage(mom) if self.percentage(mom) != '0.00%' else "无"
                 summary_map[19].append(row[19].value)
                 summary_map[20].append(row[20].value)
-                summary_map[21].append(row[21].value)
+                summary_map[21].append(row[20].value)
             for one in row:
                 # if "大区1" in str(one.value):
                 if isinstance(one.value, (int, float)):
@@ -545,6 +545,7 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
             cell.alignment = self._alignment()
             if index in (3, 6, 9, 12, 15, 18, 21): #平均值
                 # cell.value = self.percentage(sum((summary_map.get(index, [0]))) / divider if divider > 0 else 0)
+                print('summary_map.get(index, ["0/0"])',index, summary_map.get(index, ["0/0"]))
                 last_summary = sum([float(item.split('/')[0]) for item in summary_map.get(index, ["0/0"])])
                 curr_summary = sum([float(item.split('/')[1]) for item in summary_map.get(index, ["0/0"])])
                 cell.value = self.percentage((curr_summary - last_summary) / last_summary if last_summary else 0)
