@@ -252,9 +252,7 @@ class SchoolManage(BaseHandler):
                 else:
                     s_g['stage'] = school_grade_mongo_map.get(s_g['grade'], StageEnum.Register.value)
             school_stage = min([item['stage'] for item in school_grade]) if school_grade else StageEnum.Register.value
-            print("school_stage", school_stage)
             if stage == StageEnum.Pay.value:
-                print('pay')
                 await request.app['mongodb'][self.db][self.school_coll].update_one({"school_id": school_id,
                                                                                     "stage": {"$in": [
                                                                                                     StageEnum.Register.value,
@@ -268,7 +266,6 @@ class SchoolManage(BaseHandler):
                     {"$set": {"stage": stage,
                               "pay_time": begin_time}})
             elif stage == StageEnum.Binding.value:
-                print("binding")
                 await request.app['mongodb'][self.db][self.school_coll].update_one({"school_id": school_id,
                                                                                     "stage": {
                                                                                         "$in": [
