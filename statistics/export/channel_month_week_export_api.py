@@ -66,6 +66,8 @@ class ChannelExportReport(BaseHandler, ExportBase, DataExcludeMixin):
         """
         request_param = await get_params(request)
         channel_id = request_param.get("channel_id", "")
+        if request['user_info']['instance_role_id'] == Roles.CHANNEL.value:
+            channel_id = request['user_info']['channel_id']
         if not channel_id:
             return self.reply_ok({})
 
@@ -108,6 +110,8 @@ class ChannelExportReport(BaseHandler, ExportBase, DataExcludeMixin):
 
         request_param = await get_params(request)
         channel_id = request_param.get("channel_id", "")
+        if request['user_info']['instance_role_id'] == Roles.CHANNEL.value:
+            channel_id = request['user_info']['channel_id']
         if not channel_id:
             return self.reply_ok({})
 

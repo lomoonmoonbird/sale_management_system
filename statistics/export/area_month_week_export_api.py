@@ -65,6 +65,8 @@ class AreaExportReport(BaseHandler, ExportBase, DataExcludeMixin):
         """
         request_param = await get_params(request)
         area_id = request_param.get('area_id', "")
+        if request['user_info']['instance_role_id'] == Roles.AREA.value:
+            area_id = request['user_info']['area_id']
         channels = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": area_id,
                                                                              "role": Roles.CHANNEL.value,
                                                                              "status": 1})
@@ -128,6 +130,8 @@ class AreaExportReport(BaseHandler, ExportBase, DataExcludeMixin):
         """
         request_param = await get_params(request)
         area_id = request_param.get('area_id', "")
+        if request['user_info']['instance_role_id'] == Roles.AREA.value:
+            area_id = request['user_info']['area_id']
         channels = request.app['mongodb'][self.db][self.instance_coll].find(
             {"parent_id": area_id,
              "role": Roles.CHANNEL.value,
