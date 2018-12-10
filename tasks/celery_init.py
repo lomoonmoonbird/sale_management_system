@@ -154,7 +154,7 @@ sales_celery.register_task(per_day_payments)
 
 per_day_schools = PerDayTask_SCHOOL()
 sales_celery.register_task(per_day_schools)
-sales_celery.send_task('tasks.celery_per_day_task.PerDayTask_SCHOOL')
+# sales_celery.send_task('tasks.celery_per_day_task.PerDayTask_SCHOOL')
 
 per_day_users_number = PerDaySubTask_USERS()
 sales_celery.register_task(per_day_users_number)
