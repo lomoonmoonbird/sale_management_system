@@ -212,15 +212,15 @@ class AreaList(BaseHandler, DataExcludeMixin):
                         "guardian_unique_count": 1,
                         "pay_number": 1,
                         "pay_amount": 1,
-                        "valid_reading_count": {"$cond": [{"$and": [{"$lt": ["$day", yesterday_str]}, {
+                        "valid_reading_count": {"$cond": [{"$and": [{"$lte": ["$day", yesterday_str]}, {
                             "$gte": ["$day", yesterday_before_30day_str]}]}, "$valid_reading_count", 0]},
-                        "valid_exercise_count": {"$cond": [{"$and": [{"$lt": ["$day", yesterday_str]}, {
+                        "valid_exercise_count": {"$cond": [{"$and": [{"$lte": ["$day", yesterday_str]}, {
                             "$gte": ["$day", yesterday_before_30day_str]}]}, "$valid_exercise_count", 0]},
-                        "e_image_c": {"$cond": [{"$and": [{"$lt": ["$day", yesterday_str]}, {
+                        "e_image_c": {"$cond": [{"$and": [{"$lte": ["$day", yesterday_str]}, {
                             "$gte": ["$day", yesterday_before_30day_str]}]}, "$e_image_c", 0]},
-                        "valid_word_count": {"$cond": [{"$and": [{"$lt": ["$day", yesterday_str]}, {
+                        "valid_word_count": {"$cond": [{"$and": [{"$lte": ["$day", yesterday_str]}, {
                             "$gte": ["$day", yesterday_before_30day_str]}]}, "$valid_word_count", 0]},
-                        "w_image_c": {"$cond": [{"$and": [{"$lt": ["$day", yesterday_str]}, {
+                        "w_image_c": {"$cond": [{"$and": [{"$lte": ["$day", yesterday_str]}, {
                             "$gte": ["$day", yesterday_before_30day_str]}]}, "$w_image_c", 0]},
 
                         "day": 1
