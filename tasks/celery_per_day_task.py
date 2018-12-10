@@ -1069,9 +1069,10 @@ class PerDayTask_SCHOOL(BaseTask):
                 if locations_map.get(school['location_id'], "") not in distinct_location_set:
                     if school_defaultdict[school['owner_id']]['location_n']:
                         school_defaultdict[school['owner_id']]['location_n'].append(1)
-                        distinct_location_set.append(locations_map.get(school['location_id'], ""))
+
                     else:
                         school_defaultdict[school['owner_id']]['location_n'] = [1]
+                    distinct_location_set.append(locations_map.get(school['location_id'], ""))
                 else:
                     pass
                 # self.mongo[self.location_distinct_coll].insert(
