@@ -699,7 +699,6 @@ class ChannelExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                     if ("/" in one.value and one.value.split('/')[0] == "0") or\
                             ("/" in one.value and one.value.split('/')[1] == "0") or \
                             ("%" in one.value and one.value.split("%")[0] == '0.00'):
-                        print("one.value", one.value)
                         one.font = self._red_font()
 
         total_offset = len(items) + 4

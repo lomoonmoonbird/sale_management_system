@@ -1072,7 +1072,7 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                 },
 
                 {"$group": {"_id": "$channel",
-                            "valid_reading_count": {"$sum": "valid_reading_count"},
+                            "valid_reading_count": {"$sum": "$valid_reading_count"},
                             "valid_exercise_count": {"$sum": "$valid_exercise_count"},
                             "valid_word_count": {"$sum": "$valid_word_count"},
                             "e_image_c": {"$sum": "$e_image_c"},
@@ -1293,7 +1293,7 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                 },
 
                 {"$group": {"_id": "$channel",
-                            "valid_reading_count": {"$sum": "valid_reading_count"},
+                            "valid_reading_count": {"$sum": "$valid_reading_count"},
                             "valid_exercise_count": {"$sum": "$valid_exercise_count"},
                             "valid_word_count": {"$sum": "$valid_word_count"},
                             "e_image_c": {"$sum": "$e_image_c"},
