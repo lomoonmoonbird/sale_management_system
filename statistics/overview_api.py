@@ -87,7 +87,7 @@ class Overview(BaseHandler, DataExcludeMixin):
         elif request['user_info']['instance_role_id'] == Roles.AREA.value:
             # exclude_channels = await self.exclude_channel(request.app['mysql'])
             channels = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": request['user_info']['area_id'],
-                                                                                       "role": Roles.AREA.value,
+                                                                                       "role": Roles.CHANNEL.value,
                                                                                        "status": 1})
 
             channels = await channels.to_list(10000)
