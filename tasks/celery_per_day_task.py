@@ -1040,13 +1040,13 @@ class PerDayTask_SCHOOL(BaseTask):
         for location in locations:
             locations_map[location['id']] = location['city_id']
         distinct_location_set = set()
+        mongo_distinct_locations = self.mongo[self.location_distinct_coll].find_one({"_id": "city"})
+        if mongo_distinct_locations:
+            distinct_location_set = set(mongo_distinct_locations.get('city_id', []))
+
         for one_date in date_range:
-            mongo_distinct_locations = self.mongo[self.location_distinct_coll].find_one({"_id": "city"})
-
+            
             print(locations_map)
-            if mongo_distinct_locations:
-                distinct_location_set = set(mongo_distinct_locations.get('city_id', []))
-
             q_schools = select([ob_school.c.id, ob_school.c.owner_id, ob_school.c.location_id])\
                 .where(and_(ob_school.c.available == 1,
                             ob_school.c.time_create >= one_date[0],
@@ -1084,8 +1084,7 @@ class PerDayTask_SCHOOL(BaseTask):
                 #                                    {'$set': school_schema}, upsert=True))
 
             self.mongo[self.location_distinct_coll].update({"_id": "city"}, {"$set": {"city_id": list(distinct_location_set)}}, upsert=True)
-            import time
-            time.sleep(2)
+
             for k,v in school_defaultdict.items():
                 school_schema = {
 
