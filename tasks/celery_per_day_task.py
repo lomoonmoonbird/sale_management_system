@@ -1045,7 +1045,7 @@ class PerDayTask_SCHOOL(BaseTask):
             distinct_location_set = set(mongo_distinct_locations.get('city_id', []))
 
         for one_date in date_range:
-            
+
             print(locations_map)
             q_schools = select([ob_school.c.id, ob_school.c.owner_id, ob_school.c.location_id])\
                 .where(and_(ob_school.c.available == 1,
@@ -1074,6 +1074,9 @@ class PerDayTask_SCHOOL(BaseTask):
                         school_defaultdict[school['owner_id']]['location_n'] = [1]
                 else:
                     pass
+                self.mongo[self.location_distinct_coll].insert(
+                                                               {"city_id2": locations_map.get(school['location_id'], "")},
+                                                               )
 
 
                 # school_schema = {
