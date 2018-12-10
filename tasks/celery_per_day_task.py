@@ -1039,10 +1039,10 @@ class PerDayTask_SCHOOL(BaseTask):
         locations_map = {}
         for location in locations:
             locations_map[location['id']] = location['city_id']
-        distinct_location_set = set()
+        distinct_location_set = []
         mongo_distinct_locations = self.mongo[self.location_distinct_coll].find_one({"_id": "city"})
         if mongo_distinct_locations:
-            distinct_location_set = set(mongo_distinct_locations.get('city_id', []))
+            distinct_location_set = mongo_distinct_locations.get('city_id', [])
 
         for one_date in date_range:
 
@@ -1069,14 +1069,14 @@ class PerDayTask_SCHOOL(BaseTask):
                 if locations_map.get(school['location_id'], "") not in distinct_location_set:
                     if school_defaultdict[school['owner_id']]['location_n']:
                         school_defaultdict[school['owner_id']]['location_n'].append(1)
-                        distinct_location_set.add(locations_map.get(school['location_id'], ""))
+                        distinct_location_set.append(locations_map.get(school['location_id'], ""))
                     else:
                         school_defaultdict[school['owner_id']]['location_n'] = [1]
                 else:
                     pass
-                self.mongo[self.location_distinct_coll].insert(
-                                                               {"city_id2": locations_map.get(school['location_id'], "")},
-                                                               )
+                # self.mongo[self.location_distinct_coll].insert(
+                #                                                {"city_id2": locations_map.get(school['location_id'], "")},
+                #                                                )
 
 
                 # school_schema = {
@@ -1086,7 +1086,7 @@ class PerDayTask_SCHOOL(BaseTask):
                 # self_school_bulk_update.append(UpdateOne({"school_id": school['id'], "day": one_date[0]},
                 #                                    {'$set': school_schema}, upsert=True))
 
-            self.mongo[self.location_distinct_coll].update({"_id": "city"}, {"$set": {"city_id": list(distinct_location_set)}}, upsert=True)
+            self.mongo[self.location_distinct_coll].update({"_id": "city"}, {"$set": {"city_id": list(set(distinct_location_set))}}, upsert=True)
 
             for k,v in school_defaultdict.items():
                 school_schema = {
