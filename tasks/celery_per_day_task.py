@@ -980,6 +980,7 @@ class PerDayTask_SCHOOL(BaseTask):
         super(PerDayTask_SCHOOL, self).__init__()
         self.mongo = pymongo.MongoClient(MONGODB_CONN_URL).sales
         self.schoolstage_delta_record_coll = "record_schoolstage_delta"
+        self.location_distinct_coll = 'location_distinct'
         self.cursor = None
         self.connection = None
 
@@ -1038,8 +1039,13 @@ class PerDayTask_SCHOOL(BaseTask):
         locations_map = {}
         for location in locations:
             locations_map[location['id']] = location['city_id']
-        print(locations_map)
+
+
+        mongo_distinct_locations = self.mongo[self.location_distinct_coll].find_one({"_id": "city"})
         distinct_location_set = set()
+        print(locations_map)
+        if mongo_distinct_locations:
+            distinct_location_set = set(mongo_distinct_locations.get('city_id', []))
         for one_date in date_range:
             q_schools = select([ob_school.c.id, ob_school.c.owner_id, ob_school.c.location_id])\
                 .where(and_(ob_school.c.available == 1,
@@ -1077,6 +1083,7 @@ class PerDayTask_SCHOOL(BaseTask):
                 # self_school_bulk_update.append(UpdateOne({"school_id": school['id'], "day": one_date[0]},
                 #                                    {'$set': school_schema}, upsert=True))
 
+            self.mongo[self.location_distinct_coll].update({"_id": "city"}, {"$set": {"city_id": list(distinct_location_set)}}, upsert=True)
             for k,v in school_defaultdict.items():
                 school_schema = {
 
