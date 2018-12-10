@@ -1041,12 +1041,14 @@ class PerDayTask_SCHOOL(BaseTask):
             locations_map[location['id']] = location['city_id']
 
 
-        mongo_distinct_locations = self.mongo[self.location_distinct_coll].find_one({"_id": "city"})
-        distinct_location_set = set()
-        print(locations_map)
-        if mongo_distinct_locations:
-            distinct_location_set = set(mongo_distinct_locations.get('city_id', []))
+
         for one_date in date_range:
+            mongo_distinct_locations = self.mongo[self.location_distinct_coll].find_one({"_id": "city"})
+            distinct_location_set = set()
+            print(locations_map)
+            if mongo_distinct_locations:
+                distinct_location_set = set(mongo_distinct_locations.get('city_id', []))
+
             q_schools = select([ob_school.c.id, ob_school.c.owner_id, ob_school.c.location_id])\
                 .where(and_(ob_school.c.available == 1,
                             ob_school.c.time_create >= one_date[0],
