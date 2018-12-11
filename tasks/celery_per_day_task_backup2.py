@@ -1786,7 +1786,7 @@ class PerDayTask_VALIDCONTEST(BaseTask):
                                                 "using_time": one_date[0],
                                                 "stage": StageEnum.Using.value}}, upsert=True))
                         grade_exercise_bulk_update.append(UpdateOne({"grade": exercise_school_grade_id.split("@")[2], "school_id": int(exercise_school_grade_id.split("@")[1]), "day": one_date[0]},{'$inc': {"valid_exercise_count": 1}}, upsert=True))
-                    history_grade_exercise_bulk_update.append(UpdateOne({"exercise_school_grade_id": exercise_school_grade_id},{'$set': {"last_day": one_date[0], "status": 1}}, upsert=True))
+                        history_grade_exercise_bulk_update.append(UpdateOne({"exercise_school_grade_id": exercise_school_grade_id},{'$set': {"last_day": one_date[0], "status": 1}}, upsert=True))
 
             # 学校和历史比较
             history_school_exercise_delta_ids = list(school_exercise_image_number.keys())
@@ -1833,7 +1833,7 @@ class PerDayTask_VALIDCONTEST(BaseTask):
                 if len(today_total_students) >= 10: #有效
                     if history_channel_exercise_id_map.get(exercise_channel_id, {}).get("status", 0) == 0:
                         channel_exercise_bulk_update.append(UpdateOne({"channel": int(exercise_channel_id.split("@")[1]), "day": one_date[0]},{'$inc': {"valid_exercise_count": 1}}, upsert=True))
-                    history_channel_exercise_bulk_update.append(UpdateOne({"exercise_channel_id": exercise_channel_id},{'$set': {"last_day": one_date[0], "status": 1}}, upsert=True))
+                        history_channel_exercise_bulk_update.append(UpdateOne({"exercise_channel_id": exercise_channel_id},{'$set': {"last_day": one_date[0], "status": 1}}, upsert=True))
 
             # 处理单词考试
             class_word_image_number = defaultdict(lambda: defaultdict(dict))
@@ -1962,9 +1962,9 @@ class PerDayTask_VALIDCONTEST(BaseTask):
                         grade_word_bulk_update.append(
                             UpdateOne({"grade": word_school_grade_id.split("@")[2], "school_id": int(word_school_grade_id.split("@")[1]), "day": one_date[0]},
                                       {'$inc': {"valid_word_count": 1}}, upsert=True))
-                    history_grade_word_bulk_update.append(
-                        UpdateOne({"word_grade_id": word_school_grade_id},
-                                  {'$set': {"last_day": one_date[0], "status": 1}}, upsert=True))
+                        history_grade_word_bulk_update.append(
+                            UpdateOne({"word_grade_id": word_school_grade_id},
+                                      {'$set': {"last_day": one_date[0], "status": 1}}, upsert=True))
 
             # 学校和历史比较
             history_school_word_delta_ids = list(school_word_image_number.keys())
@@ -2016,9 +2016,9 @@ class PerDayTask_VALIDCONTEST(BaseTask):
                         channel_word_bulk_update.append(UpdateOne(
                             {"channel": int(word_channel_id.split("@")[1]), "day": one_date[0]},
                             {'$inc': {"valid_word_count": 1}}, upsert=True))
-                    history_channel_word_bulk_update.append(
-                        UpdateOne({"word_channel_id": word_channel_id},
-                                  {'$set': {"last_day": one_date[0], "status": 1}}, upsert=True))
+                        history_channel_word_bulk_update.append(
+                            UpdateOne({"word_channel_id": word_channel_id},
+                                      {'$set': {"last_day": one_date[0], "status": 1}}, upsert=True))
 
 
 
@@ -2204,7 +2204,6 @@ class PerDayTask_VALIDREADING(BaseTask):
         try:
             self.connection = self.get_connection()
             date_range = self._date_range("valid_reading_begin_time") #时间分段
-            # date_range = [("2018-09-20", "2018-09-21")]
             self._reading_number(date_range) #有效阅读
             if self.cursor:
                 self.cursor.close()
@@ -2281,247 +2280,140 @@ class PerDayTask_VALIDREADING(BaseTask):
                 usergroup_map_class_key[u_g['group_id']] = u_g
                 usergroup_map_grade_key[u_g.get("grade", -1)] = u_g
 
+            # print(json.dumps(usergroup_map, indent=4, cls=CustomEncoder))
+            # print(json.dumps(usergroup_map_grade_key, indent=4, cls=CustomEncoder))
+            # print(json.dumps(usergroup_single_map, indent=4, cls=CustomEncoder))
+            # print(json.dumps(school_channel_map, indent=4, cls=CustomEncoder))
+
+            history_reading_delta = self.mongo[self.reading_delta_record_coll].find({"reading_uid": {"$in": reading_uids}})
+            history_reading_delta_uid_map = defaultdict(dict)
+            for history in history_reading_delta:
+                history_reading_delta_uid_map[history['reading_uid']]['n'] = history.get("n", 0)
+                history_reading_delta_uid_map[history['reading_uid']]['last_day'] = history.get("last_day", 0)
+                history_reading_delta_uid_map[history['reading_uid']]['students'] = history.get("students", [])
+                history_reading_delta_uid_map[history['reading_uid']]['status'] = history.get("status", 0)
 
 
-            class_keys = defaultdict(lambda: defaultdict(dict))
-            grade_keys = defaultdict(lambda: defaultdict(dict))
-            school_keys = defaultdict(lambda: defaultdict(dict))
-            channel_keys = defaultdict(lambda: defaultdict(dict))
-
-
+            class_reading_defaultdict = defaultdict(list)
+            grade_reading_defaultdict = defaultdict(list)
+            channel_reading_defaultdict = defaultdict(list)
+            reading_student_count_per_day_defaultdict = defaultdict(lambda: defaultdict(dict))
             for reading in readings:
+                # multi_user_group = usergroup_map.get(reading['student_id'], [])
+                # print(multi_user_group)
+                # for m_u_g in multi_user_group:
+                #     class_reading_defaultdict[m_u_g.get("group_id", -1)].append(1)
+                # single_user_group = usergroup_single_map.get(reading['student_id'], {})
+                # grade_reading_defaultdict[single_user_group.get("grade", -1)].append(1)
+                # channel_reading_defaultdict[school_channel_map.get(single_user_group.get("school_id", -1), -1)].append(1)
 
-                #班级
-                for u in usergroup_map.get(reading['student_id'], []):
-                    c_key = reading['reading_uid'] + "@" + str(school_channel_map.get(u['school_id'], -1)) + "@" +str(u['school_id']) + "@"+ str(u['grade']) + "@" + str(u['group_id'])
-                    if class_keys[c_key]['user_id']:
-                        class_keys[c_key]['user_id'].append(u['user_id'])
-                        class_keys[c_key]['user_id'] = list(set(class_keys[c_key]['user_id']))
-                    else:
-                        class_keys[c_key]['user_id'] = [u['user_id']]
-
-                #年级
-                g_key = reading['reading_uid'] + "@" + str(school_channel_map.get(u['school_id'], -1)) + "@" +str(u['school_id']) + "@"+ str(u['grade'])
-                if grade_keys[g_key]['user_id']:
-                    grade_keys[g_key]['user_id'].append(u['user_id'])
-                    grade_keys[g_key]['user_id'] = list(set(grade_keys[g_key]['user_id']))
+                if reading_student_count_per_day_defaultdict[reading['reading_uid']]['students']:
+                    reading_student_count_per_day_defaultdict[reading['reading_uid']]['students'].append(reading['student_id'])
                 else:
-                    grade_keys[g_key]['user_id'] = [u['user_id']]
+                    reading_student_count_per_day_defaultdict[reading['reading_uid']]['students'] = [reading['student_id']]
 
-                #学校
-                s_key = reading['reading_uid'] + "@" + str(school_channel_map.get(u['school_id'], -1)) + "@" + str(
-                    u['school_id'])
-                if school_keys[s_key]['user_id']:
-                    school_keys[s_key]['user_id'].append(u['user_id'])
-                    school_keys[s_key]['user_id'] = list(set(school_keys[s_key]['user_id']))
-                else:
-                    school_keys[s_key]['user_id'] = [u['user_id']]
+            # print(json.dumps(class_reading_defaultdict, indent=4, cls=CustomEncoder))
+            # print(json.dumps(grade_reading_defaultdict, indent=4, cls=CustomEncoder))
+            # print(json.dumps(channel_reading_defaultdict, indent=4, cls=CustomEncoder))
+            # print(json.dumps(reading_student_count_per_day_defaultdict, indent=4, cls=CustomEncoder))
 
-                #渠道
-                ch_key = reading['reading_uid'] + "@" + str(school_channel_map.get(u['school_id'], -1))
-                if channel_keys[ch_key]['user_id']:
-                    channel_keys[ch_key]['user_id'].append(u['user_id'])
-                    channel_keys[ch_key]['user_id'] = list(set(channel_keys[ch_key]['user_id']))
-                else:
-                    channel_keys[ch_key]['user_id'] = [u['user_id']]
+            # print(json.dumps(usergroup_map, indent=4, cls=CustomEncoder))
+            # print(json.dumps(usergroup_single_map, indent=4, cls=CustomEncoder))
+            # print(json.dumps(usergroup_map_class_key, indent=4, cls=CustomEncoder))
+            # print(json.dumps(usergroup_map_grade_key, indent=4, cls=CustomEncoder))
 
 
-            #班级和历史比较
-            history_class_reading_delta_ids = list(class_keys.keys())
-            history_class_reading_delta = self.mongo.record_class_reading_delta.find(
-                {"reading_channel_school_grade_group_id": {"$in": history_class_reading_delta_ids}})
-            history_class_reading_id_map = {}
+            upadte_reading_delta_bulk = []
             class_reading_bulk_update = []
-            history_class_reading_bulk_update = []
-            for h in history_class_reading_delta:
-                history_class_reading_id_map[h['reading_channel_school_grade_group_id']] = h
-
-            for reading_channel_school_grade_group_id, data in class_keys.items():
-                history_students = history_class_reading_id_map.get(reading_channel_school_grade_group_id, {}).get("user_id", [])
-                today_students = data['user_id']
-                today_total_students = list(set(history_students + today_students))
-                reading_uid = reading_channel_school_grade_group_id.split("@")[0]
-                channel = int(reading_channel_school_grade_group_id.split("@")[1])
-                school = int(reading_channel_school_grade_group_id.split("@")[2])
-                grade = reading_channel_school_grade_group_id.split("@")[3]
-                group = int(reading_channel_school_grade_group_id.split("@")[4])
-                history_class_reading_bulk_update.append(
-                    UpdateOne({"reading_channel_school_grade_group_id": reading_channel_school_grade_group_id},
-                              {'$set': {"user_id": today_total_students,
-                                        "reading_uid": reading_uid ,
-                                        "channel": channel,
-                                        "school_id": school,
-                                        "grade": grade,
-                                        "group_id": group}},
-                              upsert=True))
-                if len(today_total_students) >= 10:  # 有效
-                    if history_class_reading_id_map.get(reading_channel_school_grade_group_id, {}).get("status", 0) == 0:
-                        class_schema = {
-                            'channel': int(reading_channel_school_grade_group_id.split('@')[1]),
-                            'school_id': int(reading_channel_school_grade_group_id.split('@')[2]),
-                            'grade': reading_channel_school_grade_group_id.split('@')[3]
-                        }
-                        class_reading_bulk_update.append(
-                            UpdateOne({"group_id": int(reading_channel_school_grade_group_id.split("@")[4]), "day": one_date[0]},
-                                      {'$inc': {"valid_reading_count": 1}, "$set": class_schema}, upsert=True))
-                    history_class_reading_bulk_update.append(UpdateOne({"reading_channel_school_grade_group_id": reading_channel_school_grade_group_id}, {
-                    '$set': {"last_day": one_date[0], "status": 1}}, upsert=True))
-
-            #年级和历史比较
-            history_grade_reading_delta_ids = list(grade_keys.keys())
-            history_grade_reading_delta = self.mongo.record_grade_reading_delta.find(
-                {"reading_channel_school_grade": {"$in": history_grade_reading_delta_ids}})
-            history_grade_reading_id_map = {}
             grade_reading_bulk_update = []
-            history_grade_reading_bulk_update = []
-            for h in history_grade_reading_delta:
-                history_grade_reading_id_map[h['reading_channel_school_grade']] = h
-
-            for reading_channel_school_grade, data in grade_keys.items():
-                history_students = history_grade_reading_id_map.get(reading_channel_school_grade, {}).get(
-                    "user_id", [])
-                today_students = data['user_id']
-                today_total_students = list(set(history_students + today_students))
-                reading_uid = reading_channel_school_grade.split("@")[0]
-                channel = int(reading_channel_school_grade.split("@")[1])
-                school = int(reading_channel_school_grade.split("@")[2])
-                grade = reading_channel_school_grade.split("@")[3]
-                history_grade_reading_bulk_update.append(
-                    UpdateOne({"reading_channel_school_grade": reading_channel_school_grade},
-                              {'$set': {"user_id": today_total_students,
-                                        "reading_uid": reading_uid ,
-                                        "channel": channel,
-                                        "school_id": school,
-                                        "grade": grade, }},
-                              upsert=True))
-                if len(today_total_students) >= 10:  # 有效
-                    if history_grade_reading_id_map.get(reading_channel_school_grade, {}).get("status",0) == 0:
-                        grade_schema = {
-                            'channel': int(reading_channel_school_grade.split('@')[1]),
-                            # 'school_id': int(reading_channel_school_grade.split('@')[2]),
-                            # 'grade': reading_channel_school_grade.split('@')[3]
-                        }
-                        grade_reading_bulk_update.append(
-                            UpdateOne({"grade": reading_channel_school_grade.split("@")[3],
-                                       "school_id": int(reading_channel_school_grade.split('@')[2]),
-                                       "day": one_date[0]},
-                                      {'$inc': {"valid_reading_count": 1}, "$set": grade_schema}, upsert=True))
-                    history_grade_reading_bulk_update.append(
-                        UpdateOne({"reading_channel_school_grade": reading_channel_school_grade}, {
-                            '$set': {"last_day": one_date[0], "status": 1}}, upsert=True))
-
-            #学校和历史比较
-            history_school_reading_delta_ids = list(school_keys.keys())
-            history_school_reading_delta = self.mongo.record_school_reading_delta.find(
-                {"reading_channel_school": {"$in": history_school_reading_delta_ids}})
-            history_school_reading_id_map = {}
             school_reading_bulk_update = []
-            history_school_reading_bulk_update = []
-            for h in history_school_reading_delta:
-                history_school_reading_id_map[h['reading_channel_school']] = h
-
-            for reading_channel_school, data in school_keys.items():
-                history_students = history_school_reading_id_map.get(reading_channel_school, {}).get(
-                    "user_id", [])
-                today_students = data['user_id']
-                today_total_students = list(set(history_students + today_students))
-                reading_uid = reading_channel_school.split("@")[0]
-                channel = int(reading_channel_school.split("@")[1])
-                school = int(reading_channel_school.split("@")[2])
-                history_school_reading_bulk_update.append(
-                    UpdateOne({"reading_channel_school": reading_channel_school},
-                              {'$set': {"user_id": today_total_students,
-                                        "reading_uid": reading_uid ,
-                                        "channel": channel,
-                                        "school_id": school, }},
-                              upsert=True))
-                if len(today_total_students) >= 10:  # 有效
-                    if history_school_reading_id_map.get(reading_channel_school, {}).get("status", 0) == 0:
-                        school_schema = {
-                            'channel': int(reading_channel_school.split('@')[1]),
-                            # 'school_id': int(reading_channel_school_grade.split('@')[2]),
-                            # 'grade': reading_channel_school_grade.split('@')[3]
-                        }
-                        school_reading_bulk_update.append(
-                            UpdateOne({"school_id": int(reading_channel_school.split("@")[2]),
-                                       "day": one_date[0]},
-                                      {'$inc': {"valid_reading_count": 1}, "$set": school_schema}, upsert=True))
-                    history_school_reading_bulk_update.append(
-                        UpdateOne({"reading_channel_school": reading_channel_school}, {
-                            '$set': {"last_day": one_date[0], "status": 1}}, upsert=True))
-
-            #渠道和历史比较
-            history_channel_reading_delta_ids = list(channel_keys.keys())
-            history_channel_reading_delta = self.mongo.record_channel_reading_delta.find(
-                {"reading_channel": {"$in": history_channel_reading_delta_ids}})
-            history_channel_reading_id_map = {}
             channel_reading_bulk_update = []
-            history_channel_reading_bulk_update = []
-            for h in history_channel_reading_delta:
-                history_channel_reading_id_map[h['reading_channel']] = h
+            for reading in readings:
+                if history_reading_delta_uid_map.get(reading['reading_uid'], {}).get("n", 0) >= 10:  # 已经是有效的话
+                    reading_uid = reading['reading_uid']
+                    n = history_reading_delta_uid_map.get(reading_uid, {}).get("n")
+                    students = list(history_reading_delta_uid_map.get(reading_uid, {}).get("students", []))
+                    now_students = list(set(
+                        students + reading_student_count_per_day_defaultdict.get(reading['reading_uid'], {}).get(
+                            "students", [])))
+                    now_n = len(now_students)
+                    upadte_reading_delta_bulk.append(
+                        UpdateOne({"reading_uid": reading_uid},
+                                  {"$set": {"n": now_n, "students": now_students, "last_day": one_date[0],
+                                            'status': 1}}, upsert=True))
+                elif history_reading_delta_uid_map.get(reading['reading_uid'], {}).get("n", 0) < 10:  # 还不是有效
+                    reading_uid = reading['reading_uid']
+                    n = history_reading_delta_uid_map.get(reading_uid, {}).get("n")
+                    students = list(history_reading_delta_uid_map.get(reading_uid, {}).get("students", []))
+                    now_students = list(set(students + reading_student_count_per_day_defaultdict.get(reading['reading_uid'], {}).get("students", [])))
+                    now_n = len(now_students)
+                    if now_n < 10:#今天还没到有效
+                        upadte_reading_delta_bulk.append(
+                                    UpdateOne({"reading_uid": reading_uid},
+                                              { "$set": {"n": now_n, "students": now_students, "last_day": one_date[0], "status": 0}}, upsert=True))
+                    elif now_n >= 10: #成为有效
+                        upadte_reading_delta_bulk.append(
+                            UpdateOne({"reading_uid": reading_uid},
+                                      {"$set": {"n": now_n, "students": now_students, "last_day": one_date[0], 'status': 1}}, upsert=True))
 
-            for reading_channel, data in channel_keys.items():
-                history_students = history_channel_reading_id_map.get(reading_channel, {}).get(
-                    "user_id", [])
-                today_students = data['user_id']
-                today_total_students = list(set(history_students + today_students))
-                reading_uid = reading_channel.split("@")[0]
-                channel = int(reading_channel.split("@")[1])
-                history_channel_reading_bulk_update.append(
-                    UpdateOne({"reading_channel": reading_channel},
-                              {'$set': {"user_id": today_total_students,
-                                        "reading_uid": reading_uid ,
-                                        "channel": channel, }},
-                              upsert=True))
-                if len(today_total_students) >= 10:  # 有效
-                    if history_channel_reading_id_map.get(reading_channel, {}).get("status", 0) == 0:
-                        # school_schema = {
-                        #     'channel': int(reading_channel_school_grade.split('@')[1]),
-                            # 'school_id': int(reading_channel_school_grade.split('@')[2]),
-                            # 'grade': reading_channel_school_grade.split('@')[3]
-                        # }
-                        channel_reading_bulk_update.append(
-                            UpdateOne({"channel": int(reading_channel.split("@")[1]),
-                                       "day": one_date[0]},
-                                      {'$inc': {"valid_reading_count": 1}}, upsert=True))
-                    history_channel_reading_bulk_update.append(
-                        UpdateOne({"reading_channel": reading_channel}, {
-                            '$set': {"last_day": one_date[0], "status": 1}}, upsert=True))
+                        if history_reading_delta_uid_map.get(reading['reading_uid'], {}).get("status", 0) ==0 : #可以更新
+                            last_day = history_reading_delta_uid_map.get(reading['reading_uid'], {}).get("last_day", one_date[0])
+                            #班级
+                            class_schema = {
+                                "school_id": usergroup_single_map.get(reading['student_id'], {}).get("school_id", -1),
+                                "channel": school_channel_map.get(usergroup_single_map.get(reading['student_id'], {}).get("school_id", -1), -1),
+                                "grade": usergroup_single_map.get(reading['student_id'], {}).get("grade", -1),
+                            }
+                            class_reading_bulk_update.append(
+                                        UpdateOne({"group_id": usergroup_single_map.get(reading['student_id'], {}).get("group_id", -1),
+                                                   "day": last_day},
+                                                  { "$inc": {"valid_reading_count": 1}, "$set": class_schema}, upsert=True))
+                            #年级
+                            grade_schema = {
+                                "school_id": usergroup_single_map.get(reading['student_id'], {}).get("school_id", -1),
+                                "channel": school_channel_map.get(
+                                    usergroup_single_map.get(reading['student_id'], {}).get("school_id", -1), -1),
+                            }
+
+                            grade_reading_bulk_update.append(
+                                UpdateOne(
+                                    {"grade": usergroup_single_map.get(reading['student_id'], {}).get("grade", -1),
+                                     "school_id": usergroup_single_map.get(reading['student_id'], {}).get("school_id", -1),
+                                     "day": last_day},
+                                    {"$inc": {"valid_reading_count": 1}, "$set": grade_schema}, upsert=True))
+
+                            #学校
+                            school_schema = {
+                                "school_id": usergroup_single_map.get(reading['student_id'], {}).get("school_id", -1),
+                                "channel": school_channel_map.get(
+                                    usergroup_single_map.get(reading['student_id'], {}).get("school_id", -1), -1),
+                            }
+                            school_reading_bulk_update.append(
+                                UpdateOne(
+                                    {"school_id": usergroup_single_map.get(reading['student_id'], {}).get("school_id", -1),
+                                     "day": last_day},
+                                    {"$inc": {"valid_reading_count": 1}, "$set": school_schema}, upsert=True))
+
+                            channel_reading_bulk_update.append(
+                                UpdateOne(
+                                    {"channel": school_channel_map.get(
+                                    usergroup_single_map.get(reading['student_id'], {}).get("school_id", -1), -1),
+                                     "day": last_day},
+                                    {"$inc": {"valid_reading_count": 1}}, upsert=True))
 
 
-
-            if history_class_reading_bulk_update:
+                        else:#不可以更新
+                            pass
+            if upadte_reading_delta_bulk:
                 try:
-                    bulk_update_ret = self.mongo.record_class_reading_delta.bulk_write(history_class_reading_bulk_update)
-                    # print(bulk_update_ret.bulk_api_result)
+                    bulk_update_ret = self.mongo[self.reading_delta_record_coll].bulk_write(upadte_reading_delta_bulk)
+                    print(bulk_update_ret.bulk_api_result)
                 except BulkWriteError as bwe:
                     print(bwe.details)
-
-            if history_grade_reading_bulk_update:
-                try:
-                    bulk_update_ret = self.mongo.record_grade_reading_delta.bulk_write(history_grade_reading_bulk_update)
-                    # print(bulk_update_ret.bulk_api_result)
-                except BulkWriteError as bwe:
-                    print(bwe.details)
-
-            if history_school_reading_bulk_update:
-                try:
-                    bulk_update_ret = self.mongo.record_school_reading_delta.bulk_write(history_school_reading_bulk_update)
-                    # print(bulk_update_ret.bulk_api_result)
-                except BulkWriteError as bwe:
-                    print(bwe.details)
-
-            if history_channel_reading_bulk_update:
-                try:
-                    bulk_update_ret = self.mongo.record_channel_reading_delta.bulk_write(history_channel_reading_bulk_update)
-                    # print(bulk_update_ret.bulk_api_result)
-                except BulkWriteError as bwe:
-                    print(bwe.details)
-
             if class_reading_bulk_update:
                 try:
                     bulk_update_ret = self.mongo.class_per_day.bulk_write(class_reading_bulk_update)
-                    print(bulk_update_ret.bulk_api_result)
+                    # print(bulk_update_ret.bulk_api_result)
                 except BulkWriteError as bwe:
                     print(bwe.details)
 

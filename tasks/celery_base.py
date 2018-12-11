@@ -36,7 +36,7 @@ class CustomEncoder(json.JSONEncoder):
 class BaseTask(Task):
     def __init__(self):
         super(BaseTask, self).__init__()
-        self.start_time = datetime.datetime(2018,1,1)
+        self.start_time = datetime.datetime(2017,1,1)
         self.coll_time_threshold = 'sale_time_threshold'
         self.bulk_update = []
         self.total_dict = defaultdict(float)
@@ -74,28 +74,28 @@ class BaseTask(Task):
 
         if DEBUG:
             print("this is debug")
-            # server = SSHTunnelForwarder(
-            #     ssh_address_or_host=('139.196.77.128', 5318),  # 跳板机
-            #
-            #     ssh_password="PengKim@89527",
-            #     ssh_username="jinpeng",
-            #     remote_bind_address=('rr-uf6247jo85269bp6e.mysql.rds.aliyuncs.com', 3306))
-            # server.start()
-            #
-            # connection = pymysql.connect(host="127.0.0.1",
-            #                              port=server.local_bind_port,
-            #                              user="sigma",
-            #                              password="sigmaLOVE2017",
-            #                              db=MYSQL_NAME,
-            #                              charset='utf8mb4',
-            #                              cursorclass=pymysql.cursors.DictCursor)
-            connection = pymysql.connect(host="mysql.hexin.im",
-                                         port=3306,
-                                         user="root",
-                                         password="sigmalove",
+            server = SSHTunnelForwarder(
+                ssh_address_or_host=('139.196.77.128', 5318),  # 跳板机
+
+                ssh_password="PengKim@89527",
+                ssh_username="jinpeng",
+                remote_bind_address=('rr-uf6247jo85269bp6e.mysql.rds.aliyuncs.com', 3306))
+            server.start()
+
+            connection = pymysql.connect(host="127.0.0.1",
+                                         port=server.local_bind_port,
+                                         user="sigma",
+                                         password="sigmaLOVE2017",
                                          db=MYSQL_NAME,
                                          charset='utf8mb4',
                                          cursorclass=pymysql.cursors.DictCursor)
+            # connection = pymysql.connect(host="mysql.hexin.im",
+            #                              port=3306,
+            #                              user="root",
+            #                              password="sigmalove",
+            #                              db=MYSQL_NAME,
+            #                              charset='utf8mb4',
+            #                              cursorclass=pymysql.cursors.DictCursor)
         else:
             connection = pymysql.connect(host=MYSQL_HOST,
                                          port=MYSQL_PORT,
