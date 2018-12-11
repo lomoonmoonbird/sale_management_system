@@ -362,6 +362,10 @@ class PerDaySubTask_GUARDIAN(BaseTask):
         self.mongo = pymongo.MongoClient(MONGODB_CONN_URL).sales
         self.connection = None
         self.cursor = None
+        self.record_class_unique_guardian_delta_coll = 'record_class_unique_guardian_delta'
+        self.record_grade_unique_guardian_delta_coll = 'record_grade_unique_guardian_delta'
+        self.record_school_unique_guardian_delta_coll = 'record_school_unique_guardian_delta'
+        self.record_channel_unique_guardian_delta_coll = 'record_channel_unique_guardian_delta'
 
     def _query(self, query):
         """
@@ -456,10 +460,17 @@ class PerDaySubTask_GUARDIAN(BaseTask):
                 group_map[g['id']] = g
 
             usergroup_map = {}
+            usergroup_multi_map = defaultdict(list)
             usergroup_map_class_key = {}
             usergroup_map_grade_key = {}
             for u_g in usergroup:
                 u_g.update(group_map.get(u_g['group_id'], {}))
+
+                if usergroup_multi_map[u_g['user_id']]:
+                    usergroup_multi_map[u_g['user_id']].append(u_g)
+                else:
+                    usergroup_multi_map[u_g['user_id']] = [u_g]
+
                 usergroup_map[u_g['user_id']] = u_g
                 usergroup_map_class_key[u_g['group_id']] = u_g
                 usergroup_map_grade_key[u_g.get("grade", -1)] = u_g
@@ -476,17 +487,18 @@ class PerDaySubTask_GUARDIAN(BaseTask):
 
             for guardian in guardians:
 
-                #班级
-                if class_guardian_default_dict[usergroup_map.get(guardian['user_id'], {}).get("group_id", -1)]['n']:
-                    class_guardian_default_dict[usergroup_map.get(guardian['user_id'], {}).get("group_id", -1)]['n'].append(1)
-                else:
-                    class_guardian_default_dict[usergroup_map.get(guardian['user_id'], {}).get("group_id", -1)]['n'] = [1]
-                if class_guardian_default_dict[usergroup_map.get(guardian['user_id'], {}).get("group_id", -1)]['wechats']:
-                    class_guardian_default_dict[usergroup_map.get(guardian['user_id'], {}).get("group_id", -1)]['wechats'].append(guardian['wechat_id'])
-                else:
-                    class_guardian_default_dict[usergroup_map.get(guardian['user_id'], {}).get("group_id", -1)]['wechats'] = [guardian['wechat_id']]
-                #班级unique
-                class_unique_guardian_default_dict[usergroup_map.get(guardian['user_id'], {}).get("group_id", -1)].add(guardian['user_id'])
+                for u in usergroup_multi_map.get(guardian['user_id'], []):
+                    #班级
+                    if class_guardian_default_dict[u.get("group_id", -1)]['n']:
+                        class_guardian_default_dict[u.get("group_id", -1)]['n'].append(1)
+                    else:
+                        class_guardian_default_dict[u.get("group_id", -1)]['n'] = [1]
+                    if class_guardian_default_dict[u.get("group_id", -1)]['wechats']:
+                        class_guardian_default_dict[u.get("group_id", -1)]['wechats'].append(guardian['wechat_id'])
+                    else:
+                        class_guardian_default_dict[u.get("group_id", -1)]['wechats'] = [guardian['wechat_id']]
+                    #班级unique
+                    class_unique_guardian_default_dict[u.get("group_id", -1)].add(guardian['user_id'])
 
                 # 年级
                 if grade_guardian_default_dict[str(usergroup_map.get(guardian['user_id'], {}).get("school_id", -1))+"@"+str(usergroup_map.get(guardian['user_id'], {}).get("grade", -1))]['n']:
@@ -532,7 +544,6 @@ class PerDaySubTask_GUARDIAN(BaseTask):
                         school_channel_map.get(user_school_map.get(guardian['user_id'], -1))]['wechats'] = [guardian['wechat_id']]
                 #渠道unique
                 channel_unique_guardian_default_dict[school_channel_map.get(user_school_map.get(guardian['user_id'], -1))].add(guardian['user_id'])
-                print(channel_unique_guardian_default_dict)
                 class_guardian_default_dict[usergroup_map.get(guardian['user_id'], {}).get("group_id", -1)]['group_info'] = usergroup_map.get(guardian['user_id'], {})
                 grade_guardian_default_dict[str(usergroup_map.get(guardian['user_id'], {}).get("school_id", -1))+"@"+str(usergroup_map.get(guardian['user_id'], {}).get("grade", -1))]['group_info'] = usergroup_map.get(guardian['user_id'],{})
                 channel_guardian_default_dict[school_channel_map.get(usergroup_map.get(guardian['user_id'], {}).get("school_id", -1))]['group_info'] = usergroup_map.get(guardian['user_id'],{})
@@ -554,7 +565,13 @@ class PerDaySubTask_GUARDIAN(BaseTask):
                 class_bulk_update.append(UpdateOne({"group_id": v['group_info'].get('group_id', -1), "day": one_date[0]},
                                              {'$set': guardian_schema}, upsert=True))
             class_unique_bulk_update = []
+            history_class_unique_guardian_bulk_update = []
             for k, v in class_unique_guardian_default_dict.items():
+                history_record = self.mongo[self.record_class_unique_guardian_delta_coll].find_one({"_id": k})
+                if not history_record:
+                    history_record = {}
+                v = list( set(v).difference( set (history_record.get("user_id", []))) )
+                record = list( set(v).union( set (history_record.get("user_id", []))) )
                 guardian_schema = {
                     "school_id": usergroup_map_class_key.get(k, {}).get("school_id", -1),
                     "channel": school_channel_map.get(usergroup_map_class_key.get(k, {}).get("school_id", -1), -1),
@@ -565,6 +582,9 @@ class PerDaySubTask_GUARDIAN(BaseTask):
                 class_unique_bulk_update.append(
                     UpdateOne({"group_id": int(k), "day": one_date[0]},
                               {'$set': guardian_schema}, upsert=True))
+                history_class_unique_guardian_bulk_update.append(
+                    UpdateOne({"_id": int(k)},
+                              {'$set': {"user_id": record}}, upsert=True))
 
             #年级
             grade_bulk_update = []
@@ -583,7 +603,13 @@ class PerDaySubTask_GUARDIAN(BaseTask):
                               {'$set': guardian_schema}, upsert=True))
 
             grade_unique_bulk_update = []
+            history_grade_unique_guardian_bulk_update = []
             for k, v in grade_unique_guardian_default_dict.items():
+                history_record = self.mongo[self.record_grade_unique_guardian_delta_coll].find_one({"_id": k})
+                if not history_record:
+                    history_record = {}
+                v = list(set(v).difference(set(history_record.get("user_id", []))))
+                record = list(set(v).union(set(history_record.get("user_id", []))))
                 guardian_schema = {
                     "school_id": int(k.split("@")[0]),
                     "channel": school_channel_map.get(int(k.split("@")[0]), -1),
@@ -593,6 +619,10 @@ class PerDaySubTask_GUARDIAN(BaseTask):
                 grade_unique_bulk_update.append(
                     UpdateOne({"grade": k.split("@")[1], "school_id": int(k.split("@")[0]), "day": one_date[0]},
                               {'$set': guardian_schema}, upsert=True))
+
+                history_grade_unique_guardian_bulk_update.append(
+                    UpdateOne({"_id": k},
+                              {'$set': {"user_id": record}}, upsert=True))
 
             # 学校
             school_bulk_update = []
@@ -609,7 +639,14 @@ class PerDaySubTask_GUARDIAN(BaseTask):
                               {'$set': guardian_schema}, upsert=True))
 
             school_unique_bulk_update = []
+            history_school_unique_guardian_bulk_update = []
             for k, v in school_unique_guardian_default_dict.items():
+
+                history_record = self.mongo[self.record_school_unique_guardian_delta_coll].find_one({"_id": k})
+                if not history_record:
+                    history_record = {}
+                v = list(set(v).difference(set(history_record.get("user_id", []))))
+                record = list(set(v).union(set(history_record.get("user_id", []))))
                 guardian_schema = {
                     "school_id": int(k),
                     "channel": school_channel_map.get(k, -1),
@@ -619,6 +656,10 @@ class PerDaySubTask_GUARDIAN(BaseTask):
                 school_unique_bulk_update.append(
                     UpdateOne({"school_id": k, "day": one_date[0]},
                               {'$set': guardian_schema}, upsert=True))
+
+                history_school_unique_guardian_bulk_update.append(
+                UpdateOne({"_id": k},
+                          {'$set': {"user_id": record}}, upsert=True))
 
             #渠道
             channel_bulk_update = []
@@ -632,7 +673,14 @@ class PerDaySubTask_GUARDIAN(BaseTask):
                               {'$set': guardian_schema}, upsert=True))
 
             channel_unique_bulk_update = []
+            history_channel_unique_guardian_bulk_update = []
             for k, v in channel_unique_guardian_default_dict.items():
+
+                history_record = self.mongo[self.record_channel_unique_guardian_delta_coll].find_one({"_id": k})
+                if not history_record:
+                    history_record = {}
+                v = list(set(v).difference(set(history_record.get("user_id", []))))
+                record = list(set(v).union(set(history_record.get("user_id", []))))
                 guardian_schema = {
                     "guardian_unique_count": len(v),
                     "wechat_user_ids": list(v),
@@ -640,6 +688,37 @@ class PerDaySubTask_GUARDIAN(BaseTask):
                 channel_unique_bulk_update.append(
                     UpdateOne({"channel": k, "day": one_date[0]},
                               {'$set': guardian_schema}, upsert=True))
+                history_channel_unique_guardian_bulk_update.append(
+                    UpdateOne({"_id": k},
+                              {'$set': {"user_id": record}}, upsert=True))
+
+            if history_class_unique_guardian_bulk_update:
+                try:
+                    bulk_update_ret = self.mongo[self.record_class_unique_guardian_delta_coll].bulk_write(history_class_unique_guardian_bulk_update)
+                    # print(bulk_update_ret.bulk_api_result)
+                except BulkWriteError as bwe:
+                    print(bwe.details)
+
+            if history_grade_unique_guardian_bulk_update:
+                try:
+                    bulk_update_ret = self.mongo[self.record_grade_unique_guardian_delta_coll].bulk_write(history_grade_unique_guardian_bulk_update)
+                    # print(bulk_update_ret.bulk_api_result)
+                except BulkWriteError as bwe:
+                    print(bwe.details)
+
+            if history_school_unique_guardian_bulk_update:
+                try:
+                    bulk_update_ret = self.mongo[self.record_school_unique_guardian_delta_coll].bulk_write(history_school_unique_guardian_bulk_update)
+                    # print(bulk_update_ret.bulk_api_result)
+                except BulkWriteError as bwe:
+                    print(bwe.details)
+
+            if history_channel_unique_guardian_bulk_update:
+                try:
+                    bulk_update_ret = self.mongo[self.record_channel_unique_guardian_delta_coll].bulk_write(history_channel_unique_guardian_bulk_update)
+                    # print(bulk_update_ret.bulk_api_result)
+                except BulkWriteError as bwe:
+                    print(bwe.details)
 
             if class_bulk_update:
                 try:

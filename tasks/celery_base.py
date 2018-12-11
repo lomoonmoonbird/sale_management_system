@@ -36,7 +36,7 @@ class CustomEncoder(json.JSONEncoder):
 class BaseTask(Task):
     def __init__(self):
         super(BaseTask, self).__init__()
-        self.start_time = datetime.datetime(2016,1,1)
+        self.start_time = datetime.datetime(2018,1,1)
         self.coll_time_threshold = 'sale_time_threshold'
         self.bulk_update = []
         self.total_dict = defaultdict(float)

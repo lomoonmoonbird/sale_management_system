@@ -138,7 +138,7 @@ sales_celery.config_from_object(Config)
 #user task
 per_day_task = PerDayTask()
 sales_celery.register_task(per_day_task)
-sales_celery.send_task('tasks.celery_per_day_task.PerDayTask')
+# sales_celery.send_task('tasks.celery_per_day_task.PerDayTask')
 
 
 per_day_exercise_images = PerDaySubTask_IMAGES()
@@ -146,7 +146,7 @@ sales_celery.register_task(per_day_exercise_images)
 
 per_day_guardian = PerDaySubTask_GUARDIAN()
 sales_celery.register_task(per_day_guardian)
-# sales_celery.send_task('tasks.celery_per_day_task.PerDaySubTask_GUARDIAN')
+sales_celery.send_task('tasks.celery_per_day_task.PerDaySubTask_GUARDIAN')
 
 per_day_payments = PerDaySubTask_PAYMENTS()
 sales_celery.register_task(per_day_payments)
