@@ -99,11 +99,10 @@ class ClazzExportReport(BaseHandler, ExportBase ):
                                                        template_path,
                                                        class_data,
                                                        title)
-        print(len(class_data))
         return await self.replay_stream(sheet,
                                         group_info['full_name'] + "-" +
                                         group_info['grade'] + "级" +
-                                        group_info['name'] + " 付费-" +
+                                        group_info['name'] + " 付费" +
                                         datetime.now().strftime("%Y-%m-%d"), request)
 
 
