@@ -102,7 +102,7 @@ class GradeExportReport(BaseHandler, ExportBase):
                                         title +
                                         datetime.now().strftime("%Y-%m-%d"), request)
 
-    # @validate_permission()
+    @validate_permission()
     async def guardian_related(self, request: Request):
         """
         家长 绑定相关导出
