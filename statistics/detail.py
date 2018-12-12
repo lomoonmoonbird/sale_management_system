@@ -1574,8 +1574,7 @@ class ChannelDetail(QueryMixin):
         total_count = await request.app['mongodb'][self.db][self.user_coll].count_documents({"channel_id": channel_id,
                                                                              "instance_role_id": Roles.MARKET.value,
                                                                             "status": 1})
-        print(market_users)
-        print(schools)
+
         market_users_map = {}
         for market in market_users:
             market_users_map[market['user_id']] = market
@@ -1592,7 +1591,6 @@ class ChannelDetail(QueryMixin):
         #     pass
         from collections import defaultdict
         channel_campact_data = defaultdict(dict)
-        print(items)
         # print(len(items),len(school_market_map),"school_market_map", school_market_map)
         for item in items:
             item['contest_coverage_ratio'] = 0
@@ -1649,7 +1647,6 @@ class ChannelDetail(QueryMixin):
             item["market_info"] = market_users_map.get(str(school_market_map.get(item['_id'], {}).get("user_id", "")), {})
 
         items = []
-        print(len(channel_campact_data.keys()))
         for user_id, item in channel_campact_data.items():
             items.append(
                 {

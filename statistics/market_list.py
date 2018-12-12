@@ -58,19 +58,14 @@ class MarketList(BaseHandler, DataExcludeMixin):
         markets = request.app['mongodb'][self.db][self.sale_user_coll].find({"channel_id": channel_id,
                                                                          "instance_role_id": Roles.MARKET.value,
                                                                          "status": 1}).skip(page*per_page).limit(per_page)
-        # total_market_count = request.app['mongodb'][self.db][self.sale_user_coll].find({"channel_id": channel_id,
-        #                                                                      "instance_role_id": Roles.MARKET.value,
-        #                                                                      "status": 1}).skip(page * per_page).limit(
-        #     per_page)
+
         markets = await markets.to_list(10000)
-        # print(markets)
         market_user_ids = [int(item['user_id']) for item in markets]
         schools = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": channel_id,
                                                                             "role": Roles.SCHOOL.value,
                                                                             "user_id": {"$in": market_user_ids},
                                                                             "status": 1})
         schools = await schools.to_list(10000)
-        # school_ids = [item['school_id'] for item in schools]
 
         channel_info = await request.app['mongodb'][self.db][self.instance_coll].find_one({"_id": ObjectId(channel_id), "status": 1})
         if channel_info:
@@ -79,14 +74,11 @@ class MarketList(BaseHandler, DataExcludeMixin):
                 exclude_channels = await self.exclude_channel(request.app['mysql'])
                 old_ids = list(set(old_ids).difference(set(exclude_channels)))
             items = await self._list(request, old_ids)
-            # print(json.dumps(items,indent=4))
             item_map = {}
             for item in items:
                 item_map[item['_id']] = item
-            # print(json.dumps(items, indent=4, cls=CustomEncoder))
             from collections import defaultdict
             market_school_map = defaultdict(lambda: defaultdict(dict))
-            # print("schools", schools)
             for school in schools:
                 default = {
                     "total_school_number": 0,
@@ -115,14 +107,7 @@ class MarketList(BaseHandler, DataExcludeMixin):
                 else:
                     market_school_map[school['user_id']]['schools'] = [school]
 
-
-
-            # print(json.dumps(market_school_map, indent=4, cls=CustomEncoder))
-            #
-            # print(json.dumps(items, indent=4, cls=CustomEncoder))
             data = []
-            # print("market",len(markets), markets)
-            # print("market_school_map", market_school_map)
             for market in markets:
                 tmp = {
                     "market_name": market['nickname'],
@@ -143,7 +128,6 @@ class MarketList(BaseHandler, DataExcludeMixin):
                     "contest_average_per_person": 0,
                 }
                 one_market = market_school_map.get(int(market['user_id']), tmp)
-                # print("market", one_market)
                 if one_market:
 
                     tmp["total_school_number"] = sum(one_market.get('n')) if one_market.get('n') else 0

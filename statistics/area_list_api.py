@@ -72,7 +72,22 @@ class AreaList(BaseHandler, DataExcludeMixin):
 
         exclude_channels = await self.exclude_channel(request.app['mysql'])
         old_ids = list(set(old_ids).difference(set(exclude_channels)))
+
         items = await self._list(request, old_ids)
+
+        items = await self.compute_area_list(request, areas, areas_map, channels_map, items)
+
+        return self.reply_ok({"area_list": items, "extra": {'total': total_count, "number_per_page": per_page, "curr_page": page}})
+
+
+    async def compute_area_list(self, request, areas, areas_map, channels_map, items):
+        """
+        计算大区列表总和
+        :param request:
+        :return:
+        """
+
+
         from collections import defaultdict
         area_compact_data = defaultdict(dict)
         for item in items:
@@ -114,7 +129,7 @@ class AreaList(BaseHandler, DataExcludeMixin):
                 'total_word_image_number', []).append(item['total_word_image_number'])
 
             area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
-                'pay_ratio', []).append(item['pay_ratio'] )
+                'pay_ratio', []).append(item['pay_ratio'])
 
             area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
                 'bind_ratio', []).append(item['bind_ratio'])
@@ -124,7 +139,6 @@ class AreaList(BaseHandler, DataExcludeMixin):
 
             area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
                 'contest_average_per_person', []).append(item['contest_average_per_person'])
-
 
             item["area_info"] = areas_map.get(channels_map.get(item['_id'], 0), {})
 
@@ -143,8 +157,12 @@ class AreaList(BaseHandler, DataExcludeMixin):
                     "total_exercise_image_number": sum(item['total_exercise_image_number']),
                     "total_word_image_number": sum(item['total_word_image_number']),
                     "total_valid_reading_number": sum(item['total_valid_reading_number']),
-                    "pay_ratio": self.rounding(sum(item['total_pay_number']) / sum(item['total_student_number'])) if sum(item['total_student_number']) else 0,
-                    "bind_ratio": self.rounding(sum(item['total_guardian_unique_count']) / sum(item['total_student_number'])) if sum(item['total_student_number']) else 0,
+                    "pay_ratio": self.rounding(
+                        sum(item['total_pay_number']) / sum(item['total_student_number'])) if sum(
+                        item['total_student_number']) else 0,
+                    "bind_ratio": self.rounding(
+                        sum(item['total_guardian_unique_count']) / sum(item['total_student_number'])) if sum(
+                        item['total_student_number']) else 0,
                     "contest_coverage_ratio": sum(item['contest_coverage_ratio']),
                     "contest_average_per_person": sum(item['contest_average_per_person']),
                     "area_info": areas_map.get(area_id, {})
@@ -176,9 +194,7 @@ class AreaList(BaseHandler, DataExcludeMixin):
                     "contest_average_per_person": 0,
                     "area_info": areas_map.get(str(area['_id']), {})
                 })
-
-        return self.reply_ok({"area_list": items, "extra": {'total': total_count, "number_per_page": per_page, "curr_page": page}})
-
+        return items
 
     async def _list(self, request: Request, channel_ids: list):
         """
