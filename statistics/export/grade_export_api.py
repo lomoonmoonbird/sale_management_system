@@ -36,7 +36,7 @@ from statistics.export.export_base import ExportBase
 from mixins import DataExcludeMixin
 
 
-class SchoolExportReport(BaseHandler, ExportBase):
+class GradeExportReport(BaseHandler, ExportBase):
     """
     学校相关项导出
     """
@@ -51,17 +51,19 @@ class SchoolExportReport(BaseHandler, ExportBase):
         """
         考试相关导出
         {
-            "school_id": ""
+            "school_id": "",
+            "grade": ""
         }
         :param request:
         :return:
         """
         request_param = await get_params(request)
         school_id = request_param.get("school_id")
-        if not school_id:
-            raise RequestError("school_id must not be empty")
+        grade = request_param.get("grade")
+        if not school_id or not grade:
+            raise RequestError("school_id or grade must not be empty")
         school_id = int(school_id)
-        sql = "select id, name from sigma_account_ob_group where available = 1 and school_id = %s " % school_id
+        sql = "select id, name from sigma_account_ob_group where available = 1 and school_id = %s and grade = %s" % (school_id, grade)
         school_sql = "select id, full_name from sigma_account_ob_school where available = 1 and id = %s" % school_id
         async with request.app['mysql'].acquire() as conn:
             async with conn.cursor(DictCursor) as cur:
@@ -89,7 +91,7 @@ class SchoolExportReport(BaseHandler, ExportBase):
             }
             cla['stat_info'] = items_map.get(cla['id'], default)
 
-        title = school['full_name'] + " 所有班級考試詳情 "
+        title = school['full_name'] + str(grade) + "级 班級考試詳情 "
         template_path = os.path.dirname(__file__) + "/templates/school_class_contest_related_template.xlsx"
         sheet = await request.app.loop.run_in_executor(self.thread_pool,
                                                        self.contest_sheet,
@@ -100,20 +102,22 @@ class SchoolExportReport(BaseHandler, ExportBase):
                                         title +
                                         datetime.now().strftime("%Y-%m-%d"), request)
 
-    @validate_permission()
+    # @validate_permission()
     async def guardian_related(self, request: Request):
         """
         家长 绑定相关导出
         {
             "school_id": ""
+            "grade": ""
         }
         :param request:
         :return:
         """
         request_param = await get_params(request)
         school_id = request_param.get("school_id")
-        if not school_id:
-            raise RequestError("school_id must not be empty")
+        grade = request_param.get('grade')
+        if not school_id or not grade:
+            raise RequestError("school_id or grade must not be empty")
 
         bind_sql = "select DISTINCT user_id " \
                    "from sigma_account_re_userwechat " \
@@ -121,10 +125,12 @@ class SchoolExportReport(BaseHandler, ExportBase):
                    "user_id in ( select id from sigma_account_us_user" \
                    " where school_id = %s and available = 1 )" % school_id
 
-        student_sql = "select id, name from sigma_account_us_user " \
-                      "where available = 1 " \
-                      "and role_id = 2 " \
-                      "and school_id = %s" % school_id
+        student_sql = "select u.id, u.name, g.grade  " \
+                      "from sigma_account_us_user as u " \
+                      "join sigma_account_re_groupuser as gu " \
+                      "on u.available = 1 and gu.available =1 and u.id = gu.user_id " \
+                      "join sigma_account_ob_group as g " \
+                      "on g.id = gu.group_id and g.school_id = %s and g.grade = %s" % (school_id, grade)
 
         school_sql = "select full_name from sigma_account_ob_school " \
                      "where available = 1 and id = %s " % school_id
@@ -137,10 +143,7 @@ class SchoolExportReport(BaseHandler, ExportBase):
                 await cur.execute(school_sql)
                 school = await cur.fetchone()
 
-
-
-
-        title = school['full_name'] + " 班级学生绑定情况 "
+        title = school['full_name'] + str(grade) + "年级 班级学生绑定情况 "
         template_path = os.path.dirname(__file__) + "/templates/guardian_template.xlsx"
         sheet = await request.app.loop.run_in_executor(self.thread_pool,
                                                        self.guardian_sheet,
@@ -151,7 +154,6 @@ class SchoolExportReport(BaseHandler, ExportBase):
         return await self.replay_stream(sheet,
                                         title +
                                         datetime.now().strftime("%Y-%m-%d"), request)
-
 
     async def _list_school_clazz(self, request: Request, school_id: int):
         """
@@ -231,9 +233,10 @@ class SchoolExportReport(BaseHandler, ExportBase):
 
         return items
 
+
     def contest_sheet(self, template, items, title):
         """
-        考试 製作表格
+        製作表格
         :param template:
         :param items:
         :param title:
