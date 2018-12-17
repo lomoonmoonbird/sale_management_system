@@ -39,7 +39,7 @@ class SchoolManage(BaseHandler):
         self.grade_per_day_coll = 'grade_per_day'
         self.start_time = BaseTask().start_time
 
-    @validate_permission()
+    @validate_permission(data_validation=True)
     async def get_school_list(self, request: Request):
         """
         学校列表
