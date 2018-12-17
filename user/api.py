@@ -202,12 +202,14 @@ class User(BaseHandler, DataExcludeMixin):
                                                                                  "status": 1})
         res = []
         channel_ids = await channel_oids.to_list(10000)
+
+        channel_ids = ','.join([str(id['old_id']) for id in channel_ids])
         channel_ids = list(set(channel_ids).difference(set(exclude_channels_u)))
         if channel_ids:
             sql = "select id, name from " \
                   "sigma_account_us_user " \
                   "where available = 1 " \
-                  "and id IN (%s) " % (','.join([str(id['old_id']) for id in channel_ids]))
+                  "and id IN (%s) " % (channel_ids)
             async with request.app['mysql'].acquire() as conn:
                 async with conn.cursor(DictCursor) as cur:
                     await cur.execute(sql)
