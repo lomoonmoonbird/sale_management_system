@@ -211,7 +211,7 @@ class User(BaseHandler, DataExcludeMixin):
 
         return self.reply_ok(res)
 
-    @validate_permission()
+    @validate_permission(data_validation=True)
     async def get_areas(self, request: Request):
         """
         分页获取大区列表
@@ -225,8 +225,9 @@ class User(BaseHandler, DataExcludeMixin):
         page = int(request_param['page'])
         per_page = 10
         total_count = 0
-        total_count = await request.app['mongodb'][self.db][self.instance_coll].count_documents({"role": Roles.AREA.value, "status": 1})
-        areas = request.app['mongodb'][self.db][self.instance_coll].find({"role": Roles.AREA.value, "status": 1}).sort('create_at', -1).skip(page*per_page).limit(per_page)
+        exclude_area = [ObjectId(id) for id in request['data_permission']['exclude_area']]
+        total_count = await request.app['mongodb'][self.db][self.instance_coll].count_documents({"_id": {"$nin": exclude_area}, "role": Roles.AREA.value, "status": 1})
+        areas = request.app['mongodb'][self.db][self.instance_coll].find({"_id": {"$nin": exclude_area}, "role": Roles.AREA.value, "status": 1}).sort('create_at', -1).skip(page*per_page).limit(per_page)
         users = request.app['mongodb'][self.db][self.user_coll].find({"instance_role_id": Roles.AREA.value, "status": 1})
         areas = await areas.to_list(10000)
         users = await users.to_list(10000)
@@ -438,7 +439,7 @@ class User(BaseHandler, DataExcludeMixin):
 
         return self.reply_ok({})
 
-    @validate_permission()
+    @validate_permission(data_validation=True)
     async def get_area_user_channels(self, request: Request):
         """
         分页获取大区用户的渠道
@@ -519,13 +520,14 @@ class User(BaseHandler, DataExcludeMixin):
 
             elif int(request["user_info"]["instance_role_id"]) == Roles.GLOBAL.value:
                 exclude_channel = request['data_permission']['exclude_channel']
+                exclude_channel_str = ','.join(['"'+str(id)+'"' for id in exclude_channel]) if exclude_channel else "''"
                 sql = "select * from sigma_account_us_user " \
                       "where available = 1 " \
                       "and role_id = 6 " \
                       "and id not in (%s)" \
                       "and time_create >= '%s' " \
                       "and time_create <= '%s' " \
-                      " limit %s, %s " % (','.join(['"'+str(id)+'"' for id in exclude_channel]),
+                      " limit %s, %s " % (exclude_channel_str,
                                           self.start_time.strftime("%Y-%m-%d"),
                                               datetime.now().strftime("%Y-%m-%d"),
                                               page*per_page,
@@ -537,7 +539,7 @@ class User(BaseHandler, DataExcludeMixin):
                             "and id not in (%s)" \
                             "and role_id = 6 " \
                             "and time_create>='%s'" \
-                            " and time_create<='%s'" %(','.join(['"'+str(id)+'"' for id in exclude_channel]),
+                            " and time_create<='%s'" %(exclude_channel_str,
                                                        self.start_time.strftime("%Y-%m-%d"),
                                                      datetime.now().strftime("%Y-%m-%d"))
                 async with request.app['mysql'].acquire() as conn:
@@ -747,17 +749,7 @@ class User(BaseHandler, DataExcludeMixin):
         users_info = []
         total_count = 0
         if request['user_info']['instance_role_id'] == Roles.GLOBAL.value:
-            # channel_id = request['user_info']['channel_id']
-            # users = request.app['mongodb'][self.db][self.user_coll].find({"channel_id": channel_id, "status": 1})\
-            #     .skip(page*per_page).limit(per_page)
-            # channel_info = await request.app['mongodb'][self.db][self.instance_coll].find_one({"_id": ObjectId(channel_id),
-            #                                                                                    "status": 1})
-            # if channel_info:
-            #     channels.append({"channel_id": str(channel_info['_id']), "name": channel_info['name']})
-            # users_info = users
-            # global_id = \
-            # (await request.app['mongodb'][self.db][self.instance_coll].find_one({'role': Roles.GLOBAL.value}))['_id']
-            # areas = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": global_id, "status": 1})
+
 
             users = request.app['mongodb'][self.db][self.user_coll].find({"instance_role_id": Roles.MARKET.value,
                                                                           "status": 1}).skip(page*per_page).limit(per_page)
