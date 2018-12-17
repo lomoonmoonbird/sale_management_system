@@ -151,7 +151,7 @@ class User(BaseHandler, DataExcludeMixin):
             traceback.print_exc()
         raise CreateUserError("AREA adding user failed")
 
-    @validate_permission()
+    @validate_permission(operate_validation=True)
     async def add_area_channel(self, request: Request):
         """
         {
@@ -284,7 +284,7 @@ class User(BaseHandler, DataExcludeMixin):
             data.append(r)
         return self.reply_ok(data)
 
-    @validate_permission()
+    @validate_permission(operate_validation=True)
     async def del_area(self, request: Request):
         """
         删除大区
