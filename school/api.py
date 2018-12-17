@@ -134,8 +134,23 @@ class School(BaseHandler):
             old_id = channel_info.get('old_id', None) if channel_info else None
 
             if old_id:
-                sql = "select id, full_name, time_create from sigma_account_ob_school where available = 1 and owner_id = %s and time_create>='%s' and time_create <='%s' limit %s,%s" %  (old_id, self.start_time.strftime("%Y-%m-%d"), datetime.now().strftime("%Y-%m-%d"), per_page*page, per_page)
-                total_sql = "select count(id) as total from sigma_account_ob_school where available = 1 and owner_id = %s and time_create>='%s' and time_create <='%s'" % (old_id, self.start_time.strftime("%Y-%m-%d"), datetime.now().strftime("%Y-%m-%d"))
+                sql = "select id, full_name, time_create " \
+                      "from sigma_account_ob_school " \
+                      "where available = 1 " \
+                      "and owner_id = %s " \
+                      "and time_create>='%s' " \
+                      "and time_create <='%s' limit %s,%s" %  (old_id,
+                                                               self.start_time.strftime("%Y-%m-%d"),
+                                                               datetime.now().strftime("%Y-%m-%d"),
+                                                               per_page*page, per_page)
+                total_sql = "select count(id) as total " \
+                            "from sigma_account_ob_school " \
+                            "where available = 1 " \
+                            "and owner_id = %s " \
+                            "and time_create>='%s' " \
+                            "and time_create <='%s'" % (old_id,
+                                                        self.start_time.strftime("%Y-%m-%d"),
+                                                        datetime.now().strftime("%Y-%m-%d"))
                 async with request.app['mysql'].acquire() as conn:
                     async with conn.cursor(DictCursor) as cur:
                         await cur.execute(sql)
@@ -179,18 +194,25 @@ class School(BaseHandler):
 
 
         elif request['user_info']['instance_role_id'] == Roles.GLOBAL.value: #总部
+            exclude_channel = request['data_permission']['exclude_channel']
+            exclude_channel_str = ','.join(['"' + str(id) + '"' for id in exclude_channel]) if exclude_channel else "''"
             sql = "select id, full_name, time_create " \
                   "from sigma_account_ob_school " \
-                  "where available = 1 and time_create>='%s' " \
+                  "where available = 1 " \
+                  "and owner_id not in (%s) " \
+                  "and time_create>='%s' " \
                   "and time_create <='%s' " \
-                  "limit %s, %s" %(self.start_time.strftime("%Y-%m-%d"),
+                  "limit %s, %s" %(exclude_channel_str,
+                                   self.start_time.strftime("%Y-%m-%d"),
                                    datetime.now().strftime("%Y-%m-%d"),
                                    per_page*page, per_page)
             total_sql = "select count(id) as total " \
                         "from sigma_account_ob_school " \
                         "where available = 1 " \
+                        "and owner_id not in (%s) " \
                         "and time_create>='%s' " \
-                        "and time_create <='%s'" % (self.start_time.strftime("%Y-%m-%d"),
+                        "and time_create <='%s'" % (exclude_channel_str,
+                                                    self.start_time.strftime("%Y-%m-%d"),
                                                     datetime.now().strftime("%Y-%m-%d"))
             async with request.app['mysql'].acquire() as conn:
                 async with conn.cursor(DictCursor) as cur:
