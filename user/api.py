@@ -196,7 +196,7 @@ class User(BaseHandler, DataExcludeMixin):
         :return:
         """
         request_param = await get_params(request)
-        exclude_channels_u = request['data_permission']['exclude_channel']
+        # exclude_channels_u = request['data_permission']['exclude_channel']
         channel_oids = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": request_param.get("area_id"),
                                                                                  "role": Roles.CHANNEL.value,
                                                                                  "status": 1})
@@ -204,8 +204,8 @@ class User(BaseHandler, DataExcludeMixin):
         channel_ids = await channel_oids.to_list(10000)
 
         channel_ids = ','.join([str(id['old_id']) for id in channel_ids])
-        channel_ids_2 = ','.join([str(id) for id in exclude_channels_u])
-        channel_ids = list(set(channel_ids).difference(set(channel_ids_2)))
+        # channel_ids_2 = ','.join([str(id) for id in exclude_channels_u])
+        # channel_ids = list(set(channel_ids).difference(set(channel_ids_2)))
         if channel_ids:
             sql = "select id, name from " \
                   "sigma_account_us_user " \
