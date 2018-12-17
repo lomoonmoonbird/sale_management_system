@@ -50,8 +50,8 @@ class AreaList(BaseHandler, DataExcludeMixin):
         page = int(request_param.get('page', 0))
         per_page = 10
         total_count = 0
-
-        areas = request.app['mongodb'][self.db][self.instance_coll].find({"_id": {"$nin": request['data_permission']['exclude_area']},
+        exclude_area_objectid = [ObjectId(id) for id in request['data_permission']['exclude_area']]
+        areas = request.app['mongodb'][self.db][self.instance_coll].find({"_id": {"$nin": exclude_area_objectid},
                                                                           "parent_id": request['user_info']['global_id'],
                                                                           "role": Roles.AREA.value,
                                                                           "status": 1}).skip(page*per_page).limit(per_page)
