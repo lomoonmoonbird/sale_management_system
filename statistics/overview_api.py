@@ -44,7 +44,7 @@ class Overview(BaseHandler, DataExcludeMixin):
         """
         exclude_channels = await self.exclude_channel(request.app['mysql'])
         if request['user_info']['instance_role_id'] == Roles.GLOBAL.value:
-            exclude_channels = exclude_channels + request['data_permission']['exclude_channel']
+            exclude_channels += request['data_permission']['exclude_channel']
             pay_total, pay_curr_week_new_number, pay_last_week_new_number = await self._pay_number(request, exclude_channels)
 
             pay_amount, pay_curr_week_new_amount, pay_last_week_new_amount = await self._pay_amount(request, exclude_channels)
