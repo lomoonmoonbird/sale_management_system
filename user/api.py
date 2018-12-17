@@ -261,7 +261,7 @@ class User(BaseHandler, DataExcludeMixin):
             data.append(one_area)
         return self.reply_ok({"area_list": data, "extra": {"total": total_count, "number_per_page": per_page, "curr_page": page}})
 
-    @validate_permission()
+    @validate_permission(data_validation=True)
     async def get_channels(self, request: Request):
         """
         分页获取渠道列表
