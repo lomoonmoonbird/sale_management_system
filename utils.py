@@ -271,6 +271,7 @@ def validate_permission(*args, **kwargs):
                 if request_uri in o.get("exclude_api", []):
                     raise PermissionError('User can not access this API!')
             if kwargs.get("data_validation", False):
+                print('data_validationdata_validationdata_validationdata_validationdata_validationdata_validation')
                 request['data_permission'] = {}
                 d = await request.app['mongodb']['sales']['data_permission'].find_one({"user_id": str(user_id)})
                 d = d or {}
