@@ -179,8 +179,19 @@ class School(BaseHandler):
 
 
         elif request['user_info']['instance_role_id'] == Roles.GLOBAL.value: #总部
-            sql = "select id, full_name, time_create from sigma_account_ob_school where available = 1 and time_create>='%s' and time_create <='%s' limit %s, %s" %(self.start_time.strftime("%Y-%m-%d"), datetime.now().strftime("%Y-%m-%d"), per_page*page, per_page)
-            total_sql = "select count(id) as total from sigma_account_ob_school where available = 1 and time_create>='%s' and time_create <='%s'" % (self.start_time.strftime("%Y-%m-%d"), datetime.now().strftime("%Y-%m-%d"))
+            sql = "select id, full_name, time_create " \
+                  "from sigma_account_ob_school " \
+                  "where available = 1 and time_create>='%s' " \
+                  "and time_create <='%s' " \
+                  "limit %s, %s" %(self.start_time.strftime("%Y-%m-%d"),
+                                   datetime.now().strftime("%Y-%m-%d"),
+                                   per_page*page, per_page)
+            total_sql = "select count(id) as total " \
+                        "from sigma_account_ob_school " \
+                        "where available = 1 " \
+                        "and time_create>='%s' " \
+                        "and time_create <='%s'" % (self.start_time.strftime("%Y-%m-%d"),
+                                                    datetime.now().strftime("%Y-%m-%d"))
             async with request.app['mysql'].acquire() as conn:
                 async with conn.cursor(DictCursor) as cur:
                     await cur.execute(sql)

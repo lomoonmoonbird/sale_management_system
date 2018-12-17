@@ -863,14 +863,14 @@ class QueryMixin(BaseHandler):
 
         return items
 
-    async def _list_channel(self, request: Request, school_ids: list):
+    async def _list_market(self, request: Request, school_ids: list):
         """
         渠道详情
         :param request:
         :param channel_ids:
         :return:
         """
-        coll = request.app['mongodb'][self.db][self.grade_per_day_coll]
+        coll = request.app['mongodb'][self.db][self.school_per_day_coll]
         items = []
         yesterday = datetime.now() - timedelta(1)
         yesterday_before_30day = yesterday - timedelta(30)
@@ -889,7 +889,6 @@ class QueryMixin(BaseHandler):
                     "$project": {
                         "school_id":1,
                         "channel": 1,
-                        "school_number": 1,
                         "teacher_number": 1,
                         "student_number": 1,
                         "guardian_count": 1,
@@ -912,7 +911,6 @@ class QueryMixin(BaseHandler):
                 },
 
                 {"$group": {"_id": "$school_id",
-                            "total_school_number": {"$sum": "$school_number"},
                             "total_teacher_number": {"$sum": "$teacher_number"},
                             "total_student_number": {"$sum": "$student_number"},
                             "total_guardian_number": {"$sum": "$guardian_count"},
@@ -929,7 +927,6 @@ class QueryMixin(BaseHandler):
                 {
                     "$project": {
                         "_id": 1,
-                        "total_school_number": 1,
                         "total_teacher_number": 1,
                         "total_student_number": 1,
                         "total_guardian_number": 1,
@@ -1270,7 +1267,6 @@ class QueryMixin(BaseHandler):
 
         return items
 
-
     async def _wap_list_grade_clazz(self, request: Request, school_id: int, grade: str):
         """
         渠道维度统计
@@ -1341,7 +1337,7 @@ class AreaDetail(QueryMixin, DataExcludeMixin):
     def __init__(self):
         super(AreaDetail, self).__init__()
 
-    @validate_permission()
+    @validate_permission(data_validation=True)
     async def overview(self, request: Request):
         """
         大区详情总览
@@ -1363,6 +1359,7 @@ class AreaDetail(QueryMixin, DataExcludeMixin):
 
         old_ids = [item['old_id'] for item in channels]
         exclude_channels = await self.exclude_channel(request.app['mysql'])
+        exclude_channels += request['data_permission']['exclude_channel']
         old_ids = list(set(old_ids).difference(set(exclude_channels)))
         pay_total, pay_curr_week_new_number, pay_last_week_new_number = await self._pay_number(request, old_ids, "$channel")
 
@@ -1410,7 +1407,7 @@ class AreaDetail(QueryMixin, DataExcludeMixin):
                               "contest_last_week_new_number": contest_last_week_new_number
                               })
 
-    @validate_permission()
+    @validate_permission(data_validation=True)
     async def channel_list(self, request: Request):
         """
         渠道列表
@@ -1448,6 +1445,7 @@ class AreaDetail(QueryMixin, DataExcludeMixin):
                     await cur.execute(sql)
                     real_channels = await cur.fetchall()
             exclude_channels = await self.exclude_channel(request.app['mysql'])
+            exclude_channels += request['data_permission']['exclude_channel']
             old_ids = list(set(old_ids).difference(set(exclude_channels)))
             items = await self._list(request, old_ids)
             channel_id_map = {}
@@ -1469,7 +1467,7 @@ class ChannelDetail(QueryMixin):
     def __init__(self):
         super(ChannelDetail, self).__init__()
 
-    @validate_permission()
+    @validate_permission(data_validation=True)
     async def overview(self, request: Request):
         """
         渠道详情总览
@@ -1486,9 +1484,9 @@ class ChannelDetail(QueryMixin):
         channel = await request.app['mongodb'][self.db][self.instance_coll].find_one({"_id": ObjectId(channel_id), "status": 1})
         if channel:
             channel_old_id = [channel.get("old_id", 0)]
-            schools = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": channel_id, "role": Roles.SCHOOL.value, "status": 1})
-            schools = await schools.to_list(10000)
-            school_ids = [item['school_id'] for item in schools]
+            channel_old_id = list(set(channel_old_id).difference(set(request['data_permission']['exclude_channel'])))
+
+
             pay_total, pay_curr_week_new_number, pay_last_week_new_number = await self._pay_number(request, channel_old_id,
                                                                                                    "$channel")
 
@@ -1538,7 +1536,6 @@ class ChannelDetail(QueryMixin):
                                   "contest_curr_week_new_number": contest_curr_week_new_number,
                                   "contest_last_week_new_number": contest_last_week_new_number
                                   })
-        # raise ChannelNotExist("Channel not exist")
         return self.reply_ok([])
 
     @validate_permission()
@@ -1568,9 +1565,7 @@ class ChannelDetail(QueryMixin):
                                                                              "instance_role_id": Roles.MARKET.value,
                                                                              "status": 1}).skip(per_page*page).limit(per_page)
         market_users = await market_users.to_list(10000)
-        market_users_user_ids = [item['user_id'] for item in market_users]
-        # users = request.app['mongodb'][self.db][self.user_coll].find({"user_id": {"$in": market_users_user_ids}, "status": 1}).skip(page*per_page).limit(per_page)
-        # users = await users.to_list(10000)
+
         total_count = await request.app['mongodb'][self.db][self.user_coll].count_documents({"channel_id": channel_id,
                                                                              "instance_role_id": Roles.MARKET.value,
                                                                             "status": 1})
@@ -1584,7 +1579,7 @@ class ChannelDetail(QueryMixin):
         for school in schools:
             school_market_map[school['school_id']] = market_users_map.get(str(school['user_id']), {})
             market_school_map[school['user_id']] = school
-        items = await self._list_channel(request, schools_ids)
+        items = await self._list_market(request, schools_ids)
 
 
         # for user_id, user_data in market_users.items():
@@ -1596,7 +1591,7 @@ class ChannelDetail(QueryMixin):
             item['contest_coverage_ratio'] = 0
             item['contest_average_per_person'] = 0
             channel_campact_data.setdefault(school_market_map.get(item['_id'], {}).get("user_id", ""), {}).setdefault(
-                'total_school_number', []).append(item['total_school_number'])
+                'total_school_number', []).append(1)
 
             channel_campact_data.setdefault(school_market_map.get(item['_id'], {}).get("user_id", ""), {}).setdefault(
                 'total_teacher_number', []).append(item['total_teacher_number'])

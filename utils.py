@@ -195,7 +195,7 @@ def catch_unknown_error(error, error_info):
     return _wrapper
 
 
-def validate_permission():
+def validate_permission(*args, **kwargs):
     def outer_wrapper(func):
         @wraps(func)
         @catch_unknown_error(LoginError, 'Login error:')
@@ -238,6 +238,7 @@ def validate_permission():
 
             user_id = await get_user_id(http_session, cookie)
             u = await request.app['mongodb']['sales']['sale_user'].find_one({"user_id": str(user_id)})
+
             if u:
                 if u.get('status', 0) != 1:
                     raise PermissionError("User Banned")
@@ -263,8 +264,21 @@ def validate_permission():
             request['user_info']['role_id'] = int(u.get("role_id", -1))
             request['user_info']['instance_role_id'] = int(u.get("instance_role_id", -1))
             print (request['user_info'])
+
+            if kwargs.get("operate_validation", False):
+                o = await request.app['mongodb']['sales']['operate_permission'].find_one({"user_id": str(user_id)})
+                if request_uri in o.get("exclude_api", []):
+                    raise PermissionError('User can not access this API!')
+            if kwargs.get("data_validation", False):
+                request['data_permission'] = {}
+                d = await request.app['mongodb']['sales']['data_permission'].find_one({"user_id": str(user_id)})
+                request['data_permission']['exclude_area'] = d.get("exclude_area", [])
+                request['data_permission']['exclude_channel'] = d.get("exclude_channel", [])
+                request['data_permission']['exclude_market'] = d.get("exclude_market", [])
+                request['data_permission']['exclude_school'] = d.get("exclude_school", [])
             return await func(*args, **kwargs)
 
         return inner_wrapper
 
     return outer_wrapper
+

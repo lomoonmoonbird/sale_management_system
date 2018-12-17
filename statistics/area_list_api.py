@@ -35,7 +35,7 @@ class AreaList(BaseHandler, DataExcludeMixin):
         self.grade_per_day_coll = 'grade_per_day'
         self.channel_per_day_coll = 'channel_per_day'
 
-    @validate_permission()
+    @validate_permission(data_validation=True)
     async def area_list(self, request: Request):
         """
         大区列表
@@ -50,11 +50,14 @@ class AreaList(BaseHandler, DataExcludeMixin):
         page = int(request_param.get('page', 0))
         per_page = 10
         total_count = 0
-        areas = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": request['user_info']['global_id'],
+
+        areas = request.app['mongodb'][self.db][self.instance_coll].find({"_id": {"$nin": request['data_permission']['exclude_area']},
+                                                                          "parent_id": request['user_info']['global_id'],
                                                                           "role": Roles.AREA.value,
                                                                           "status": 1}).skip(page*per_page).limit(per_page)
         areas = await areas.to_list(100000)
-        total_count = await request.app['mongodb'][self.db][self.instance_coll].count_documents({"parent_id": request['user_info']['global_id'],
+        total_count = await request.app['mongodb'][self.db][self.instance_coll].count_documents({"_id": {"$nin": request['data_permission']['exclude_area']},
+                                                                                                 "parent_id": request['user_info']['global_id'],
                                                                           "role": Roles.AREA.value,
                                                                           "status": 1})
         areas_ids = [str(item['_id']) for item in areas]
