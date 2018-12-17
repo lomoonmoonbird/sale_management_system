@@ -150,7 +150,7 @@ sales_celery.register_task(per_day_guardian)
 
 per_day_payments = PerDaySubTask_PAYMENTS()
 sales_celery.register_task(per_day_payments)
-sales_celery.send_task('tasks.celery_per_day_task.PerDaySubTask_PAYMENTS')
+# sales_celery.send_task('tasks.celery_per_day_task.PerDaySubTask_PAYMENTS')
 
 per_day_schools = PerDayTask_SCHOOL()
 sales_celery.register_task(per_day_schools)
