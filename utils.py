@@ -195,12 +195,12 @@ def catch_unknown_error(error, error_info):
     return _wrapper
 
 
-def validate_permission(*args, **kwargs):
-    def outer_wrapper(func, *args, **kwargs):
+def validate_permission(*require_arg, **optional_arg):
+    def outer_wrapper(func):
+
         @wraps(func)
         @catch_unknown_error(LoginError, 'Login error:')
         async def inner_wrapper(*args, **kwargs):
-            logger.error(kwargs)
             async def get_user_id(_session, _cookie) -> int:
                 async with _session.get(UC_SYSTEM_API_URL + '/getLoginStatus', headers={'Cookie': _cookie}) as resp:
                     resp_as_json = await resp.json()
@@ -263,15 +263,14 @@ def validate_permission(*args, **kwargs):
             request['user_info']['school_id'] = u.get("school_id", '')
             request['user_info']['role_id'] = int(u.get("role_id", -1))
             request['user_info']['instance_role_id'] = int(u.get("instance_role_id", -1))
-            print (request['user_info'])
 
-            if kwargs.get("operate_validation", False):
+            if optional_arg.get("operate_validation", False):
                 o = await request.app['mongodb']['sales']['operate_permission'].find_one({"user_id": str(user_id)})
                 o = o or {}
                 if request_uri in o.get("exclude_api", []):
                     raise PermissionError('User can not access this API!')
-            if kwargs.get("data_validation", False):
-                print('data_validationdata_validationdata_validationdata_validationdata_validationdata_validation')
+            if optional_arg.get("data_validation", False):
+
                 request['data_permission'] = {}
                 d = await request.app['mongodb']['sales']['data_permission'].find_one({"user_id": str(user_id)})
                 d = d or {}
