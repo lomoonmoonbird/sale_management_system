@@ -71,7 +71,7 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                                     "role": Roles.AREA.value,
                                     "status": 1})
         areas = await areas.to_list(100000)
-        channels = instance_coll.find({"role": Roles.CHANNEL.value,
+        channels = instance_coll.find({"old_id": {"$nin": exclude_channels_u} ,"role": Roles.CHANNEL.value,
                                        "status": 1})
 
         channels = await channels.to_list(100000)
