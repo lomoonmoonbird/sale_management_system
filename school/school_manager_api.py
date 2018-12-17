@@ -62,6 +62,7 @@ class SchoolManage(BaseHandler):
         flag = 0
         request_stage = int(request_param.get('stage')) if request_param.get('stage') else -1
         exclude_channel = request['data_permission']['exclude_channel']
+        exclude_channel_str = ','.join(['"'+str(id)+'"' for id in exclude_channel]) if exclude_channel else ""
         if not request_param.get('school_name') and request_stage not in [StageEnum.Register.value,
                                                                                        StageEnum.Using.value,
                                                                                        StageEnum.Binding.value,
@@ -71,13 +72,13 @@ class SchoolManage(BaseHandler):
             school_page_sql = "select id,full_name, time_create  " \
                               "from sigma_account_ob_school" \
                               " where available = 1 and owner_id not in (%s) and time_create >= '%s' " \
-                              "and time_create <= '%s' limit %s,%s" % (','.join(['"'+str(id)+'"' for id in exclude_channel]),
+                              "and time_create <= '%s' limit %s,%s" % (exclude_channel_str,
                                                                        self.start_time.strftime("%Y-%m-%d"),
                                                            datetime.now().strftime("%Y-%m-%d"), per_page*page, per_page)
             total_sql = "select count(id) as total_school_count " \
                         "from sigma_account_ob_school" \
                         " where available = 1 and owner_id not in (%s) and time_create >= '%s' " \
-                        "and time_create <= '%s' " % (','.join(['"'+str(id)+'"' for id in exclude_channel]),
+                        "and time_create <= '%s' " % (exclude_channel_str,
                             self.start_time.strftime("%Y-%m-%d"), datetime.now().strftime("%Y-%m-%d"))
 
         elif request_param.get('school_name'): #单个学校
@@ -85,7 +86,7 @@ class SchoolManage(BaseHandler):
                               "from sigma_account_ob_school" \
                               " where available = 1 " \
                               "and owner_id not in (%s) " \
-                              "and full_name like %s" % (','.join(['"'+str(id)+'"' for id in exclude_channel]),
+                              "and full_name like %s" % (exclude_channel_str,
                                                          "'%"+request_param['school_name'] +"%'")
             flag = 2
         elif not request_param.get('school_name'):
@@ -122,20 +123,20 @@ class SchoolManage(BaseHandler):
                 school_page_sql = "select id,full_name, time_create  " \
                                   "from sigma_account_ob_school" \
                                   " where available = 1 " \
-                                  "and owner_id not in (%s) limit %s,%s" % (','.join(['"'+str(id)+'"' for id in exclude_channel]),
+                                  "and owner_id not in (%s) limit %s,%s" % (exclude_channel_str,
                                                                             per_page * page,
                                   per_page)
                 total_sql = "select count(id) as total_school_count " \
                             "from sigma_account_ob_school" \
                             " where available = 1 and owner_id not in (%s) and time_create >= '%s' " \
-                            "and time_create <= '%s'  " % (','.join(['"'+str(id)+'"' for id in exclude_channel]),
+                            "and time_create <= '%s'  " % (exclude_channel_str,
                                 date_range[0], date_range[1],)
             else:
                 school_page_sql = "select id,full_name, time_create  " \
                                   "from sigma_account_ob_school" \
                                   " where available = 1 " \
                                   "and owner_id not in (%s) " \
-                                  "and id in (%s) limit %s,%s" % (','.join(['"'+str(id)+'"' for id in exclude_channel]),
+                                  "and id in (%s) limit %s,%s" % (exclude_channel_str,
                                                                   ','.join(['"'+str(id)+'"' for id in condition_school_ids]),
                                                                   per_page*page, per_page)
                 total_sql = "select count(id) as total_school_count " \
@@ -143,7 +144,7 @@ class SchoolManage(BaseHandler):
                             " where available = 1 " \
                             "and owner_id not in (%s) " \
                             "and time_create >= '%s' " \
-                            "and time_create <= '%s' and id in (%s) " % (','.join(['"'+str(id)+'"' for id in exclude_channel]),
+                            "and time_create <= '%s' and id in (%s) " % (exclude_channel_str,
                                                                          date_range[0],
                                                                          date_range[1],
                                                                          ','.join(['"'+str(id)+'"' for id in condition_school_ids]))
