@@ -231,6 +231,13 @@ class AreaList(BaseHandler, DataExcludeMixin):
                         "guardian_unique_count": 1,
                         "pay_number": 1,
                         "pay_amount": 1,
+                        "total_pay_number": {
+                            "$cond": [{"$and": [{"$gte": ["$day", request['data_permission']['pay_stat_start_time']]}]},
+                                      "$pay_number", 0]},
+                        "total_pay_amount": {
+                            "$cond": [{"$and": [{"$gte": ["$day", request['data_permission']['pay_stat_start_time']]}]},
+                                      "$pay_amount", 0]},
+
                         "valid_reading_count": {"$cond": [{"$and": [{"$lte": ["$day", yesterday_str]}, {
                             "$gte": ["$day", yesterday_before_30day_str]}]}, "$valid_reading_count", 0]},
                         "valid_exercise_count": {"$cond": [{"$and": [{"$lte": ["$day", yesterday_str]}, {
@@ -252,8 +259,8 @@ class AreaList(BaseHandler, DataExcludeMixin):
                             "total_student_number": {"$sum": "$student_number"},
                             "total_guardian_number": {"$sum": "$guardian_count"},
                             "total_guardian_unique_count": {"$sum": "$guardian_unique_count"},
-                            "total_pay_number": {"$sum": "$pay_number"},
-                            "total_pay_amount": {"$sum": "$pay_amount"},
+                            "total_pay_number": {"$sum": "$total_pay_number"},
+                            "total_pay_amount": {"$sum": "$total_pay_amount"},
                             "total_valid_reading_number": {"$sum": "$valid_reading_count"},
                             "total_valid_exercise_number": {"$sum": "$valid_exercise_count"},
                             "total_valid_word_number": {"$sum": "$valid_word_count"},
