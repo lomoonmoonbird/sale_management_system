@@ -188,7 +188,7 @@ class User(BaseHandler, DataExcludeMixin):
             ret = await request.app['mongodb'][self.db][self.instance_coll].bulk_write(bulk_update)
         return self.reply_ok({})
 
-    @validate_permission()
+    @validate_permission(data_validation=True)
     async def get_one_area_channels(self, request: Request):
         """
         获取某一个大区的渠道
@@ -196,14 +196,18 @@ class User(BaseHandler, DataExcludeMixin):
         :return:
         """
         request_param = await get_params(request)
+        exclude_channels_u = request['data_permission']['exclude_channel']
         channel_oids = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": request_param.get("area_id"),
                                                                                  "role": Roles.CHANNEL.value,
                                                                                  "status": 1})
         res = []
         channel_ids = await channel_oids.to_list(10000)
+        channel_ids = list(set(channel_ids).difference(set(exclude_channels_u)))
         if channel_ids:
-            sql = "select id, name from sigma_account_us_user where available = 1 and id IN (%s) " % (','.join([str(id['old_id']) for id in channel_ids]))
-            print(sql)
+            sql = "select id, name from " \
+                  "sigma_account_us_user " \
+                  "where available = 1 " \
+                  "and id IN (%s) " % (','.join([str(id['old_id']) for id in channel_ids]))
             async with request.app['mysql'].acquire() as conn:
                 async with conn.cursor(DictCursor) as cur:
                     await cur.execute(sql)

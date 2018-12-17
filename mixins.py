@@ -16,7 +16,7 @@ class DataExcludeMixin():
             async with conn.cursor(DictCursor) as cur:
                 await cur.execute(self.exclude_channel_sql)
                 channels = await cur.fetchall()
-        return [item['id'] for item in channels]
+        return [item['id'] for item in channels] + [8, 81]
 
     async def exclude_schools(self, mysql_client):
         """
@@ -28,4 +28,4 @@ class DataExcludeMixin():
             async with conn.cursor(DictCursor) as cur:
                 await cur.execute(self.exclude_school_sql)
                 schools = await cur.fetchall()
-        return [item['id'] for item in schools]
+        return [item['id'] for item in schools if item['id'] not in [8, 81]]

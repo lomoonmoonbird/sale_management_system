@@ -35,6 +35,7 @@ from concurrent.futures import ThreadPoolExecutor
 from statistics.export.export_base import ExportBase
 from mixins import DataExcludeMixin
 
+
 class CustomEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, (datetime)):
@@ -54,16 +55,20 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
         self.channel_per_day_coll = 'channel_per_day'
         self.thread_pool = ThreadPoolExecutor(20)
 
-    @validate_permission()
+    @validate_permission(data_validation=True)
     async def month(self, request: Request):
         """
         导出表格
         :param request:
         :return:
         """
+        exclude_areas = request['data_permission']['exclude_area']
+        exclude_channels_u = request['data_permission']['exclude_channel']
+        exclude_area_objectid = [ObjectId(id) for id in exclude_areas]
         instance_coll = request.app['mongodb'][self.db][self.instance_coll]
         user_coll = request.app['mongodb'][self.db][self.user_coll]
-        areas = instance_coll.find({"role": Roles.AREA.value,
+        areas = instance_coll.find({"_id": {"$nin": exclude_area_objectid},
+                                    "role": Roles.AREA.value,
                                     "status": 1})
         areas = await areas.to_list(100000)
         channels = instance_coll.find({"role": Roles.CHANNEL.value,
@@ -92,7 +97,7 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
         old_ids = [item['old_id'] for item in channels]
 
         exclude_channels = await self.exclude_channel(request.app['mysql'])
-        old_ids = list(set(old_ids).difference(set(exclude_channels)))
+        old_ids = list(set(old_ids).difference(set(exclude_channels+exclude_channels_u)))
         sheet = b''
         if old_ids:
             sql = "select id, name from sigma_account_us_user where available = 1 and id in (%s) " % \
@@ -117,14 +122,17 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
 
         return await self.replay_stream(sheet, "总部月报-"+datetime.now().strftime("%Y-%m-%d"), request)
 
-    @validate_permission()
+    @validate_permission(data_validation=True)
     async def week(self, request: Request):
         """
         导出表格
         :param request:
         :return:
         """
-        areas = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": request['user_info']['global_id'],
+        exclude_areas = request['data_permission']['exclude_area']
+        exclude_channels_u = request['data_permission']['exclude_channel']
+        exclude_area_objectid = [ObjectId(id) for id in exclude_areas]
+        areas = request.app['mongodb'][self.db][self.instance_coll].find({"_id": {"$nin": exclude_area_objectid},
                                                                           "role": Roles.AREA.value,
                                                                           "status": 1
                                                                           })
@@ -154,7 +162,7 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
             user['area_info'] = area_map.get(user['area_id'], {})
         old_ids = [item['old_id'] for item in channels]
         exclude_channels = await self.exclude_channel(request.app['mysql'])
-        old_ids = list(set(old_ids).difference(set(exclude_channels)))
+        old_ids = list(set(old_ids).difference(set(exclude_channels+exclude_channels_u)))
         sheet = b''
         if old_ids:
             sql = "select id, name from sigma_account_us_user where available = 1 and id in (%s) " % \
@@ -993,6 +1001,13 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                         "w_image_c": 1,
                         "total_images": {"$sum": ["$e_image_c", "$w_image_c"]},
 
+                        "total_pay_number": {
+                            "$cond": [{"$and": [{"$gte": ["$day", request['data_permission']['pay_stat_start_time']]}]},
+                                      "$pay_number", 0]},
+                        "total_pay_amount": {
+                            "$cond": [{"$and": [{"$gte": ["$day", request['data_permission']['pay_stat_start_time']]}]},
+                                      "$pay_amount", 0]},
+
                         "city_number_curr_month": {"$cond": [{"$and": [{"$lte": ["$day", last_month_last_day]}, {
                             "$gte": ["$day", last_month_first_day]}]}, "$city_number", 0]},
                         "city_number_last_month": {"$cond": [{"$and": [{"$lte": ["$day", last_last_month_last_day]}, {
@@ -1083,8 +1098,8 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                             "total_student_number": {"$sum": "$student_number"},
                             "total_guardian_number": {"$sum": "$guardian_count"},
                             "total_unique_guardian_number": {"$sum": "$guardian_unique_count"},
-                            "total_pay_number": {"$sum": "$pay_number"},
-                            "total_pay_amount": {"$sum": "$pay_amount"},
+                            "total_pay_number": {"$sum": "$total_pay_number"},
+                            "total_pay_amount": {"$sum": "$total_pay_amount"},
                             "city_number_curr_month": {"$sum": "$city_number_curr_month"},
                             "city_number_last_month": {"$sum": "$city_number_last_month"},
                             "school_number_curr_month": {"$sum": "$school_number_curr_month"},
@@ -1213,6 +1228,13 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                         "w_image_c": 1,
                         "total_images": {"$sum": ["$e_image_c", "$w_image_c"]},
 
+                        "total_pay_number": {
+                            "$cond": [{"$and": [{"$gte": ["$day", request['data_permission']['pay_stat_start_time']]}]},
+                                      "$pay_number", 0]},
+                        "total_pay_amount": {
+                            "$cond": [{"$and": [{"$gte": ["$day", request['data_permission']['pay_stat_start_time']]}]},
+                                      "$pay_amount", 0]},
+
                         "city_number_curr_month": {"$cond": [{"$and": [{"$lte": ["$day", last_week_last_day]}, {
                             "$gte": ["$day", last_week_first_day]}]}, "$city_number", 0]},
                         "city_number_last_month": {"$cond": [{"$and": [{"$lte": ["$day", last_last_week_last_day]}, {
@@ -1304,8 +1326,8 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                             "total_student_number": {"$sum": "$student_number"},
                             "total_guardian_number": {"$sum": "$guardian_count"},
                             "total_unique_guardian_number": {"$sum": "$guardian_unique_count"},
-                            "total_pay_number": {"$sum": "$pay_number"},
-                            "total_pay_amount": {"$sum": "$pay_amount"},
+                            "total_pay_number": {"$sum": "$total_pay_number"},
+                            "total_pay_amount": {"$sum": "$total_pay_amount"},
                             "city_number_curr_month": {"$sum": "$city_number_curr_month"},
                             "city_number_last_month": {"$sum": "$city_number_last_month"},
                             "school_number_curr_month": {"$sum": "$school_number_curr_month"},

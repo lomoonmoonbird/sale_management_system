@@ -54,7 +54,7 @@ class ChannelExportReport(BaseHandler, ExportBase, DataExcludeMixin):
         self.thread_pool = ThreadPoolExecutor(20)
 
 
-    @validate_permission()
+    @validate_permission(data_validation=True)
     async def month(self, request: Request):
         """
         渠道导出月报
@@ -65,13 +65,15 @@ class ChannelExportReport(BaseHandler, ExportBase, DataExcludeMixin):
         :return:
         """
         request_param = await get_params(request)
+        exclude_schools_u = request['data_permission']['exclude_school']
         channel_id = request_param.get("channel_id", "")
         if request['user_info']['instance_role_id'] == Roles.CHANNEL.value:
             channel_id = request['user_info']['channel_id']
         if not channel_id:
             return self.reply_ok({})
 
-        schools = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": channel_id, "role": Roles.SCHOOL.value,"status": 1})
+        schools = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": channel_id,
+                                                                            "role": Roles.SCHOOL.value,"status": 1})
         schools = await schools.to_list(10000)
         schools_ids = [item['school_id'] for item in schools]
 
@@ -87,7 +89,7 @@ class ChannelExportReport(BaseHandler, ExportBase, DataExcludeMixin):
             for school in school_info:
                 school_map[school['id']] = school
             exclude_schools = await self.exclude_schools(request.app['mysql'])
-            schools_ids = list(set(schools_ids).difference(set(exclude_schools)))
+            schools_ids = list(set(schools_ids).difference(set(exclude_schools+exclude_schools_u)))
             items = await self._list_month(request, schools_ids)
             template_path = os.path.dirname(__file__) + "/templates/channel_month_template.xlsx"
             sheet = await request.app.loop.run_in_executor(self.thread_pool,
@@ -100,7 +102,7 @@ class ChannelExportReport(BaseHandler, ExportBase, DataExcludeMixin):
             return await self.replay_stream(sheet, "渠道月报-" + datetime.now().strftime("%Y-%m-%d"), request)
         return self.reply_ok({})
 
-    @validate_permission()
+    @validate_permission(data_validation=True)
     async def week(self, request: Request):
         """
         渠道导出周报
@@ -109,6 +111,7 @@ class ChannelExportReport(BaseHandler, ExportBase, DataExcludeMixin):
         """
 
         request_param = await get_params(request)
+        exclude_schools_u = request['data_permission']['exclude_school']
         channel_id = request_param.get("channel_id", "")
         if request['user_info']['instance_role_id'] == Roles.CHANNEL.value:
             channel_id = request['user_info']['channel_id']
@@ -132,7 +135,7 @@ class ChannelExportReport(BaseHandler, ExportBase, DataExcludeMixin):
             for school in school_info:
                 school_map[school['id']] = school
             exclude_schools = await self.exclude_schools(request.app['mysql'])
-            schools_ids = list(set(schools_ids).difference(set(exclude_schools)))
+            schools_ids = list(set(schools_ids).difference(set(exclude_schools+exclude_schools_u)))
             items = await self._list_week(request, schools_ids)
             template_path = os.path.dirname(__file__) + "/templates/channel_week_template.xlsx"
             sheet = await request.app.loop.run_in_executor(self.thread_pool,
@@ -183,6 +186,12 @@ class ChannelExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                         "w_image_c": 1,
                         "total_images": {"$sum": ["$e_image_c", "$w_image_c"]},
 
+                        "total_pay_number": {
+                            "$cond": [{"$and": [{"$gte": ["$day", request['data_permission']['pay_stat_start_time']]}]},
+                                      "$pay_number", 0]},
+                        "total_pay_amount": {
+                            "$cond": [{"$and": [{"$gte": ["$day", request['data_permission']['pay_stat_start_time']]}]},
+                                      "$pay_amount", 0]},
 
                         "teacher_number_curr_month": {"$cond": [{"$and": [{"$lte": ["$day", last_month_last_day]}, {
                             "$gte": ["$day", last_month_first_day]}]}, "$teacher_number", 0]},
@@ -263,8 +272,8 @@ class ChannelExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                             "total_student_number": {"$sum": "$student_number"},
                             "total_guardian_number": {"$sum": "$guardian_count"},
                             "total_unique_guardian_number": {"$sum": "$guardian_unique_count"},
-                            "total_pay_number": {"$sum": "$pay_number"},
-                            "total_pay_amount": {"$sum": "$pay_amount"},
+                            "total_pay_number": {"$sum": "$total_pay_number"},
+                            "total_pay_amount": {"$sum": "$total_pay_amount"},
                             "teacher_number_curr_month": {"$sum": "$teacher_number_curr_month"},
                             "teacher_number_last_month": {"$sum": "$teacher_number_last_month"},
                             "student_number_curr_month": {"$sum": "$student_number_curr_month"},
@@ -382,6 +391,13 @@ class ChannelExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                         "w_image_c": 1,
                         "total_images": {"$sum": ["$e_image_c", "$w_image_c"]},
 
+                        "total_pay_number": {
+                            "$cond": [{"$and": [{"$gte": ["$day", request['data_permission']['pay_stat_start_time']]}]},
+                                      "$pay_number", 0]},
+                        "total_pay_amount": {
+                            "$cond": [{"$and": [{"$gte": ["$day", request['data_permission']['pay_stat_start_time']]}]},
+                                      "$pay_amount", 0]},
+
                         "teacher_number_curr_month": {"$cond": [{"$and": [{"$lte": ["$day", last_week_last_day]}, {
                             "$gte": ["$day", last_week_first_day]}]}, "$teacher_number", 0]},
                         "teacher_number_last_month": {"$cond": [{"$and": [{"$lte": ["$day", last_last_week_last_day]}, {
@@ -460,8 +476,8 @@ class ChannelExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                             "total_student_number": {"$sum": "$student_number"},
                             "total_guardian_number": {"$sum": "$guardian_count"},
                             "total_unique_guardian_number": {"$sum": "$guardian_unique_count"},
-                            "total_pay_number": {"$sum": "$pay_number"},
-                            "total_pay_amount": {"$sum": "$pay_amount"},
+                            "total_pay_number": {"$sum": "$total_pay_number"},
+                            "total_pay_amount": {"$sum": "$total_pay_amount"},
                             "teacher_number_curr_month": {"$sum": "$teacher_number_curr_month"},
                             "teacher_number_last_month": {"$sum": "$teacher_number_last_month"},
                             "student_number_curr_month": {"$sum": "$student_number_curr_month"},

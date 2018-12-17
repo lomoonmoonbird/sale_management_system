@@ -20,6 +20,7 @@ import json
 import datetime
 import functools
 from bson import ObjectId
+from tasks.celery_base import BaseTask
 
 __all__ = ('json_response', 'text_response', 'get_json', 'get_params', 'get_cookie')
 
@@ -269,15 +270,16 @@ def validate_permission(*require_arg, **optional_arg):
                 o = o or {}
                 if request_uri in o.get("exclude_api", []):
                     raise PermissionError('User can not access this API!')
+            request['data_permission'] = {}
+            d = {}
             if optional_arg.get("data_validation", False):
-
-                request['data_permission'] = {}
                 d = await request.app['mongodb']['sales']['data_permission'].find_one({"user_id": str(user_id)})
-                d = d or {}
                 request['data_permission']['exclude_area'] = d.get("exclude_area", [])
                 request['data_permission']['exclude_channel'] = d.get("exclude_channel", [])
                 request['data_permission']['exclude_market'] = d.get("exclude_market", [])
                 request['data_permission']['exclude_school'] = d.get("exclude_school", [])
+            request['data_permission']['pay_stat_start_time'] = d.get("pay_stat_start_time",
+                                                                      BaseTask().start_time.strftime("%Y-%m-%d"))
             return await func(*args, **kwargs)
 
         return inner_wrapper

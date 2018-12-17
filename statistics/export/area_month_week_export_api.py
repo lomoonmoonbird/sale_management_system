@@ -53,7 +53,7 @@ class AreaExportReport(BaseHandler, ExportBase, DataExcludeMixin):
         self.channel_per_day_coll = 'channel_per_day'
         self.thread_pool = ThreadPoolExecutor(20)
 
-    @validate_permission()
+    @validate_permission(data_validation=True)
     async def month(self, request: Request):
         """
         导出表格
@@ -65,6 +65,7 @@ class AreaExportReport(BaseHandler, ExportBase, DataExcludeMixin):
         """
         request_param = await get_params(request)
         area_id = request_param.get('area_id', "")
+        exclude_channels_u = request['data_permission']['exclude_channel']
         if request['user_info']['instance_role_id'] == Roles.AREA.value:
             area_id = request['user_info']['area_id']
         channels = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": area_id,
@@ -102,7 +103,7 @@ class AreaExportReport(BaseHandler, ExportBase, DataExcludeMixin):
             area_info = await request.app['mongodb'][self.db][self.instance_coll].find_one({"_id": ObjectId(area_id), "status": 1})
             area_name = area_info.get("name", "")
             exclude_channels = await self.exclude_channel(request.app['mysql'])
-            old_ids = list(set(old_ids).difference(set(exclude_channels)))
+            old_ids = list(set(old_ids).difference(set(exclude_channels+exclude_channels_u)))
             items = await self._list_month(request, old_ids)
             template_path = os.path.dirname(__file__) + "/templates/area_month_template.xlsx"
             sheet = await request.app.loop.run_in_executor(self.thread_pool,
@@ -118,7 +119,7 @@ class AreaExportReport(BaseHandler, ExportBase, DataExcludeMixin):
 
         return await self.replay_stream(sheet, area_name+"大区月报-"+datetime.now().strftime("%Y-%m-%d"), request)
 
-    @validate_permission()
+    @validate_permission(data_validation=True)
     async def week(self, request: Request):
         """
         导出表格
@@ -130,6 +131,7 @@ class AreaExportReport(BaseHandler, ExportBase, DataExcludeMixin):
         """
         request_param = await get_params(request)
         area_id = request_param.get('area_id', "")
+        exclude_channels_u = request['data_permission']['exclude_channel']
         if request['user_info']['instance_role_id'] == Roles.AREA.value:
             area_id = request['user_info']['area_id']
         channels = request.app['mongodb'][self.db][self.instance_coll].find(
@@ -169,7 +171,7 @@ class AreaExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                 {"_id": ObjectId(area_id), "status": 1})
             area_name = area_info.get("name", "")
             exclude_channels = await self.exclude_channel(request.app['mysql'])
-            old_ids = list(set(old_ids).difference(set(exclude_channels)))
+            old_ids = list(set(old_ids).difference(set(exclude_channels+exclude_channels_u)))
             items = await self._list_week(request, old_ids)
             template_path = os.path.dirname(__file__) + "/templates/area_week_template.xlsx"
             sheet = await request.app.loop.run_in_executor(self.thread_pool,
@@ -505,6 +507,13 @@ class AreaExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                         "w_image_c": 1,
                         "total_images": {"$sum": ["$e_image_c", "$w_image_c"]},
 
+                        "total_pay_number": {
+                            "$cond": [{"$and": [{"$gte": ["$day", request['data_permission']['pay_stat_start_time']]}]},
+                                      "$pay_number", 0]},
+                        "total_pay_amount": {
+                            "$cond": [{"$and": [{"$gte": ["$day", request['data_permission']['pay_stat_start_time']]}]},
+                                      "$pay_amount", 0]},
+
                         "school_number_curr_month": {"$cond": [{"$and": [{"$lte": ["$day", last_month_last_day]}, {
                             "$gte": ["$day", last_month_first_day]}]}, "$school_number", 0]},
                         "school_number_last_month": {"$cond": [{"$and": [{"$lte": ["$day", last_last_month_last_day]}, {
@@ -589,8 +598,8 @@ class AreaExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                             "total_student_number": {"$sum": "$student_number"},
                             "total_guardian_number": {"$sum": "$guardian_count"},
                             "total_unique_guardian_number": {"$sum": "$guardian_unique_count"},
-                            "total_pay_number": {"$sum": "$pay_number"},
-                            "total_pay_amount": {"$sum": "$pay_amount"},
+                            "total_pay_number": {"$sum": "$total_pay_number"},
+                            "total_pay_amount": {"$sum": "$total_pay_amount"},
                             "school_number_curr_month": {"$sum": "$school_number_curr_month"},
                             "school_number_last_month": {"$sum": "$school_number_last_month"},
                             "teacher_number_curr_month": {"$sum": "$teacher_number_curr_month"},
@@ -709,6 +718,13 @@ class AreaExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                         "w_image_c": 1,
                         "total_images": {"$sum": ["$e_image_c", "$w_image_c"]},
 
+                        "total_pay_number": {
+                            "$cond": [{"$and": [{"$gte": ["$day", request['data_permission']['pay_stat_start_time']]}]},
+                                      "$pay_number", 0]},
+                        "total_pay_amount": {
+                            "$cond": [{"$and": [{"$gte": ["$day", request['data_permission']['pay_stat_start_time']]}]},
+                                      "$pay_amount", 0]},
+
                         "school_number_curr_month": {"$cond": [{"$and": [{"$lte": ["$day", last_week_last_day]}, {
                             "$gte": ["$day", last_week_first_day]}]}, "$school_number", 0]},
                         "school_number_last_month": {"$cond": [{"$and": [{"$lte": ["$day", last_last_week_last_day]}, {
@@ -793,8 +809,8 @@ class AreaExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                             "total_student_number": {"$sum": "$student_number"},
                             "total_guardian_number": {"$sum": "$guardian_count"},
                             "total_unique_guardian_number": {"$sum": "$guardian_unique_count"},
-                            "total_pay_number": {"$sum": "$pay_number"},
-                            "total_pay_amount": {"$sum": "$pay_amount"},
+                            "total_pay_number": {"$sum": "$total_pay_number"},
+                            "total_pay_amount": {"$sum": "$total_pay_amount"},
                             "school_number_curr_month": {"$sum": "$school_number_curr_month"},
                             "school_number_last_month": {"$sum": "$school_number_last_month"},
                             "teacher_number_curr_month": {"$sum": "$teacher_number_curr_month"},
