@@ -1533,7 +1533,8 @@ class Overview(BaseHandler, DataExcludeMixin):
         total_pay_number = coll.aggregate(
             [
                 {
-                    "$match": {"channel": {"$nin": ['null', None] + exclude_channels}}
+                    "$match": {"channel": {"$nin": ['null', None] + exclude_channels},
+                               "day": {"$gte": request['data_permission']['pay_stat_start_time']}}
                 },
                 {
                     "$project": {
@@ -1626,7 +1627,8 @@ class Overview(BaseHandler, DataExcludeMixin):
         total_pay_amount = coll.aggregate(
             [
                 {
-                    "$match": {"channel": {"$nin": ['null', None] + exclude_channels}}
+                    "$match": {"channel": {"$nin": ['null', None] + exclude_channels},
+                               "day": {"$gte": request['data_permission']['pay_stat_start_time']}}
                 },
                 {
                     "$project": {
