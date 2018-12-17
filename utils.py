@@ -274,6 +274,7 @@ def validate_permission(*require_arg, **optional_arg):
             d = {}
             if optional_arg.get("data_validation", False):
                 d = await request.app['mongodb']['sales']['data_permission'].find_one({"user_id": str(user_id)})
+                d = d or {}
                 request['data_permission']['exclude_area'] = d.get("exclude_area", [])
                 request['data_permission']['exclude_channel'] = d.get("exclude_channel", [])
                 request['data_permission']['exclude_market'] = d.get("exclude_market", [])
