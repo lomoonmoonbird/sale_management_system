@@ -62,7 +62,7 @@ class SchoolManage(BaseHandler):
         flag = 0
         request_stage = int(request_param.get('stage')) if request_param.get('stage') else -1
         exclude_channel = request['data_permission']['exclude_channel']
-        exclude_channel_str = ','.join(['"'+str(id)+'"' for id in exclude_channel]) if exclude_channel else ""
+        exclude_channel_str = ','.join(['"'+str(id)+'"' for id in exclude_channel]) if exclude_channel else "''"
         if not request_param.get('school_name') and request_stage not in [StageEnum.Register.value,
                                                                                        StageEnum.Using.value,
                                                                                        StageEnum.Binding.value,
