@@ -107,7 +107,7 @@ class School(BaseHandler):
         return self.reply_ok({})
 
 
-    @validate_permission()
+    @validate_permission(data_validation=True)
     async def get_market_school(self, request: Request):
         """
         获取市场学校列表
