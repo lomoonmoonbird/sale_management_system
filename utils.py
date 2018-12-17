@@ -196,11 +196,11 @@ def catch_unknown_error(error, error_info):
 
 
 def validate_permission(*args, **kwargs):
-    def outer_wrapper(func):
+    def outer_wrapper(func, *args, **kwargs):
         @wraps(func)
         @catch_unknown_error(LoginError, 'Login error:')
         async def inner_wrapper(*args, **kwargs):
-
+            print("*args, **kwargs", *args, **kwargs)
             async def get_user_id(_session, _cookie) -> int:
                 async with _session.get(UC_SYSTEM_API_URL + '/getLoginStatus', headers={'Cookie': _cookie}) as resp:
                     resp_as_json = await resp.json()
