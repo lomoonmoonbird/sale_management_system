@@ -173,18 +173,18 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                     await cur.execute(sql)
                     real_channels = await cur.fetchall()
 
-        items = await self._list_week(request, old_ids)
+            items = await self._list_week(request, old_ids)
 
-        template_path = os.path.dirname(__file__) + "/templates/global_week_template.xlsx"
-        sheet = await request.app.loop.run_in_executor(self.thread_pool,
-                                                       self.sheet,
-                                                       template_path,
-                                                       items,
-                                                       channel_map,
-                                                       area_name_id_map,
-                                                       real_channels,
-                                                       area_users,
-                                                       "week")
+            template_path = os.path.dirname(__file__) + "/templates/global_week_template.xlsx"
+            sheet = await request.app.loop.run_in_executor(self.thread_pool,
+                                                           self.sheet,
+                                                           template_path,
+                                                           items,
+                                                           channel_map,
+                                                           area_name_id_map,
+                                                           real_channels,
+                                                           area_users,
+                                                           "week")
 
 
         return await self.replay_stream(sheet, "总部周报-"+datetime.now().strftime("%Y-%m-%d"), request)
@@ -995,6 +995,8 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                         "guardian_unique_count": 1,
                         "pay_number": 1,
                         "pay_amount": 1,
+                        "refund_number": 1,
+                        "refund_amount": 1,
                         "valid_reading_count": 1,
                         "valid_exercise_count":1,
                         "valid_word_count": 1,
@@ -1008,6 +1010,13 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                         "total_pay_amount": {
                             "$cond": [{"$and": [{"$gte": ["$day", request['data_permission']['pay_stat_start_time']]}]},
                                       "$pay_amount", 0]},
+
+                        "total_refund_number": {
+                            "$cond": [{"$and": [{"$gte": ["$day", request['data_permission']['pay_stat_start_time']]}]},
+                                      "$refund_number", 0]},
+                        "total_refund_amount": {
+                            "$cond": [{"$and": [{"$gte": ["$day", request['data_permission']['pay_stat_start_time']]}]},
+                                      "$refund_amount", 0]},
 
                         "city_number_curr_month": {"$cond": [{"$and": [{"$lte": ["$day", last_month_last_day]}, {
                             "$gte": ["$day", last_month_first_day]}]}, "$city_number", 0]},
@@ -1101,6 +1110,7 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                             "total_unique_guardian_number": {"$sum": "$guardian_unique_count"},
                             "total_pay_number": {"$sum": "$total_pay_number"},
                             "total_pay_amount": {"$sum": "$total_pay_amount"},
+                            "total_refund_amount": {"$sum": "$total_refund_amount"},
                             "city_number_curr_month": {"$sum": "$city_number_curr_month"},
                             "city_number_last_month": {"$sum": "$city_number_last_month"},
                             "school_number_curr_month": {"$sum": "$school_number_curr_month"},
@@ -1139,7 +1149,7 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                         "total_guardian_number": 1,
                         "total_unique_guardian_number": 1,
                         "total_pay_number": 1,
-                        "total_pay_amount": 1,
+                        "total_pay_amount": {"$subtract": ["$total_pay_amount", "$total_refund_amount"]},
                         "valid_reading_count": 1,
                         "valid_exercise_count": 1,
                         "valid_word_count": 1,
@@ -1222,6 +1232,8 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                         "guardian_unique_count": 1,
                         "pay_number": 1,
                         "pay_amount": 1,
+                        "refund_number": 1,
+                        "refund_amount": 1,
                         "valid_reading_count": 1,
                         "valid_exercise_count":1,
                         "valid_word_count": 1,
@@ -1235,6 +1247,13 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                         "total_pay_amount": {
                             "$cond": [{"$and": [{"$gte": ["$day", request['data_permission']['pay_stat_start_time']]}]},
                                       "$pay_amount", 0]},
+
+                        "total_refund_number": {
+                            "$cond": [{"$and": [{"$gte": ["$day", request['data_permission']['pay_stat_start_time']]}]},
+                                      "$refund_number", 0]},
+                        "total_refund_amount": {
+                            "$cond": [{"$and": [{"$gte": ["$day", request['data_permission']['pay_stat_start_time']]}]},
+                                      "$refund_amount", 0]},
 
                         "city_number_curr_month": {"$cond": [{"$and": [{"$lte": ["$day", last_week_last_day]}, {
                             "$gte": ["$day", last_week_first_day]}]}, "$city_number", 0]},
@@ -1329,6 +1348,7 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                             "total_unique_guardian_number": {"$sum": "$guardian_unique_count"},
                             "total_pay_number": {"$sum": "$total_pay_number"},
                             "total_pay_amount": {"$sum": "$total_pay_amount"},
+                            "total_refund_amount": {"$sum": "$total_refund_amount"},
                             "city_number_curr_month": {"$sum": "$city_number_curr_month"},
                             "city_number_last_month": {"$sum": "$city_number_last_month"},
                             "school_number_curr_month": {"$sum": "$school_number_curr_month"},
@@ -1367,7 +1387,7 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                         "total_guardian_number": 1,
                         "total_unique_guardian_number": 1,
                         "total_pay_number": 1,
-                        "total_pay_amount": 1,
+                        "total_pay_amount": {"$subtract": ["$total_pay_amount", "$total_refund_amount"]},
                         "valid_reading_count": 1,
                         "valid_exercise_count": 1,
                         "valid_word_count": 1,
