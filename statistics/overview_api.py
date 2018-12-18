@@ -73,6 +73,12 @@ class Overview(BaseHandler, DataExcludeMixin):
             word_total, word_curr_week_new_number, word_last_week_new_number = await self._valid_word_number(
                 request, channel_ids)
 
+            e_image_total, e_image_curr_week_new_number, e_image_last_week_new_number = await self._exercise_images_number(request,
+                                                                                                            channel_ids)
+
+            w_image_total, w_image_curr_week_new_number, w_image_last_week_new_number = await self._word_images_number(request,
+                                                                                                            channel_ids)
+
             return self.reply_ok({"pay_total": pay_total,
                                   "pay_curr_week_new_number": pay_curr_week_new_number,
                                   "pay_last_week_new_number": pay_last_week_new_number,
@@ -91,6 +97,15 @@ class Overview(BaseHandler, DataExcludeMixin):
                                   "image_total": image_total,
                                   "image_curr_week_new_number": image_curr_week_new_number,
                                   "image_last_week_new_number": image_last_week_new_number,
+
+                                  "e_image_total": e_image_total,
+                                  "e_image_curr_week_new_number": e_image_curr_week_new_number,
+                                  "e_image_last_week_new_number": e_image_last_week_new_number,
+
+                                  "w_image_total": w_image_total,
+                                  "w_image_curr_week_new_number": w_image_curr_week_new_number,
+                                  "w_image_last_week_new_number": w_image_last_week_new_number,
+
                                   "guardian_total": guardian_total,
                                   "guardian_curr_week_new_number": guardian_curr_week_new_number,
                                   "guardian_last_week_new_number": guardian_last_week_new_number,
@@ -1372,6 +1387,182 @@ class Overview(BaseHandler, DataExcludeMixin):
                 {
                     "$project": {
                         "total": {"$sum":   [ "$e_image_c", "$w_image_c" ] }
+                    }
+                },
+
+                {"$group": {"_id": "",
+                            "total": {"$sum": "$total"}
+                            }
+                 },
+
+            ])
+
+        async for amount in current_week_new_image_count:
+            current_week_new_image_count_list.append(amount)
+
+        async for amount in last_week_new_image_count:
+            last_week_new_image_count_list.append(amount)
+
+        async for amount in total_image_count:
+            total_image_count_list.append(amount)
+
+        total = total_image_count_list[0]['total'] if total_image_count_list else 0
+        current_week = current_week_new_image_count_list[0]['total'] if current_week_new_image_count_list else 0
+        last_week = last_week_new_image_count_list[0]['total'] if last_week_new_image_count_list else 0
+        return total, current_week, last_week
+
+    async def _exercise_images_number(self, request: Request, channel_ids=[]):
+        """
+        图片数
+        :param request:
+        :return:
+        """
+        coll = request.app['mongodb'][self.db][self.channel_per_day_coll]
+        total_image_count_list = []
+        current_week_new_image_count_list = []
+        last_week_new_image_count_list = []
+        current_week = self.current_week()
+        last_week = self.last_week()
+        total_image_count = coll.aggregate(
+            [
+                {
+                    "$match": {"channel": {"$in": channel_ids}}
+                },
+                {
+                    "$project": {
+                        "total": {"$sum": "$e_image_c" }
+                    }
+                },
+
+                {"$group": {"_id": None,
+                            "total": {"$sum": "$total"}
+                            }
+                 },
+
+            ])
+
+        current_week_new_image_count = coll.aggregate(
+            [
+                {
+                    "$match": {
+                        "day": {"$gte": current_week[0],
+                                "$lte": current_week[6]},
+                        "channel": {"$in": channel_ids}
+                    }
+                },
+                {
+                    "$project": {
+                        "total": {"$sum": "$e_image_c" }
+                    }
+                },
+
+                {"$group": {"_id": None,
+                            "total": {"$sum": "$total"}
+                            }
+                 },
+
+            ])
+
+        last_week_new_image_count = coll.aggregate(
+            [
+                {
+                    "$match": {
+                        "day": {"$gte": last_week[0],
+                                "$lte": last_week[6]},
+                        "channel": {"$in": channel_ids}
+                    }
+                },
+                {
+                    "$project": {
+                        "total": {"$sum": "$e_image_c" }
+                    }
+                },
+
+                {"$group": {"_id": "",
+                            "total": {"$sum": "$total"}
+                            }
+                 },
+
+            ])
+
+        async for amount in current_week_new_image_count:
+            current_week_new_image_count_list.append(amount)
+
+        async for amount in last_week_new_image_count:
+            last_week_new_image_count_list.append(amount)
+
+        async for amount in total_image_count:
+            total_image_count_list.append(amount)
+
+        total = total_image_count_list[0]['total'] if total_image_count_list else 0
+        current_week = current_week_new_image_count_list[0]['total'] if current_week_new_image_count_list else 0
+        last_week = last_week_new_image_count_list[0]['total'] if last_week_new_image_count_list else 0
+        return total, current_week, last_week
+
+    async def _word_images_number(self, request: Request, channel_ids=[]):
+        """
+        图片数
+        :param request:
+        :return:
+        """
+        coll = request.app['mongodb'][self.db][self.channel_per_day_coll]
+        total_image_count_list = []
+        current_week_new_image_count_list = []
+        last_week_new_image_count_list = []
+        current_week = self.current_week()
+        last_week = self.last_week()
+        total_image_count = coll.aggregate(
+            [
+                {
+                    "$match": {"channel": {"$in": channel_ids}}
+                },
+                {
+                    "$project": {
+                        "total": {"$sum": "$w_image_c" }
+                    }
+                },
+
+                {"$group": {"_id": None,
+                            "total": {"$sum": "$total"}
+                            }
+                 },
+
+            ])
+
+        current_week_new_image_count = coll.aggregate(
+            [
+                {
+                    "$match": {
+                        "day": {"$gte": current_week[0],
+                                "$lte": current_week[6]},
+                        "channel": {"$in": channel_ids}
+                    }
+                },
+                {
+                    "$project": {
+                        "total": {"$sum": "$w_image_c" }
+                    }
+                },
+
+                {"$group": {"_id": None,
+                            "total": {"$sum": "$total"}
+                            }
+                 },
+
+            ])
+
+        last_week_new_image_count = coll.aggregate(
+            [
+                {
+                    "$match": {
+                        "day": {"$gte": last_week[0],
+                                "$lte": last_week[6]},
+                        "channel": {"$in": channel_ids}
+                    }
+                },
+                {
+                    "$project": {
+                        "total": {"$sum": "$w_image_c" }
                     }
                 },
 
