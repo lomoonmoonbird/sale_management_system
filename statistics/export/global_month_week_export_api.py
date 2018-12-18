@@ -814,7 +814,7 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                     cell.alignment = self._alignment()
                     cell.border = self._border()
                     if index == 0:
-                        cell.value = "同比新增率"
+                        cell.value = "环比新增率"
                         continue
                     cell.alignment = self._alignment()
                     if index in (1, 3, 5, 7, 10, 13, 15, 17):  #不带/last_summary
