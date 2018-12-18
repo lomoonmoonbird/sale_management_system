@@ -1039,7 +1039,7 @@ class Overview(BaseHandler, DataExcludeMixin):
         total_guardian_count = coll.aggregate(
                 [
                     {
-                        "$match": {"$in": channel_ids}
+                        "$match": {"channel": {"$in": channel_ids}}
                     },
                     {
                         "$project": {
@@ -1295,7 +1295,7 @@ class Overview(BaseHandler, DataExcludeMixin):
         last_week = last_week_new_teacher_count_list[0]['total'] if last_week_new_teacher_count_list else 0
         return total, current_week, last_week
 
-    async def _student_number(self, request: Request, channel_ids={}):
+    async def _student_number(self, request: Request, channel_ids=[]):
         """
         学生数
         :param coll:
