@@ -67,6 +67,12 @@ class Overview(BaseHandler, DataExcludeMixin):
 
             contest_total, contest_curr_week_new_number, contest_last_week_new_number = await self._valid_contest_number(request, channel_ids)
 
+            exercise_total, exercise_curr_week_new_number, exercise_last_week_new_number = await self._valid_exercise_number(
+                request, channel_ids)
+
+            word_total, word_curr_week_new_number, word_last_week_new_number = await self._valid_word_number(
+                request, channel_ids)
+
             return self.reply_ok({"pay_total": pay_total,
                                   "pay_curr_week_new_number": pay_curr_week_new_number,
                                   "pay_last_week_new_number": pay_last_week_new_number,
@@ -90,7 +96,16 @@ class Overview(BaseHandler, DataExcludeMixin):
                                   "guardian_last_week_new_number": guardian_last_week_new_number,
                                   "contest_total": contest_total,
                                   "contest_curr_week_new_number": contest_curr_week_new_number,
-                                  "contest_last_week_new_number": contest_last_week_new_number
+                                  "contest_last_week_new_number": contest_last_week_new_number,
+
+                                  "exercise_total": exercise_total,
+                                  "exercise_curr_week_new_number": exercise_curr_week_new_number,
+                                  "exercise_last_week_new_number": exercise_last_week_new_number,
+
+                                  "word_total": word_total,
+                                  "word_curr_week_new_number": word_curr_week_new_number,
+                                  "word_last_week_new_number": word_last_week_new_number,
+
                                   })
         elif request['user_info']['instance_role_id'] == Roles.AREA.value:
             # exclude_channels = await self.exclude_channel(request.app['mysql'])
@@ -934,7 +949,181 @@ class Overview(BaseHandler, DataExcludeMixin):
         return total,current_week,last_week
 
 
+    async def _valid_word_number(self, request: Request, channel_ids=[]):
+        """
+        有效单词数
+        :param request:
+        :return:
+        """
+        coll = request.app['mongodb'][self.db][self.channel_per_day_coll]
+        total_guardian_count_list = []
+        current_week_new_guardian_count_list = []
+        last_week_new_guardian_count_list = []
+        current_week = self.current_week()
+        last_week = self.last_week()
+        total_guardian_count = coll.aggregate(
+            [
+                {
+                    "$match": {"channel": {"$in": channel_ids}}
+                },
+                {
+                    "$project": {
+                        "total": {"$sum": "$valid_word_count"}
+                    }
+                },
 
+                {"$group": {"_id": None,
+                            "total": {"$sum": "$total"},
+                            }
+                 },
+
+            ])
+        current_week_new_guardian_count = coll.aggregate(
+            [
+                {
+                    "$match": {
+                        "day": {"$gte": current_week[0],
+                                "$lte": current_week[6]},
+                        "channel": {"$in": channel_ids}
+                    }
+                },
+                {
+                    "$project": {
+                        "total": {"$sum": "$valid_word_count"}
+                    }
+                },
+
+                {"$group": {"_id": None,
+                            "total": {"$sum": "$total"},
+                            }
+                 },
+
+            ])
+
+        last_week_new_guardian_count = coll.aggregate(
+            [
+                {
+                    "$match": {
+                        "day": {"$gte": last_week[0],
+                                "$lte": last_week[6]},
+                        "channel": {"$in": channel_ids}
+                    }
+                },
+                {
+                    "$project": {
+                        "total": {"$sum": "$valid_word_count"}
+                    }
+                },
+
+                {"$group": {"_id": None,
+                            "total": {"$sum": "$total"},
+
+                            }
+                 },
+
+            ])
+
+        async for amount in current_week_new_guardian_count:
+            current_week_new_guardian_count_list.append(amount)
+
+        async for amount in last_week_new_guardian_count:
+            last_week_new_guardian_count_list.append(amount)
+
+        async for amount in total_guardian_count:
+            total_guardian_count_list.append(amount)
+
+        total = total_guardian_count_list[0]['total'] if total_guardian_count_list else 0
+        current_week = current_week_new_guardian_count_list[0]['total'] if current_week_new_guardian_count_list else 0
+        last_week = last_week_new_guardian_count_list[0]['total'] if last_week_new_guardian_count_list else 0
+        return total, current_week, last_week
+
+    async def _valid_exercise_number(self, request: Request, channel_ids=[]):
+        """
+        有效考试数
+        :param request:
+        :return:
+        """
+        coll = request.app['mongodb'][self.db][self.channel_per_day_coll]
+        total_guardian_count_list = []
+        current_week_new_guardian_count_list = []
+        last_week_new_guardian_count_list = []
+        current_week = self.current_week()
+        last_week = self.last_week()
+        total_guardian_count = coll.aggregate(
+            [
+                {
+                    "$match": {"channel": {"$in": channel_ids}}
+                },
+                {
+                    "$project": {
+                        "total": {"$sum": "$valid_exercise_count"}
+                    }
+                },
+
+                {"$group": {"_id": None,
+                            "total": {"$sum": "$total"},
+                            }
+                 },
+
+            ])
+        current_week_new_guardian_count = coll.aggregate(
+            [
+                {
+                    "$match": {
+                        "day": {"$gte": current_week[0],
+                                "$lte": current_week[6]},
+                        "channel": {"$in": channel_ids}
+                    }
+                },
+                {
+                    "$project": {
+                        "total": {"$sum": "$valid_exercise_count"}
+                    }
+                },
+
+                {"$group": {"_id": None,
+                            "total": {"$sum": "$total"},
+                            }
+                 },
+
+            ])
+
+        last_week_new_guardian_count = coll.aggregate(
+            [
+                {
+                    "$match": {
+                        "day": {"$gte": last_week[0],
+                                "$lte": last_week[6]},
+                        "channel": {"$in": channel_ids}
+                    }
+                },
+                {
+                    "$project": {
+                        "total": {"$sum": "$valid_exercise_count"}
+                    }
+                },
+
+                {"$group": {"_id": None,
+                            "total": {"$sum": "$total"},
+
+                            }
+                 },
+
+            ])
+
+        async for amount in current_week_new_guardian_count:
+            current_week_new_guardian_count_list.append(amount)
+
+        async for amount in last_week_new_guardian_count:
+            last_week_new_guardian_count_list.append(amount)
+
+        async for amount in total_guardian_count:
+            total_guardian_count_list.append(amount)
+
+        total = total_guardian_count_list[0]['total'] if total_guardian_count_list else 0
+        current_week = current_week_new_guardian_count_list[0]['total'] if current_week_new_guardian_count_list else 0
+        last_week = last_week_new_guardian_count_list[0]['total'] if last_week_new_guardian_count_list else 0
+        return total, current_week, last_week
 
     async def _valid_contest_number(self, request:Request, channel_ids=[]):
         """
@@ -955,6 +1144,8 @@ class Overview(BaseHandler, DataExcludeMixin):
                 },
                 {
                     "$project": {
+                        "total_exercise": {"$sum": "$valid_exercise_count"},
+                        "total_word": {"$sum": "$valid_word_count"},
                         "total": {"$sum": ["$valid_exercise_count", "$valid_word_count", "$valid_reading_count"]}
                     }
                 },
@@ -962,7 +1153,7 @@ class Overview(BaseHandler, DataExcludeMixin):
                 {"$group": {"_id": None,
                             "total": {"$sum": "$total"},
                             }
-                 },
+                },
 
             ])
         current_week_new_guardian_count = coll.aggregate(
