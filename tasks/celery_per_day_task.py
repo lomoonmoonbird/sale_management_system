@@ -1067,8 +1067,8 @@ class PerDaySubTask_PAYMENTS(BaseTask):
             q_payments = select([ob_order.c.user_id, ob_order.c.coupon_amount])\
                 .where(and_(ob_order.c.available == 1,
                             ob_order.c.status == 6,
-                            ob_order.c.time_create >= one_date[0],
-                            ob_order.c.time_create < one_date[1])
+                            ob_order.c.time_modify >= one_date[0],
+                            ob_order.c.time_modify < one_date[1])
                        )
 
             payments = self._query(q_payments)
