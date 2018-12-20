@@ -1711,7 +1711,7 @@ class SchoolDetail(QueryMixin):
         "school_id": ""
     }
     """
-
+    @validate_permission(data_validation=True)
     async def clazz_list(self, request: Request):
         """
         班级列表
