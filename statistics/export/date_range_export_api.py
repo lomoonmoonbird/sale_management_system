@@ -350,16 +350,16 @@ class DateRangeExport(BaseHandler, ExportBase, DataExcludeMixin):
             row[6].value = "暂无数据"
 
             row[7].value = item['total_valid_exercise_number']
-            row[8].value = item['range_valid_exercise_number']
+            row[8].value = item['range_valid_exercise_count']
 
             row[9].value = item['total_exercise_image_number']
             row[10].value = item['range_exercise_image_number']
 
             row[11].value = item['total_valid_reading_number']
-            row[12].value = item['range_valid_reading_number']
+            row[12].value = item['range_valid_reading_count']
 
             row[13].value = item['total_valid_word_number']
-            row[14].value = item['range_valid_word_number']
+            row[14].value = item['range_valid_word_count']
             row[15].value = item['total_word_image_number']
             row[16].value = item['range_word_image_number']
 
