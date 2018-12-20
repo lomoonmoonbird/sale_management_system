@@ -409,7 +409,6 @@ class DateRangeExport(BaseHandler, ExportBase, DataExcludeMixin):
         for index, item in enumerate(items):
             row = sheet[index+4]
             row[0].value = item['channel_info']['name']
-            row[0].value = item['area_info']['name']
             row[1].value = item['total_school_number']
             row[2].value = item['range_school_number']
             row[3].value = item['total_student_number']
@@ -615,7 +614,7 @@ class DateRangeExport(BaseHandler, ExportBase, DataExcludeMixin):
                         "total_school_number": 1,
                         "range_school_number": 1,
                         "total_teacher_number": 1,
-                        "total_student_number": 1,
+                            "total_student_number": 1,
                         "total_guardian_number": 1,
                         "range_guardian_count": 1,
                         "total_guardian_unique_count": 1,
