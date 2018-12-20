@@ -97,51 +97,51 @@ class AreaList(BaseHandler, DataExcludeMixin):
             item['contest_coverage_ratio'] = 0
             item['contest_average_per_person'] = 0
             area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
-                'total_school_number', []).append(item['total_school_number'])
+                'total_school_number', []).append(item.get('total_school_number',0))
 
             area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
-                'total_teacher_number', []).append(item['total_teacher_number'])
+                'total_teacher_number', []).append(item.get('total_teacher_number'))
 
             area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
-                'total_student_number', []).append(item['total_student_number'])
+                'total_student_number', []).append(item.get('total_student_number'))
 
             area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
-                'total_guardian_number', []).append(item['total_guardian_number'])
+                'total_guardian_number', []).append(item.get('total_guardian_number'))
 
             area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
-                'total_guardian_unique_count', []).append(item['total_guardian_unique_count'])
+                'total_guardian_unique_count', []).append(item.get('total_guardian_unique_count'))
 
             area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
-                'total_pay_number', []).append(item['total_pay_number'])
+                'total_pay_number', []).append(item.get('total_pay_number'))
 
             area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
-                'total_pay_amount', []).append(item['total_pay_amount'])
+                'total_pay_amount', []).append(item.get('total_pay_amount'))
 
             area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
-                'total_valid_reading_number', []).append(item['total_valid_reading_number'])
+                'total_valid_reading_number', []).append(item.get('total_valid_reading_number'))
             area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
-                'total_valid_exercise_number', []).append(item['total_valid_exercise_number'])
+                'total_valid_exercise_number', []).append(item.get('total_valid_exercise_number'))
 
             area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
-                'total_valid_word_number', []).append(item['total_valid_word_number'])
+                'total_valid_word_number', []).append(item.get('total_valid_word_number'))
 
             area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
-                'total_exercise_image_number', []).append(item['total_exercise_image_number'])
+                'total_exercise_image_number', []).append(item.get('total_exercise_image_number'))
 
             area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
-                'total_word_image_number', []).append(item['total_word_image_number'])
+                'total_word_image_number', []).append(item.get('total_word_image_number'))
 
             area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
-                'pay_ratio', []).append(item['pay_ratio'])
+                'pay_ratio', []).append(item.get('pay_ratio'))
 
             area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
-                'bind_ratio', []).append(item['bind_ratio'])
+                'bind_ratio', []).append(item.get('bind_ratio'))
 
             area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
-                'contest_coverage_ratio', []).append(item['contest_coverage_ratio'])
+                'contest_coverage_ratio', []).append(item.get('contest_coverage_ratio'))
 
             area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
-                'contest_average_per_person', []).append(item['contest_average_per_person'])
+                'contest_average_per_person', []).append(item.get('contest_average_per_person'))
 
             item["area_info"] = areas_map.get(channels_map.get(item['_id'], 0), {})
 
