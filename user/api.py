@@ -506,7 +506,7 @@ class User(BaseHandler, DataExcludeMixin):
                     sql = "select * from sigma_account_us_user " \
                           "where available = 1 " \
                           "and role_id = 6 " \
-                          "and time_create_time >= '%s' " \
+                          "and time_create >= '%s' " \
                           "and time_create <= '%s' " \
                           "and id in (%s)" % (
                                               self.start_time.strftime("%Y-%m-%d"),

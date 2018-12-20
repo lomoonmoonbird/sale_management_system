@@ -41,22 +41,34 @@ connection = pymysql.connect(host="127.0.0.1",
                                   charset='utf8mb4',
                                   cursorclass=pymysql.cursors.DictCursor)
 
-readings = mongo.record_reading_delta.find({"reading_uid": "1bbdeb4421ca4853958c"})
+# readings = mongo.record_reading_delta.find({"reading_uid": "1bbdeb4421ca4853958c"})
+#
+#
+# students = list(set(list(readings)[0]['students'])) if readings[0] else []
+#
+#
+# sql_user = "select id,username,school_id from sigma_account_us_user where id in (%s)" % (
+#     ",".join(["'" + str(id) + "'" for id in students]))
+# print(sql_user)
+# cursor = connection.cursor()
+# cursor.execute(sql_user)
+# ret = cursor.fetchall()
 
-# print(list(readings)[0]['students'])
-# print (len(list(set(list(readings)[0]['students']))))
 
-students = list(set(list(readings)[0]['students']))
-
-
-sql_user = "select id,username,school_id from sigma_account_us_user where id in (%s)" % (
-    ",".join(["'" + str(id) + "'" for id in students]))
-print(sql_user)
+old_ids = ['40081','40082','89629','408120','679169','679218', '727722', '825125','872639','913787','922346']
+sql = "select * from sigma_account_us_user " \
+      "where available = 1 " \
+      "and role_id = 6 " \
+      "and time_create >= '%s' " \
+      "and time_create <= '%s' " \
+      "and id in (%s)" % (
+          "2018-01-01",
+          "2018-12-20",
+          ','.join(old_ids))
+print(sql)
 cursor = connection.cursor()
-cursor.execute(sql_user)
+cursor.execute(sql)
 ret = cursor.fetchall()
-
 print(ret)
-
 connection.close()
 server.stop()
