@@ -508,9 +508,10 @@ class User(BaseHandler, DataExcludeMixin):
                           "and role_id = 6 " \
                           "and time_create_time >= '%s' " \
                           "and time_create <= '%s' " \
-                          "and id in (%s)" % (','.join(old_ids),
+                          "and id in (%s)" % (
                                               self.start_time.strftime("%Y-%m-%d"),
-                                              datetime.now().strftime("%Y-%m-%d"))
+                                              datetime.now().strftime("%Y-%m-%d"),
+                                              ','.join(old_ids))
 
                     async with request.app['mysql'].acquire() as conn:
                         async with conn.cursor(DictCursor) as cur:
