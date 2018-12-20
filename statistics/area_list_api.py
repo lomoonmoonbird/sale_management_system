@@ -114,6 +114,11 @@ class AreaList(BaseHandler, DataExcludeMixin):
                 'range_guardian_number', []).append(item.get('range_guardian_number', 0))
 
             area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
+                'total_guardian_unique_number', []).append(item.get('total_guardian_unique_number', 0))
+            area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
+                'range_guardian_unique_number', []).append(item.get('range_guardian_unique_number', 0))
+
+            area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
                 'total_guardian_unique_count', []).append(item.get('total_guardian_unique_count',0))
             area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
                 'range_guardian_unique_count', []).append(item.get('range_guardian_unique_count', 0))
@@ -169,16 +174,26 @@ class AreaList(BaseHandler, DataExcludeMixin):
             items.append(
                 {
                     "total_school_number": sum(item['total_school_number']),
+                    "range_school_number": sum(item['range_school_number']),
                     "total_teacher_number": sum(item['total_teacher_number']),
                     "total_student_number": sum(item['total_student_number']),
                     "total_guardian_number": sum(item['total_guardian_number']),
+                    "range_guardian_number": sum(item['range_guardian_number']),
+                    "total_guardian_unique_number": sum(item['total_guardian_unique_number']),
+                    "range_guardian_unique_number": sum(item['range_guardian_unique_number']),
                     "total_pay_number": sum(item['total_pay_number']),
                     "total_pay_amount": sum(item['total_pay_amount']),
+                    "range_pay_amount": sum(item['total_pay_amount']),
                     "total_valid_exercise_number": sum(item['total_valid_exercise_number']),
+                    "range_valid_exercise_number": sum(item['range_valid_exercise_number']),
                     "total_valid_word_number": sum(item['total_valid_word_number']),
+                    "range_valid_word_number": sum(item['range_valid_word_number']),
                     "total_exercise_image_number": sum(item['total_exercise_image_number']),
+                    "range_exercise_image_number": sum(item['range_exercise_image_number']),
                     "total_word_image_number": sum(item['total_word_image_number']),
+                    "range_word_image_number": sum(item['range_word_image_number']),
                     "total_valid_reading_number": sum(item['total_valid_reading_number']),
+                    "range_valid_reading_number": sum(item['range_valid_reading_number']),
                     "pay_ratio": self.rounding(
                         sum(item['total_pay_number']) / sum(item['total_student_number'])) if sum(
                         item['total_student_number']) else 0,
@@ -200,16 +215,25 @@ class AreaList(BaseHandler, DataExcludeMixin):
             else:
                 items.append({
                     "total_school_number": 0,
+                    "range_school_number": 0,
                     "total_teacher_number": 0,
                     "total_student_number": 0,
                     "total_guardian_number": 0,
+                    "range_guardian_number": 0,
+                    "range_guardian_unique_number": 0,
                     "total_pay_number": 0,
                     "total_pay_amount": 0,
+                    "range_pay_amount": 0,
                     "total_valid_exercise_number": 0,
+                    "range_valid_exercise_number": 0,
                     "total_valid_word_number": 0,
+                    "range_valid_word_number": 0,
                     "total_exercise_image_number": 0,
+                    "range_exercise_image_number": 0,
                     "total_word_image_number": 0,
+                    "range_word_image_number": 0,
                     "total_valid_reading_number": 0,
+                    "range_valid_reading_number": 0,
                     "pay_ratio": 0,
                     "bind_ratio": 0,
                     "contest_coverage_ratio": 0,
