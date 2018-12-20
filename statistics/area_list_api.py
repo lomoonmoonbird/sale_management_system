@@ -100,6 +100,9 @@ class AreaList(BaseHandler, DataExcludeMixin):
                 'total_school_number', []).append(item.get('total_school_number',0))
 
             area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
+                'range_school_number', []).append(item.get('range_school_number', 0))
+
+            area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
                 'total_teacher_number', []).append(item.get('total_teacher_number',0))
 
             area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
@@ -107,29 +110,45 @@ class AreaList(BaseHandler, DataExcludeMixin):
 
             area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
                 'total_guardian_number', []).append(item.get('total_guardian_number',0))
+            area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
+                'range_guardian_number', []).append(item.get('range_guardian_number', 0))
 
             area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
                 'total_guardian_unique_count', []).append(item.get('total_guardian_unique_count',0))
+            area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
+                'range_guardian_unique_count', []).append(item.get('range_guardian_unique_count', 0))
 
             area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
                 'total_pay_number', []).append(item.get('total_pay_number',0))
 
             area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
                 'total_pay_amount', []).append(item.get('total_pay_amount',0))
+            area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
+                'range_pay_amount', []).append(item.get('range_pay_amount', 0))
 
             area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
                 'total_valid_reading_number', []).append(item.get('total_valid_reading_number',0))
             area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
+                'range_valid_reading_number', []).append(item.get('range_valid_reading_number', 0))
+            area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
                 'total_valid_exercise_number', []).append(item.get('total_valid_exercise_number',0))
+            area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
+                'range_valid_exercise_number', []).append(item.get('range_valid_exercise_number', 0))
 
             area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
                 'total_valid_word_number', []).append(item.get('total_valid_word_number',0))
+            area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
+                'range_valid_word_number', []).append(item.get('range_valid_word_number', 0))
 
             area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
                 'total_exercise_image_number', []).append(item.get('total_exercise_image_number',0))
+            area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
+                'range_exercise_image_number', []).append(item.get('range_exercise_image_number', 0))
 
             area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
                 'total_word_image_number', []).append(item.get('total_word_image_number',0))
+            area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
+                'range_word_image_number', []).append(item.get('range_word_image_number', 0))
 
             area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
                 'pay_ratio', []).append(item.get('pay_ratio',0))
