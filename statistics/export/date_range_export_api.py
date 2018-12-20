@@ -343,18 +343,31 @@ class DateRangeExport(BaseHandler, ExportBase, DataExcludeMixin):
             row = sheet[index+4]
             row[0].value = item['area_info']['name']
             row[1].value = item['total_school_number']
-            row[2].value = item['total_teacher_number']
+            row[2].value = item['range_school_number']
             row[3].value = item['total_student_number']
-            row[4].value = item['total_valid_exercise_number']
-            row[5].value = item['total_exercise_image_number']
-            row[6].value = item['total_valid_word_number']
-            row[7].value = item['total_word_image_number']
-            row[8].value = item['total_valid_reading_number']
-            row[9].value = item['total_guardian_number']
-            row[10].value = item['bind_ratio']
-            row[11].value = item['total_pay_number']
-            row[12].value = item['pay_ratio']
-            row[13].value = item['total_pay_amount']
+            row[4].value = item['total_teacher_number']
+            row[5].value = "暂无数据"
+            row[6].value = "暂无数据"
+
+            row[7].value = item['total_valid_exercise_number']
+            row[8].value = item['range_valid_exercise_number']
+
+            row[9].value = item['total_exercise_image_number']
+            row[10].value = item['range_exercise_image_number']
+
+            row[11].value = item['total_valid_reading_number']
+            row[12].value = item['range_valid_reading_number']
+
+            row[13].value = item['total_valid_word_number']
+            row[14].value = item['range_valid_word_number']
+            row[15].value = item['total_word_image_number']
+            row[16].value = item['range_word_image_number']
+
+            row[17].value = item['total_guardian_unique_count']
+            row[18].value = item['range_guardian_unique_count']
+
+            row[19].value = item['total_pay_amount']
+            row[20].value = item['range_pay_amount']
 
             for cell in row:
                 cell.alignment = self._alignment()
@@ -396,19 +409,33 @@ class DateRangeExport(BaseHandler, ExportBase, DataExcludeMixin):
         for index, item in enumerate(items):
             row = sheet[index+4]
             row[0].value = item['channel_info']['name']
+            row[0].value = item['area_info']['name']
             row[1].value = item['total_school_number']
-            row[2].value = item['total_teacher_number']
+            row[2].value = item['range_school_number']
             row[3].value = item['total_student_number']
-            row[4].value = item['total_valid_exercise_number']
-            row[5].value = item['total_exercise_image_number']
-            row[6].value = item['total_valid_word_number']
-            row[7].value = item['total_word_image_number']
-            row[8].value = item['total_valid_reading_number']
-            row[9].value = item['total_guardian_number']
-            row[10].value = item['bind_ratio']
-            row[11].value = item['total_pay_number']
-            row[12].value = item['pay_ratio']
-            row[13].value = item['total_pay_amount']
+            row[4].value = item['total_teacher_number']
+            row[5].value = "暂无数据"
+            row[6].value = "暂无数据"
+
+            row[7].value = item['total_valid_exercise_number']
+            row[8].value = item['range_valid_exercise_number']
+
+            row[9].value = item['total_exercise_image_number']
+            row[10].value = item['range_exercise_image_number']
+
+            row[11].value = item['total_valid_reading_number']
+            row[12].value = item['range_valid_reading_number']
+
+            row[13].value = item['total_valid_word_number']
+            row[14].value = item['range_valid_word_number']
+            row[15].value = item['total_word_image_number']
+            row[16].value = item['range_word_image_number']
+
+            row[17].value = item['total_guardian_unique_count']
+            row[18].value = item['range_guardian_unique_count']
+
+            row[19].value = item['total_pay_amount']
+            row[20].value = item['range_pay_amount']
 
             for cell in row:
                 cell.alignment = self._alignment()
@@ -487,40 +514,68 @@ class DateRangeExport(BaseHandler, ExportBase, DataExcludeMixin):
         """
         coll = request.app['mongodb'][self.db][self.channel_per_day_coll]
         items = []
-        yesterday = datetime.strptime(end_time, "%Y-%m-%d") - timedelta(1)
-        yesterday_before_30day = yesterday - timedelta(30)
-        yesterday_str = yesterday.strftime("%Y-%m-%d")
-        yesterday_before_30day_str = yesterday_before_30day.strftime("%Y-%m-%d")
-
+        # yesterday = datetime.strptime(end_time, "%Y-%m-%d") - timedelta(1)
+        # yesterday_before_30day = yesterday - timedelta(30)
+        # yesterday_str = yesterday.strftime("%Y-%m-%d")
+        # yesterday_before_30day_str = yesterday_before_30day.strftime("%Y-%m-%d")
+        #
 
         item_count = coll.aggregate(
             [
                 {
                     "$match": {
                         "channel": {"$in": channel_ids},
-                        "day": {"$gte": begin_time, "$lte": end_time}
+                        # "day": {"$gte": begin_time, "$lte": end_time}
                     }
                 },
                 {
                     "$project": {
                         "channel": 1,
-                        "school_number": 1,
-                        "teacher_number": 1,
-                        "student_number": 1,
-                        "guardian_count": 1,
-                        "guardian_unique_count": 1,
-                        "pay_number": 1,
-                        "pay_amount": 1,
-                        "valid_reading_count": {"$cond": [{"$and": [{"$lte": ["$day", yesterday_str]}, {
-                            "$gte": ["$day", yesterday_before_30day_str]}]}, "$valid_reading_count", 0]},
-                        "valid_exercise_count": {"$cond": [{"$and": [{"$lte": ["$day", yesterday_str]}, {
-                            "$gte": ["$day", yesterday_before_30day_str]}]}, "$valid_exercise_count", 0]},
-                        "e_image_c": {"$cond": [{"$and": [{"$lte": ["$day", yesterday_str]}, {
-                            "$gte": ["$day", yesterday_before_30day_str]}]}, "$e_image_c", 0]},
-                        "valid_word_count": {"$cond": [{"$and": [{"$lte": ["$day", yesterday_str]}, {
-                            "$gte": ["$day", yesterday_before_30day_str]}]}, "$valid_word_count", 0]},
-                        "w_image_c": {"$cond": [{"$and": [{"$lte": ["$day", yesterday_str]}, {
-                            "$gte": ["$day", yesterday_before_30day_str]}]}, "$w_image_c", 0]},
+                        "range_school_number": {"$cond": [{"$and": [{"$lte": ["$day", end_time]}, {
+                            "$gte": ["$day", begin_time]}]}, "$school_number", 0]},
+                        "school_number": {"$cond": [{"$and": [{"$lte": ["$day", end_time]}]}, "$school_number", 0]},
+
+                        "student_number": {
+                            "$cond": [{"$and": [{"$lte": ["$day", end_time]}]}, "$school_number", 0]},
+
+                        "teacher_number": {
+                            "$cond": [{"$and": [{"$lte": ["$day", end_time]}]}, "$school_number", 0]},
+
+                        "range_valid_exercise_count": {"$cond": [{"$and": [{"$lte": ["$day", end_time]}, {
+                            "$gte": ["$day", begin_time]}]}, "$valid_exercise_count", 0]},
+                        "valid_exercise_count": {"$cond": [{"$and": [{"$lte": ["$day", end_time]}]}, "$valid_exercise_count", 0]},
+
+                        "e_image_c": {"$cond": [{"$and": [{"$lte": ["$day", end_time]}, ]}, "$e_image_c", 0]},
+                        "range_e_image_c": {"$cond": [{"$and": [{"$lte": ["$day", end_time]}, {
+                            "$gte": ["$day", begin_time]}]}, "$e_image_c", 0]},
+                        "w_image_c": {"$cond": [{"$and": [{"$lte": ["$day", end_time]}, ]}, "$w_image_c", 0]},
+                        "range_w_image_c": {"$cond": [{"$and": [{"$lte": ["$day", end_time]}, {
+                            "$gte": ["$day", begin_time]}]}, "$w_image_c", 0]},
+
+                        "range_valid_reading_count": {"$cond": [{"$and": [{"$lte": ["$day", end_time]}, {
+                            "$gte": ["$day", begin_time]}]}, "$valid_reading_count", 0]},
+                        "valid_reading_count": {
+                            "$cond": [{"$and": [{"$lte": ["$day", end_time]}]}, "$valid_reading_count", 0]},
+
+                        "range_valid_word_count": {"$cond": [{"$and": [{"$lte": ["$day", end_time]}, {
+                            "$gte": ["$day", begin_time]}]}, "$valid_word_count", 0]},
+                        "valid_word_count": {
+                            "$cond": [{"$and": [{"$lte": ["$day", end_time]}]}, "$valid_word_count", 0]},
+
+                        "range_guardian_count": {"$cond": [{"$and": [{"$lte": ["$day", end_time]}, {
+                            "$gte": ["$day", begin_time]}]}, "$guardian_count", 0]},
+                        "guardian_count": {
+                            "$cond": [{"$and": [{"$lte": ["$day", end_time]}]}, "$guardian_count", 0]},
+
+                        "range_guardian_unique_count": {"$cond": [{"$and": [{"$lte": ["$day", end_time]}, {
+                            "$gte": ["$day", begin_time]}]}, "$guardian_count", 0]},
+                        "guardian_unique_count": {
+                            "$cond": [{"$and": [{"$lte": ["$day", end_time]}]}, "$guardian_count", 0]},
+
+                        "range_pay_amount": {"$cond": [{"$and": [{"$lte": ["$day", end_time]}, {
+                            "$gte": ["$day", begin_time]}]}, "$pay_amount", 0]},
+                        "pay_amount": {
+                            "$cond": [{"$and": [{"$lte": ["$day", end_time]}]}, "$pay_amount", 0]},
 
                         "day": 1
                     }
@@ -528,38 +583,50 @@ class DateRangeExport(BaseHandler, ExportBase, DataExcludeMixin):
 
                 {"$group": {"_id": "$channel",
                             "total_school_number": {"$sum": "$school_number"},
+                            "range_school_number": {"$sum": "$range_school_number"},
                             "total_teacher_number": {"$sum": "$teacher_number"},
                             "total_student_number": {"$sum": "$student_number"},
                             "total_guardian_number": {"$sum": "$guardian_count"},
+                            "range_guardian_count": {"$sum": "$range_guardian_count"},
                             "total_guardian_unique_count": {"$sum": "$guardian_unique_count"},
-                            "total_pay_number": {"$sum": "$pay_number"},
+                            "range_guardian_unique_count": {"$sum": "$range_guardian_unique_count"},
                             "total_pay_amount": {"$sum": "$pay_amount"},
+                            "range_pay_amount": {"$sum": "$range_pay_amount"},
                             "total_valid_reading_number": {"$sum": "$valid_reading_count"},
+                            "range_valid_reading_count": {"$sum": "$range_valid_reading_count"},
                             "total_valid_exercise_number": {"$sum": "$valid_exercise_count"},
+                            "range_valid_exercise_count": {"$sum": "range_valid_exercise_count"},
                             "total_valid_word_number": {"$sum": "$valid_word_count"},
+                            "range_valid_word_count": {"$sum": "$range_valid_word_count"},
                             "total_exercise_image_number": {"$sum": "$e_image_c"},
-                            "total_word_image_number": {"$sum": "$w_image_c"}
+                            "range_exercise_image_number": {"$sum": "$range_e_image_c"},
+                            "total_word_image_number": {"$sum": "$w_image_c"},
+                            "range_word_image_number": {"$sum": "$range_w_image_c"}
                             }
                  },
                 {
                     "$project": {
                         "_id": 1,
                         "total_school_number": 1,
+                        "range_school_number": 1,
                         "total_teacher_number": 1,
                         "total_student_number": 1,
                         "total_guardian_number": 1,
+                        "range_guardian_count": 1,
                         "total_guardian_unique_count": 1,
-                        "total_pay_number": 1,
+                        "range_guardian_unique_count": 1,
                         "total_pay_amount": 1,
+                        "range_pay_amount": 1,
                         "total_valid_reading_number": 1,
+                        "range_valid_reading_count": 1,
                         "total_valid_exercise_number": 1,
+                        "range_valid_exercise_count": 1,
                         "total_valid_word_number": 1,
+                        "range_valid_word_count": 1,
                         "total_exercise_image_number": 1,
+                        "range_exercise_image_number": 1,
                         "total_word_image_number": 1,
-
-                        "pay_ratio": {"$cond": [{"$eq": ["$total_student_number", 0]}, 0, {"$divide": ["$total_pay_number", "$total_student_number"]}]},
-                        "bind_ratio": {"$cond": [{"$eq": ["$total_student_number", 0]}, 0,
-                                                {"$divide": ["$total_guardian_unique_count", "$total_student_number"]}]},
+                        "range_word_image_number": 1
                     }
 
                 }

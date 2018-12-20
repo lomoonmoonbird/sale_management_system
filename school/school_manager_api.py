@@ -196,16 +196,22 @@ class SchoolManage(BaseHandler):
         school_item = await self._stat_school(request, school_ids)
         school_item_map = {}
         for s_i in school_item:
+            s_i["contest_coverage_ratio"] =  0
+            s_i["contest_average_per_person"] = 0
             school_item_map[s_i['_id']] = s_i
         grade_item = await self._stat_grade(request, school_ids)
         grade_item_map = {}
         for g_i in grade_item:
+            g_i["contest_coverage_ratio"] = 0
+            g_i["contest_average_per_person"] = 0
             grade_item_map[str(g_i['_id']['school_id']) + "@" + g_i['_id']['grade']] = g_i
 
         data = []
         for index, school in enumerate(schools):
 
             default = {
+            "contest_coverage_ratio": 0,
+            "contest_average_per_person": 0,
             "total_teacher_number": 0,
             "total_student_number": 0,
             "total_guardian_number": 0,
