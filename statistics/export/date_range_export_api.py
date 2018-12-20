@@ -54,7 +54,7 @@ class DateRangeExport(BaseHandler, ExportBase, DataExcludeMixin):
         self.thread_pool = ThreadPoolExecutor(20)
 
 
-    @validate_permission()
+    @validate_permission(data_validation=True)
     async def area_list_export(self, request: Request):
         """
         总部
@@ -109,7 +109,7 @@ class DateRangeExport(BaseHandler, ExportBase, DataExcludeMixin):
         return await self.replay_stream(sheet,
                                         title, request)
 
-    @validate_permission()
+    @validate_permission(data_validation=True)
     async def channel_list_export(self, request: Request):
         """
         渠道时间范围列表导出
@@ -519,7 +519,11 @@ class DateRangeExport(BaseHandler, ExportBase, DataExcludeMixin):
         # yesterday_str = yesterday.strftime("%Y-%m-%d")
         # yesterday_before_30day_str = yesterday_before_30day.strftime("%Y-%m-%d")
         #
-
+        pay_stat_start_time = request['data_permission']['pay_stat_start_time']
+        if pay_stat_start_time:
+            pay_stat_start_time = pay_stat_start_time if pay_stat_start_time >= begin_time else begin_time
+        else:
+            pay_stat_start_time = begin_time
         item_count = coll.aggregate(
             [
                 {
@@ -573,9 +577,10 @@ class DateRangeExport(BaseHandler, ExportBase, DataExcludeMixin):
                             "$cond": [{"$and": [{"$lte": ["$day", end_time]}]}, "$guardian_count", 0]},
 
                         "range_pay_amount": {"$cond": [{"$and": [{"$lte": ["$day", end_time]}, {
-                            "$gte": ["$day", begin_time]}]}, "$pay_amount", 0]},
+                            "$gte": ["$day", pay_stat_start_time ]}]}, "$pay_amount", 0]},
                         "pay_amount": {
-                            "$cond": [{"$and": [{"$lte": ["$day", end_time]}]}, "$pay_amount", 0]},
+                            "$cond": [{"$and": [{"$lte": ["$day", end_time]},{
+                            "$gte": ["$day", request['data_permission']["pay_stat_start_time"]]}]}, "$pay_amount", 0]},
 
                         "day": 1
                     }
