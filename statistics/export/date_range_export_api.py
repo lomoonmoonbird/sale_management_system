@@ -540,10 +540,10 @@ class DateRangeExport(BaseHandler, ExportBase, DataExcludeMixin):
                         "school_number": {"$cond": [{"$and": [{"$lte": ["$day", end_time]}]}, "$school_number", 0]},
 
                         "student_number": {
-                            "$cond": [{"$and": [{"$lte": ["$day", end_time]}]}, "$school_number", 0]},
+                            "$cond": [{"$and": [{"$lte": ["$day", end_time]}]}, "$student_number", 0]},
 
                         "teacher_number": {
-                            "$cond": [{"$and": [{"$lte": ["$day", end_time]}]}, "$school_number", 0]},
+                            "$cond": [{"$and": [{"$lte": ["$day", end_time]}]}, "$teacher_number", 0]},
 
                         "range_valid_exercise_count": {"$cond": [{"$and": [{"$lte": ["$day", end_time]}, {
                             "$gte": ["$day", begin_time]}]}, "$valid_exercise_count", 0]},
@@ -572,9 +572,9 @@ class DateRangeExport(BaseHandler, ExportBase, DataExcludeMixin):
                             "$cond": [{"$and": [{"$lte": ["$day", end_time]}]}, "$guardian_count", 0]},
 
                         "range_guardian_unique_count": {"$cond": [{"$and": [{"$lte": ["$day", end_time]}, {
-                            "$gte": ["$day", begin_time]}]}, "$guardian_count", 0]},
+                            "$gte": ["$day", begin_time]}]}, "$guardian_unique_count", 0]},
                         "guardian_unique_count": {
-                            "$cond": [{"$and": [{"$lte": ["$day", end_time]}]}, "$guardian_count", 0]},
+                            "$cond": [{"$and": [{"$lte": ["$day", end_time]}]}, "$guardian_unique_count", 0]},
 
                         "range_pay_amount": {"$cond": [{"$and": [{"$lte": ["$day", end_time]}, {
                             "$gte": ["$day", pay_stat_start_time ]}]}, "$pay_amount", 0]},
