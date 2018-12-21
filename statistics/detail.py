@@ -730,7 +730,7 @@ class QueryMixin(BaseHandler):
                     }
                 },
 
-                {"$group": {"_id": None,
+                {"$group": {"_id": group_by,
                             "total": {"$sum": "$total"},
                             }
                  },
@@ -752,7 +752,7 @@ class QueryMixin(BaseHandler):
                     }
                 },
 
-                {"$group": {"_id": None,
+                {"$group": {"_id": group_by,
                             "total": {"$sum": "$total"},
 
                             }
@@ -1416,7 +1416,7 @@ class AreaDetail(QueryMixin, DataExcludeMixin):
             request, old_ids, "$channel")
 
         contest_total, contest_curr_week_new_number, contest_last_week_new_number = await self._valid_contest_number(
-            request, exclude_channels)
+            request, old_ids, "$channel")
         return self.reply_ok({"pay_total": pay_total,
                               "pay_curr_week_new_number": pay_curr_week_new_number,
                               "pay_last_week_new_number": pay_last_week_new_number,
@@ -1545,7 +1545,7 @@ class ChannelDetail(QueryMixin):
                 request, channel_old_id, "$channel")
 
             contest_total, contest_curr_week_new_number, contest_last_week_new_number = await self._valid_contest_number(
-                request, channel_old_id)
+                request, channel_old_id, "$channel")
 
             return self.reply_ok({"pay_total": pay_total,
                                   "pay_curr_week_new_number": pay_curr_week_new_number,
