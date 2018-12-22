@@ -26,6 +26,8 @@ from bson import ObjectId
 from enumconstant import Roles, PermissionRole
 from mixins import DataExcludeMixin
 from models.mysql.centauri import StageEnum
+from tasks.celery_base import BaseTask
+from utils import CustomEncoder
 
 class QueryMixin(BaseHandler):
 
@@ -1372,6 +1374,9 @@ class AreaDetail(QueryMixin, DataExcludeMixin):
     """
     def __init__(self):
         super(AreaDetail, self).__init__()
+        self.grade_coll = "grade"
+        self.school_coll = "school"
+        self.start_time = BaseTask().start_time
 
     @validate_permission(data_validation=True)
     async def overview(self, request: Request):
@@ -1495,6 +1500,220 @@ class AreaDetail(QueryMixin, DataExcludeMixin):
 
         return self.reply_ok({"channel_list": items, "extra": {"total": total_count, "number_per_page": per_page, "curr_page": page + 1}})
 
+    @validate_permission()
+    async def school_list(self, request: Request):
+        """
+        大区学校列表
+
+        学校列表
+        {
+            "page":"",
+            "school_name":"",
+            "stage": "",
+            "open_time_range":
+        }
+        :
+        :param request:
+        :return:
+        """
+        request_param = await get_params(request)
+        page = int(request_param.get("page", 1)) - 1
+        area_id = request['user_info']['area_id']
+        per_page = 10
+
+        school_page_sql = ''
+        total_sql = ''
+        total_school_count = 0
+        flag = 0
+        channels_of_area = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": area_id,
+                                                                                     "role": Roles.CHANNEL.value,
+                                                                                     "status": 1})
+        channels_of_area = await channels_of_area.to_list(None)
+        channels_of_area_old_ids = [item['old_id'] for item in channels_of_area]
+        request_stage = int(request_param.get('stage')) if request_param.get('stage') else -1
+        channel_str = ','.join(['"' + str(id) + '"' for id in channels_of_area_old_ids]) if channels_of_area_old_ids else "''"
+        if not request_param.get('school_name') and request_stage not in [StageEnum.Register.value,
+                                                                          StageEnum.Using.value,
+                                                                          StageEnum.Binding.value,
+                                                                          StageEnum.Pay.value] \
+                and not request_param.get('open_time_range'):  # 全部
+            flag = 1
+            school_page_sql = "select id,full_name, time_create  " \
+                              "from sigma_account_ob_school" \
+                              " where available = 1 and owner_id in (%s) and time_create >= '%s' " \
+                              "and time_create <= '%s' limit %s,%s" % (channel_str,
+                                                                       self.start_time.strftime("%Y-%m-%d"),
+                                                                       datetime.now().strftime("%Y-%m-%d"),
+                                                                       per_page * page, per_page)
+            total_sql = "select count(id) as total_school_count " \
+                        "from sigma_account_ob_school" \
+                        " where available = 1 and owner_id in (%s) and time_create >= '%s' " \
+                        "and time_create <= '%s' " % (channel_str,
+                                                      self.start_time.strftime("%Y-%m-%d"),
+                                                      datetime.now().strftime("%Y-%m-%d"))
+
+        elif request_param.get('school_name'):  # 单个学校
+            school_page_sql = "select id,full_name, time_create  " \
+                              "from sigma_account_ob_school" \
+                              " where available = 1 " \
+                              "and owner_id in (%s) " \
+                              "and full_name like %s" % (channel_str,
+                                                         "'%" + request_param['school_name'] + "%'")
+            flag = 2
+        elif not request_param.get('school_name'):
+            flag = 3
+            stage = [StageEnum.Register.value, StageEnum.Using.value, StageEnum.Binding.value, StageEnum.Pay.value]
+            request_stage = request_param.get('stage', -1)
+            query = {
+
+            }
+            if not request_stage:
+                request_stage = -1
+            if request_stage != -1 and int(request_stage) not in stage:
+                query["stage"] = {"$in": stage}
+            elif request_stage != -1 and int(request_stage) in stage:
+                query["stage"] = int(request_stage)
+            else:
+                pass
+            date_range = request_param.get('open_time_range', '')
+
+            if date_range:
+                date_range = request_param.get('open_time_range').split(',')
+                query.update({"open_time": {"$gte": datetime.strptime(date_range[0], "%Y-%m-%d"),
+                                            "$lte": datetime.strptime(date_range[1], "%Y-%m-%d")}})
+            else:
+                date_range = [self.start_time.strftime("%Y-%m-%d"), datetime.now().strftime("%Y-%m-%d")]
+                query.update({"open_time": {"$gte": datetime.strptime(date_range[0], "%Y-%m-%d"),
+                                            "$lte": datetime.strptime(date_range[1], "%Y-%m-%d")}})
+            query.update({"channel": {"$in": channels_of_area_old_ids}})
+            condition_schools = request.app['mongodb'][self.db][self.school_coll].find(query)
+            condition_schools = await condition_schools.to_list(10000)
+            if not condition_schools:
+                return self.reply_ok({})
+            condition_school_ids = [item['school_id'] for item in condition_schools]
+
+            if int(request_stage) == StageEnum.Register.value:
+                school_page_sql = "select id,full_name, time_create  " \
+                                  "from sigma_account_ob_school" \
+                                  " where available = 1 " \
+                                  "and owner_id in (%s) limit %s,%s" % (channel_str,
+                                                                            per_page * page,
+                                                                            per_page)
+                total_sql = "select count(id) as total_school_count " \
+                            "from sigma_account_ob_school" \
+                            " where available = 1 and owner_id in (%s) and time_create >= '%s' " \
+                            "and time_create <= '%s'  " % (channel_str,
+                                                           date_range[0], date_range[1],)
+            else:
+                school_page_sql = "select id,full_name, time_create  " \
+                                  "from sigma_account_ob_school" \
+                                  " where available = 1 " \
+                                  "and owner_id in (%s) " \
+                                  "and id in (%s) limit %s,%s" % (channel_str,
+                                                                  ','.join(['"' + str(id) + '"' for id in
+                                                                            condition_school_ids]),
+                                                                  per_page * page, per_page)
+                total_sql = "select count(id) as total_school_count " \
+                            "from sigma_account_ob_school" \
+                            " where available = 1 " \
+                            "and owner_id in (%s) " \
+                            "and time_create >= '%s' " \
+                            "and time_create <= '%s' and id in (%s) " % (channel_str,
+                                                                         date_range[0],
+                                                                         date_range[1],
+                                                                         ','.join(['"' + str(id) + '"' for id in
+                                                                                   condition_school_ids]))
+        else:
+            pass
+        total_school_count = 1
+        async with request.app['mysql'].acquire() as conn:
+            async with conn.cursor(DictCursor) as cur:
+                if total_sql:
+                    await cur.execute(total_sql)
+                    total_school = await cur.fetchall()
+                    total_school_count = total_school[0]['total_school_count']
+                await cur.execute(school_page_sql)
+                schools = await cur.fetchall()
+        school_ids = [item['id'] for item in schools]
+        grades = []
+        if school_ids:
+            grade_sql = "select grade, school_id, time_create " \
+                        "from sigma_account_ob_group " \
+                        "where available = 1 " \
+                        "and school_id in (%s) " \
+                        "group by school_id, grade" % ",".join([str(id) for id in school_ids])
+            async with request.app['mysql'].acquire() as conn:
+                async with conn.cursor(DictCursor) as cur:
+                    await cur.execute(grade_sql)
+                    grades = await cur.fetchall()
+
+        stage_grade = request.app['mongodb'][self.db][self.grade_coll].find({"school_id": {"$in": school_ids}})
+        stage_grade = await stage_grade.to_list(10000)
+        stage_grade_union_map = {}
+        for s_g in stage_grade:
+            stage_grade_union_map[str(s_g['school_id']) + "@" + s_g['grade']] = s_g
+
+        stage_grade_union_map2 = {}
+        school_grade_union_defaultdict = defaultdict(list)
+        for grade in grades:
+            union_id = str(grade['school_id']) + "@" + grade['grade']
+            default = {
+                "stage": StageEnum.Register.value,
+                "using_time": 0
+            }
+            grade['school_grade'] = union_id
+            grade.update(stage_grade_union_map.get(union_id, default))
+            stage_grade_union_map2[union_id] = grade
+            school_grade_union_defaultdict[grade['school_id']].append(union_id)
+
+        school_item = await self._list_school(request, school_ids)
+        school_item_map = {}
+        for s_i in school_item:
+            s_i["contest_coverage_ratio"] = 0
+            s_i["contest_average_per_person"] = 0
+            school_item_map[s_i['_id']] = s_i
+        grade_item = await self._list_school_grade(request, school_ids)
+        grade_item_map = {}
+        for g_i in grade_item:
+            g_i["contest_coverage_ratio"] = 0
+            g_i["contest_average_per_person"] = 0
+            grade_item_map[str(g_i['_id']['school_id']) + "@" + g_i['_id']['grade']] = g_i
+
+        data = []
+        for index, school in enumerate(schools):
+
+            default = {
+                "contest_coverage_ratio": 0,
+                "contest_average_per_person": 0,
+                "total_teacher_number": 0,
+                "total_student_number": 0,
+                "total_guardian_number": 0,
+                "total_pay_number": 0,
+                "total_pay_amount": 0,
+                "total_valid_reading_number": 0,
+                "total_valid_exercise_number": 0,
+                "total_valid_word_number": 0,
+                "total_exercise_image_number": 0,
+                "total_word_image_number": 0,
+                "pay_ratio": 0.0,
+                "bind_ratio": 0.0
+            }
+            school['stat_info'] = school_item_map.get(school['id'], default)
+            school['grade_info'] = []
+            stage = []
+            for school_grade in school_grade_union_defaultdict.get(school['id'], []):
+                g_info = grade_item_map.get(school_grade, {})
+                if g_info:
+                    g_info.update(stage_grade_union_map2.get(school_grade, {}))
+                    school['grade_info'].append(g_info)
+                    stage.append(stage_grade_union_map2.get(school_grade, {}).get("stage", StageEnum.Register.value))
+            school['stage'] = StageEnum.Register.value if not stage else min(stage)
+
+            data.append(school)
+        return self.reply_ok({"school_list": data,
+                              "extra": {"total": total_school_count,
+                                        "number_per_page": per_page,
+                                        "curr_page": page + 1}})
 
 class ChannelDetail(QueryMixin):
     """
@@ -1502,6 +1721,9 @@ class ChannelDetail(QueryMixin):
     """
     def __init__(self):
         super(ChannelDetail, self).__init__()
+        self.grade_coll = "grade"
+        self.school_coll = "school"
+        self.start_time = BaseTask().start_time
 
     @validate_permission(data_validation=True)
     async def overview(self, request: Request):
@@ -1704,6 +1926,222 @@ class ChannelDetail(QueryMixin):
 
         return self.reply_ok({"market_list": items, "extra": {"total": total_count, "number_per_page": per_page, "curr_page": page + 1}})
 
+    @validate_permission()
+    async def school_list(self, request: Request):
+        """
+        学校列表
+
+        学校列表
+        {
+            "page":"",
+            "school_name":"",
+            "stage": "",
+            "open_time_range":
+        }
+        :
+        :param request:
+        :return:
+        """
+        request_param = await get_params(request)
+        page = int(request_param.get("page", 1)) - 1
+        channel_id = request['user_info']['channel_id']
+        per_page = 10
+
+        school_page_sql = ''
+        total_sql = ''
+        total_school_count = 0
+        flag = 0
+        channel_info = await request.app['mongodb'][self.db][self.instance_coll].find_one({"_id": ObjectId(channel_id),
+                                                                                     "role": Roles.CHANNEL.value,
+                                                                                     "status": 1})
+        old_id = channel_info.get("old_id") if channel_info else -1
+        request_stage = int(request_param.get('stage')) if request_param.get('stage') else -1
+
+        if not request_param.get('school_name') and request_stage not in [StageEnum.Register.value,
+                                                                          StageEnum.Using.value,
+                                                                          StageEnum.Binding.value,
+                                                                          StageEnum.Pay.value] \
+                and not request_param.get('open_time_range'):  # 全部
+            flag = 1
+            school_page_sql = "select id,full_name, time_create  " \
+                              "from sigma_account_ob_school" \
+                              " where available = 1 and owner_id = %s and time_create >= '%s' " \
+                              "and time_create <= '%s' limit %s,%s" % (old_id,
+                                                                       self.start_time.strftime("%Y-%m-%d"),
+                                                                       datetime.now().strftime("%Y-%m-%d"),
+                                                                       per_page * page, per_page)
+            total_sql = "select count(id) as total_school_count " \
+                        "from sigma_account_ob_school" \
+                        " where available = 1 and owner_id = %s and time_create >= '%s' " \
+                        "and time_create <= '%s' " % (old_id,
+                                                      self.start_time.strftime("%Y-%m-%d"),
+                                                      datetime.now().strftime("%Y-%m-%d"))
+
+        elif request_param.get('school_name'):  # 单个学校
+            school_page_sql = "select id,full_name, time_create  " \
+                              "from sigma_account_ob_school" \
+                              " where available = 1 " \
+                              "and owner_id = %s " \
+                              "and full_name like %s" % (old_id,
+                                                         "'%" + request_param['school_name'] + "%'")
+            flag = 2
+        elif not request_param.get('school_name'):
+            flag = 3
+            stage = [StageEnum.Register.value, StageEnum.Using.value, StageEnum.Binding.value, StageEnum.Pay.value]
+            request_stage = request_param.get('stage', -1)
+            query = {
+
+            }
+            if not request_stage:
+                request_stage = -1
+            if request_stage != -1 and int(request_stage) not in stage:
+                query["stage"] = {"$in": stage}
+            elif request_stage != -1 and int(request_stage) in stage:
+                query["stage"] = int(request_stage)
+            else:
+                pass
+            date_range = request_param.get('open_time_range', '')
+
+            if date_range:
+                date_range = request_param.get('open_time_range').split(',')
+                query.update({"open_time": {"$gte": datetime.strptime(date_range[0], "%Y-%m-%d"),
+                                            "$lte": datetime.strptime(date_range[1], "%Y-%m-%d")}})
+            else:
+                date_range = [self.start_time.strftime("%Y-%m-%d"), datetime.now().strftime("%Y-%m-%d")]
+                query.update({"open_time": {"$gte": datetime.strptime(date_range[0], "%Y-%m-%d"),
+                                            "$lte": datetime.strptime(date_range[1], "%Y-%m-%d")}})
+            query.update({"channel": old_id})
+            condition_schools = request.app['mongodb'][self.db][self.school_coll].find(query)
+            condition_schools = await condition_schools.to_list(10000)
+            if not condition_schools:
+                return self.reply_ok({})
+            condition_school_ids = [item['school_id'] for item in condition_schools]
+
+            if int(request_stage) == StageEnum.Register.value:
+                school_page_sql = "select id,full_name, time_create  " \
+                                  "from sigma_account_ob_school" \
+                                  " where available = 1 " \
+                                  "and owner_id = %s limit %s,%s" % (old_id,
+                                                                        per_page * page,
+                                                                        per_page)
+                total_sql = "select count(id) as total_school_count " \
+                            "from sigma_account_ob_school" \
+                            " where available = 1 and owner_id = %s and time_create >= '%s' " \
+                            "and time_create <= '%s'  " % (old_id,
+                                                           date_range[0], date_range[1],)
+            else:
+                school_page_sql = "select id,full_name, time_create  " \
+                                  "from sigma_account_ob_school" \
+                                  " where available = 1 " \
+                                  "and owner_id = %s " \
+                                  "and id in (%s) limit %s,%s" % (old_id,
+                                                                  ','.join(['"' + str(id) + '"' for id in
+                                                                            condition_school_ids]),
+                                                                  per_page * page, per_page)
+                total_sql = "select count(id) as total_school_count " \
+                            "from sigma_account_ob_school" \
+                            " where available = 1 " \
+                            "and owner_id = %s " \
+                            "and time_create >= '%s' " \
+                            "and time_create <= '%s' and id in (%s) " % (old_id,
+                                                                         date_range[0],
+                                                                         date_range[1],
+                                                                         ','.join(['"' + str(id) + '"' for id in
+                                                                                   condition_school_ids]))
+
+        else:
+            pass
+        total_school_count = 1
+        async with request.app['mysql'].acquire() as conn:
+            async with conn.cursor(DictCursor) as cur:
+                if total_sql:
+                    print(total_sql)
+                    await cur.execute(total_sql)
+                    total_school = await cur.fetchall()
+                    total_school_count = total_school[0]['total_school_count']
+                await cur.execute(school_page_sql)
+                schools = await cur.fetchall()
+        school_ids = [item['id'] for item in schools]
+        grades = []
+        if school_ids:
+            grade_sql = "select grade, school_id, time_create " \
+                        "from sigma_account_ob_group " \
+                        "where available = 1 " \
+                        "and school_id in (%s) " \
+                        "group by school_id, grade" % ",".join([str(id) for id in school_ids])
+            async with request.app['mysql'].acquire() as conn:
+                async with conn.cursor(DictCursor) as cur:
+                    await cur.execute(grade_sql)
+                    grades = await cur.fetchall()
+
+        stage_grade = request.app['mongodb'][self.db][self.grade_coll].find({"school_id": {"$in": school_ids}})
+        stage_grade = await stage_grade.to_list(10000)
+        stage_grade_union_map = {}
+        for s_g in stage_grade:
+            stage_grade_union_map[str(s_g['school_id']) + "@" + s_g['grade']] = s_g
+
+        stage_grade_union_map2 = {}
+        school_grade_union_defaultdict = defaultdict(list)
+        for grade in grades:
+            union_id = str(grade['school_id']) + "@" + grade['grade']
+            default = {
+                "stage": StageEnum.Register.value,
+                "using_time": 0
+            }
+            grade['school_grade'] = union_id
+            grade.update(stage_grade_union_map.get(union_id, default))
+            stage_grade_union_map2[union_id] = grade
+            school_grade_union_defaultdict[grade['school_id']].append(union_id)
+
+        school_item = await self._list_school(request, school_ids)
+        school_item_map = {}
+        for s_i in school_item:
+            s_i["contest_coverage_ratio"] = 0
+            s_i["contest_average_per_person"] = 0
+            school_item_map[s_i['_id']] = s_i
+        grade_item = await self._list_school_grade(request, school_ids)
+        grade_item_map = {}
+        for g_i in grade_item:
+            g_i["contest_coverage_ratio"] = 0
+            g_i["contest_average_per_person"] = 0
+            grade_item_map[str(g_i['_id']['school_id']) + "@" + g_i['_id']['grade']] = g_i
+
+        data = []
+        for index, school in enumerate(schools):
+
+            default = {
+                "contest_coverage_ratio": 0,
+                "contest_average_per_person": 0,
+                "total_teacher_number": 0,
+                "total_student_number": 0,
+                "total_guardian_number": 0,
+                "total_pay_number": 0,
+                "total_pay_amount": 0,
+                "total_valid_reading_number": 0,
+                "total_valid_exercise_number": 0,
+                "total_valid_word_number": 0,
+                "total_exercise_image_number": 0,
+                "total_word_image_number": 0,
+                "pay_ratio": 0.0,
+                "bind_ratio": 0.0
+            }
+            school['stat_info'] = school_item_map.get(school['id'], default)
+            school['grade_info'] = []
+            stage = []
+            for school_grade in school_grade_union_defaultdict.get(school['id'], []):
+                g_info = grade_item_map.get(school_grade, {})
+                if g_info:
+                    g_info.update(stage_grade_union_map2.get(school_grade, {}))
+                    school['grade_info'].append(g_info)
+                    stage.append(stage_grade_union_map2.get(school_grade, {}).get("stage", StageEnum.Register.value))
+            school['stage'] = StageEnum.Register.value if not stage else min(stage)
+
+            data.append(school)
+        return self.reply_ok({"school_list": data,
+                              "extra": {"total": total_school_count,
+                                        "number_per_page": per_page,
+                                        "curr_page": page + 1}})
+
 class SchoolDetail(QueryMixin):
     """
     学校详情
@@ -1836,8 +2274,6 @@ class GradeDetail(QueryMixin):
                 )
 
         return self.reply_ok({"clazz_list": data})
-
-
 
 class ClazzDetail(BaseHandler):
     """
