@@ -47,7 +47,7 @@ class AreaList(BaseHandler, DataExcludeMixin):
         """
 
         request_param = await get_params(request)
-        page = int(request_param.get('page', 0))
+        page = int(request_param.get('page', 1)) - 1
         per_page = 10
         total_count = 0
         exclude_area_objectid = [ObjectId(id) for id in request['data_permission']['exclude_area']]
@@ -80,7 +80,7 @@ class AreaList(BaseHandler, DataExcludeMixin):
 
         items = await self.compute_area_list(request, areas, areas_map, channels_map, items)
 
-        return self.reply_ok({"area_list": items, "extra": {'total': total_count, "number_per_page": per_page, "curr_page": page}})
+        return self.reply_ok({"area_list": items, "extra": {'total': total_count, "number_per_page": per_page, "curr_page": page + 1}})
 
 
     async def compute_area_list(self, request, areas, areas_map, channels_map, items):

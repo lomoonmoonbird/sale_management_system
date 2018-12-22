@@ -42,7 +42,7 @@ class ChannelList(BaseHandler, DataExcludeMixin):
         :return:
         """
         request_param = await get_params(request)
-        page = int(request_param.get('page', 0))
+        page = int(request_param.get('page', 1)) - 1
         per_page = 10
         total_count = 0
 
@@ -81,7 +81,7 @@ class ChannelList(BaseHandler, DataExcludeMixin):
                 item['contest_average_per_person'] = 0
                 item["channel_info"] = channels_map.get(item["_id"], 0)
             items = items
-        return self.reply_ok({"channel_list": items, "extra": {"total": total_count, "number_per_page": per_page, "curr_page": page}})
+        return self.reply_ok({"channel_list": items, "extra": {"total": total_count, "number_per_page": per_page, "curr_page": page + 1}})
 
 
     async def _list(self, request: Request, channel_ids: list):

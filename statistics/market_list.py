@@ -48,7 +48,7 @@ class MarketList(BaseHandler, DataExcludeMixin):
         :return:
         """
         request_param = await get_params(request)
-        page = int(request_param.get('page', 0))
+        page = int(request_param.get('page', 1)) - 1
         per_page = 10
         channel_id = request['user_info']['channel_id']
         # channel_id = '5be57636be16fcb0232c5969'
@@ -153,8 +153,8 @@ class MarketList(BaseHandler, DataExcludeMixin):
                     data.append(tmp)
 
 
-            return self.reply_ok({"market_stat": data, "extra": {"total": total_market_count, "number_per_page": per_page, "curr_page": page}})
-        return self.reply_ok({"extra": {"total": 0, "number_per_page": per_page, "curr_page": page}})
+            return self.reply_ok({"market_stat": data, "extra": {"total": total_market_count, "number_per_page": per_page, "curr_page": page + 1}})
+        return self.reply_ok({"extra": {"total": 0, "number_per_page": per_page, "curr_page": page + 1}})
 
 
     async def _list(self, request: Request, channel_ids: list):

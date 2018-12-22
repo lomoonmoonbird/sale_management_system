@@ -1456,7 +1456,7 @@ class AreaDetail(QueryMixin, DataExcludeMixin):
         """
         request_param = await get_params(request)
         area_id = request_param.get("area_id", "")
-        page = int(request_param.get("page", 0))
+        page = int(request_param.get("page", 1)) - 1
         per_page = 10
         total_count = 0
         if not area_id:
@@ -1493,7 +1493,7 @@ class AreaDetail(QueryMixin, DataExcludeMixin):
                 item['contest_average_per_person'] = 0
                 item['channel_info'] = channel_id_map.get(item['_id'], {})
 
-        return self.reply_ok({"channel_list": items, "extra": {"total": total_count, "number_per_page": per_page, "curr_page": page}})
+        return self.reply_ok({"channel_list": items, "extra": {"total": total_count, "number_per_page": per_page, "curr_page": page + 1}})
 
 
 class ChannelDetail(QueryMixin):
@@ -1587,11 +1587,11 @@ class ChannelDetail(QueryMixin):
         """
         request_param = await get_params(request)
         channel_id = request_param.get("channel_id", "")
-        page = int(request_param.get("page", 0))
+        page = int(request_param.get("page", 1)) - 1
         per_page = 10
         total_count = 0
         if not channel_id:
-            return self.reply_ok({"market_list": [], "extra": {"total": 0,"number_per_page": per_page,"curr_page": page}})
+            return self.reply_ok({"market_list": [], "extra": {"total": 0,"number_per_page": per_page,"curr_page": page + 1}})
         schools = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": channel_id,
                                                                             "role": Roles.SCHOOL.value,
                                                                             "status": 1})
@@ -1702,7 +1702,7 @@ class ChannelDetail(QueryMixin):
 
 
 
-        return self.reply_ok({"market_list": items, "extra": {"total": total_count, "number_per_page": per_page, "curr_page": page}})
+        return self.reply_ok({"market_list": items, "extra": {"total": total_count, "number_per_page": per_page, "curr_page": page + 1}})
 
 class SchoolDetail(QueryMixin):
     """
@@ -1926,7 +1926,7 @@ class MarketDetail(QueryMixin, DataExcludeMixin):
         :return:
         """
         request_param = await get_params(request)
-        page = int(request_param.get("page"))
+        page = int(request_param.get("page", 1)) - 1
         per_page = 10
         user_id = request_param.get("user_id")
         if request['user_info']['instance_role_id'] == Roles.MARKET.value: #市场
@@ -1935,7 +1935,7 @@ class MarketDetail(QueryMixin, DataExcludeMixin):
                                                                             "role": Roles.SCHOOL.value,
                                                                         "status": 1})
         if total_counts <= 0:
-            return self.reply_ok({"school_list": [], "extra": {"total": 0, "number_per_page": per_page, "curr_page": page}})
+            return self.reply_ok({"school_list": [], "extra": {"total": 0, "number_per_page": per_page, "curr_page": page + 1}})
         # channel_info = await request.app['mongodb'][self.db][self.instance_coll].find_one({"user_id": user_id,
         #                                                                                    "role": Roles.MARKET.value,
         #                                                                                    "status": 1})
@@ -1944,7 +1944,7 @@ class MarketDetail(QueryMixin, DataExcludeMixin):
                                                                             "status": 1}).skip(page*per_page).limit(per_page)
         schools = await schools.to_list(10000)
         if not schools :
-            return self.reply_ok({"school_list": [],"extra": {"total": 0, "number_per_page": per_page, "curr_page": page}})
+            return self.reply_ok({"school_list": [],"extra": {"total": 0, "number_per_page": per_page, "curr_page": page + 1}})
         school_ids = [item['school_id'] for item in schools]
 
         school_sql = "select id, full_name, time_create " \
@@ -2018,7 +2018,7 @@ class MarketDetail(QueryMixin, DataExcludeMixin):
 
         # print(json.dumps(school_items_map, indent=4))
 
-        return self.reply_ok({"school_list": schools, "extra": {"total": total_counts, "number_per_page": per_page, "curr_page": page}})
+        return self.reply_ok({"school_list": schools, "extra": {"total": total_counts, "number_per_page": per_page, "curr_page": page + 1}})
 
 
 
