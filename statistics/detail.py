@@ -1212,7 +1212,6 @@ class QueryMixin(BaseHandler):
         :param channel_ids:
         :return:
         """
-        print("_list_school_grade", school_ids)
         coll = request.app['mongodb'][self.db][self.grade_per_day_coll]
         items = []
         yesterday = datetime.now() - timedelta(1)
