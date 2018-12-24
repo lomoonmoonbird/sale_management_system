@@ -135,29 +135,30 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
         exclude_areas = request['data_permission']['exclude_area']
         exclude_channels_u = request['data_permission']['exclude_channel']
         exclude_area_objectid = [ObjectId(id) for id in exclude_areas]
-        areas = request.app['mongodb'][self.db][self.instance_coll].find({"_id": {"$nin": exclude_area_objectid},
-                                                                          "role": Roles.AREA.value,
-                                                                          "status": 1
-                                                                          })
+        instance_coll = request.app['mongodb'][self.db][self.instance_coll]
+        user_coll = request.app['mongodb'][self.db][self.user_coll]
+        areas = instance_coll.find({"_id": {"$nin": exclude_area_objectid},
+                                    "role": Roles.AREA.value,
+                                    "status": 1})
         areas = await areas.to_list(100000)
-        area_ids = [str(item['_id'] for item in areas)]
-        channels = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": {"$in": area_ids},
-                                                                             "old_id": {"$nin": exclude_channels_u},
-                                                                             "role": Roles.CHANNEL.value,
-                                                                          "status": 1})
+        area_ids = [str(item['_id']) for item in areas]
+        channels = instance_coll.find({"parent_id": {"$in": area_ids},
+                                       "old_id": {"$nin": exclude_channels_u},
+                                       "role": Roles.CHANNEL.value,
+                                       "status": 1})
 
         channels = await channels.to_list(100000)
 
-        area_users = request.app['mongodb'][self.db][self.user_coll].find({"area_id": {"$in": area_ids},
-                                                                           "instance_role_id": Roles.AREA.value,
-                                                                          "status": 1})
+        area_users = user_coll.find({"area_id": {"$in": area_ids},
+                                     "instance_role_id": Roles.AREA.value,
+                                     "status": 1})
         area_users = await area_users.to_list(10000)
         area_map = {}
         area_name_id_map = {}
         for area in areas:
             area["_id"] = str(area['_id'])
             area_map[str(area['_id'])] = area
-            area_name_id_map[str(area['name']) + "@" + str(area['_id'])] = area
+            area_name_id_map[str(area['name'])+"@"+str(area['_id'])] = area
         channel_map = {}
         for channel in channels:
 
@@ -167,6 +168,7 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
         for user in area_users:
             user['area_info'] = area_map.get(user['area_id'], {})
         old_ids = [item['old_id'] for item in channels]
+
         exclude_channels = await self.exclude_channel(request.app['mysql'])
         old_ids = list(set(old_ids).difference(set(exclude_channels+exclude_channels_u)))
         sheet = b''
