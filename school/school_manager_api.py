@@ -68,6 +68,7 @@ class SchoolManage(BaseHandler):
                                                                                        StageEnum.Binding.value,
                                                                                        StageEnum.Pay.value] \
                 and not request_param.get('open_time_range'): #全部
+
             flag = 1
             school_page_sql = "select id,full_name, time_create  " \
                               "from sigma_account_ob_school" \
@@ -235,10 +236,10 @@ class SchoolManage(BaseHandler):
                     school['grade_info'].append(g_info)
                     stage.append(stage_grade_union_map2.get(school_grade, {}).get("stage", StageEnum.Register.value))
             school['stage'] = StageEnum.Register.value if not stage else min(stage)
-
+            if int(school['stage']) != int(request_stage):
+                total_school_count -= 1
+                continue
             data.append(school)
-
-
 
         return self.reply_ok({"school_list": data,
                               "extra": {"total":total_school_count,

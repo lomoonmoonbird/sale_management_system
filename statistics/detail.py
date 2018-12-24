@@ -1707,7 +1707,9 @@ class AreaDetail(QueryMixin, DataExcludeMixin):
                     school['grade_info'].append(g_info)
                     stage.append(stage_grade_union_map2.get(school_grade, {}).get("stage", StageEnum.Register.value))
             school['stage'] = StageEnum.Register.value if not stage else min(stage)
-
+            if int(school['stage']) != int(request_stage):
+                total_school_count -= 1
+                continue
             data.append(school)
         return self.reply_ok({"school_list": data,
                               "extra": {"total": total_school_count,
@@ -2134,7 +2136,9 @@ class ChannelDetail(QueryMixin):
                     school['grade_info'].append(g_info)
                     stage.append(stage_grade_union_map2.get(school_grade, {}).get("stage", StageEnum.Register.value))
             school['stage'] = StageEnum.Register.value if not stage else min(stage)
-
+            if int(school['stage']) != int(request_stage):
+                total_school_count -= 1
+                continue
             data.append(school)
         return self.reply_ok({"school_list": data,
                               "extra": {"total": total_school_count,
