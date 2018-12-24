@@ -120,7 +120,7 @@ class School(BaseHandler):
         """
         request_param = await get_params(request)
 
-        page = int(request_param['page'])
+        page = int(request_param.get('page', 1)) - 1
         per_page = 10
         total_count = 0
         schools= []
@@ -316,7 +316,7 @@ class School(BaseHandler):
                             users_info.append(one)
                     school['market_info'] = users_info
 
-        return self.reply_ok({"market_school": schools, "extra": {"total": total_count, "number_per_page": per_page, "curr_page": page}})
+        return self.reply_ok({"market_school": schools, "extra": {"total": total_count, "number_per_page": per_page, "curr_page": page + 1}})
 
 
 

@@ -53,7 +53,7 @@ class SchoolManage(BaseHandler):
         :return:
         """
         request_param = await get_params(request)
-        page = int(request_param.get("page", 0))
+        page = int(request_param.get("page", 1)) - 1
         per_page = 10
 
         school_page_sql = ''
@@ -243,7 +243,7 @@ class SchoolManage(BaseHandler):
         return self.reply_ok({"school_list": data,
                               "extra": {"total":total_school_count,
                                         "number_per_page": per_page,
-                                        "curr_page": page}})
+                                        "curr_page": page + 1}})
 
     @validate_permission()
     async def update_grade_stage(self, request: Request):

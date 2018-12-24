@@ -31,6 +31,8 @@ def register(router: UrlDispatcher):
     router.add_get('/api/stat/detail/channel/overview', channeldetail.overview) #统计 某渠道总览
     router.add_get('/api/stat/detail/channel/marketlist', channeldetail.market_list) #统计 某渠道市场列表
     router.add_get('/api/stat/detail/market/schoolist', marketdetail.school_list) #统计 某市场学校列表
+    router.add_get('/api/stat/detail/area/schoolist', areadetail.school_list)  # 统计 大区学校列表
+    router.add_get('/api/stat/detail/channel/schoolist', channeldetail.school_list)  # 统计 渠道学校列表
 
     router.add_get('/api/stat/detail/grade/gradelist', gradedetail.grade_list) #统计 年级详情
     router.add_get('/api/wap/stat/detail/grade/gradelist', gradedetail.wap_grade_list)  # 移动端 统计 年级详情

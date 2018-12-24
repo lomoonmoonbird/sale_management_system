@@ -168,5 +168,3 @@ per_day_valid_reading = PerDayTask_VALIDREADING()
 sales_celery.register_task(per_day_valid_reading)
 # sales_celery.send_task('tasks.celery_per_day_task.PerDayTask_VALIDREADING')
 
-# task1 = task11()
-# sales_celery.register_task(task1)

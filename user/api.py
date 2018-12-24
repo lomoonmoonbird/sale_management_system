@@ -229,7 +229,7 @@ class User(BaseHandler, DataExcludeMixin):
         :return:
         """
         request_param = await get_params(request)
-        page = int(request_param['page'])
+        page = int(request_param.get('page', 1)) - 1
         per_page = 10
         total_count = 0
         exclude_area = [ObjectId(id) for id in request['data_permission']['exclude_area']]
@@ -259,7 +259,7 @@ class User(BaseHandler, DataExcludeMixin):
                     }
                     one_area['users'].append(one_user)
             data.append(one_area)
-        return self.reply_ok({"area_list": data, "extra": {"total": total_count, "number_per_page": per_page, "curr_page": page}})
+        return self.reply_ok({"area_list": data, "extra": {"total": total_count, "number_per_page": per_page, "curr_page": page + 1}})
 
     @validate_permission(data_validation=True)
     async def get_channels(self, request: Request):
@@ -459,7 +459,7 @@ class User(BaseHandler, DataExcludeMixin):
         """
         try:
             request_param = await get_params(request)
-            page = int(request_param['page'])
+            page = int(request_param.get('page', 1)) - 1
             per_page = 10
             total_count = 0
             query_cond = {
@@ -608,7 +608,7 @@ class User(BaseHandler, DataExcludeMixin):
             import traceback
             traceback.print_exc()
 
-        return self.reply_ok({"channels": res, "extra":{"total": total_count,"number_per_page": per_page, "curr_page": page}})
+        return self.reply_ok({"channels": res, "extra":{"total": total_count,"number_per_page": per_page, "curr_page": page + 1}})
 
     @validate_permission()
     async def add_market_user(self, request: Request):
@@ -750,7 +750,7 @@ class User(BaseHandler, DataExcludeMixin):
         :return:
         """
         request_param = await get_params(request)
-        page = int(request_param['page'])
+        page = int(request_param.get('page')) - 1
         per_page = 10
 
 
@@ -840,7 +840,7 @@ class User(BaseHandler, DataExcludeMixin):
 
 
 
-        return self.reply_ok({"users": users_info, "extra": {"total": total_count, "number_per_page": per_page, "curr_page": page}})
+        return self.reply_ok({"users": users_info, "extra": {"total": total_count, "number_per_page": per_page, "curr_page": page + 1}})
 
     async def _create_user(self, col: Collection, user_data: dict):
         return await col.update_one({"user_id": user_data['user_id']},
