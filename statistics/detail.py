@@ -2403,6 +2403,8 @@ class MarketDetail(QueryMixin, DataExcludeMixin):
 
         school_items_map = {}
         for item in school_items:
+            item["contest_coverage_ratio"] = 0
+            item["contest_average_per_person"] = 0
             school_items_map[item["_id"]] = item
 
         school_grade_mongo = request.app['mongodb'][self.db][self.grade_coll].find({"school_id": {"$in": school_ids}})
@@ -2428,6 +2430,8 @@ class MarketDetail(QueryMixin, DataExcludeMixin):
         grade_item_schoo_grade_id_map = {}
 
         for item in grade_items:
+            item["contest_coverage_ratio"] = 0
+            item["contest_average_per_person"] = 0
             grade_item_schoo_grade_id_map[str(item["_id"]['school_id'])+"@"+item["_id"]['grade']] = item
 
 
