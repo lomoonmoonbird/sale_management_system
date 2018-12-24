@@ -71,11 +71,14 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                                     "role": Roles.AREA.value,
                                     "status": 1})
         areas = await areas.to_list(100000)
-        channels = instance_coll.find({"old_id": {"$nin": exclude_channels_u} ,"role": Roles.CHANNEL.value,
+        area_ids = [str(item['_id']) for item in areas]
+        channels = instance_coll.find({"parent_id": {"$in": area_ids},
+                                       "old_id": {"$nin": exclude_channels_u},
+                                       "role": Roles.CHANNEL.value,
                                        "status": 1})
 
         channels = await channels.to_list(100000)
-        area_ids = [str(item['_id']) for item in areas]
+
         area_users = user_coll.find({"area_id": {"$in": area_ids},
                                      "instance_role_id": Roles.AREA.value,
                                      "status": 1})
@@ -137,12 +140,14 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                                                                           "status": 1
                                                                           })
         areas = await areas.to_list(100000)
-        channels = request.app['mongodb'][self.db][self.instance_coll].find({"old_id": {"$nin": exclude_channels_u},
+        area_ids = [str(item['_id'] for item in areas)]
+        channels = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": {"$in": area_ids},
+                                                                             "old_id": {"$nin": exclude_channels_u},
                                                                              "role": Roles.CHANNEL.value,
                                                                           "status": 1})
 
         channels = await channels.to_list(100000)
-        area_ids = [str(item['_id'] for item in areas)]
+
         area_users = request.app['mongodb'][self.db][self.user_coll].find({"area_id": {"$in": area_ids},
                                                                            "instance_role_id": Roles.AREA.value,
                                                                           "status": 1})
