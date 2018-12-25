@@ -172,8 +172,9 @@ class User(BaseHandler, DataExcludeMixin):
                    "status": 1})
         prepare_channel_info = await prepare_channel_info.to_list(None)
         can_operate_channel_ids = []
+
         for p_c_i in prepare_channel_info:
-            if p_c_i.get("operator", "") == request['user_info']['user_id']:
+            if p_c_i.get("operator", "") == request['user_info']['user_id'] or "operator" not in p_c_i.keys():
                 can_operate_channel_ids.append(p_c_i['old_id'])
         await request.app['mongodb'][self.db][self.instance_coll]\
             .update_many({"parent_id": str(request_data['area_id']),
