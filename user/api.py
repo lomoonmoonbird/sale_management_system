@@ -164,7 +164,6 @@ class User(BaseHandler, DataExcludeMixin):
         """
         request_data = await get_json(request)
         old_channel_ids = [int(id) for id in request_data['old_channel_ids']]
-        print(old_channel_ids)
         if not old_channel_ids:
             result = await request.app['mongodb'][self.db][self.instance_coll].update_many({"parent_id": str(request_data['area_id']),
                                                                                    "role": Roles.CHANNEL.value,
@@ -191,7 +190,6 @@ class User(BaseHandler, DataExcludeMixin):
             # if not prepare_channel_info:
             #     can_operate_channel_ids = old_channel_ids
             # else:
-            print(prepare_channels_map, "prepare_channels_map")
             for id in old_channel_ids:
                 if prepare_channels_map.get(id):
                     if prepare_channels_map.get(id).get("operator", "") == int(request['user_info']['user_id']) \
@@ -199,13 +197,11 @@ class User(BaseHandler, DataExcludeMixin):
                         can_operate_channel_ids.append(id)
                 else:
                     can_operate_channel_ids.append(id)
-            print(can_operate_channel_ids,"can_operate_channel_ids")
             result = await request.app['mongodb'][self.db][self.instance_coll]\
                 .update_many({
                               "parent_id": str(request_data['area_id']),
                               "role": Roles.CHANNEL.value,
                               "status": 1}, {"$set": {"status": 0, "operator": ""}})
-            print(result.matched_count, result.modified_count)
             for old_id in can_operate_channel_ids:
                 # bulk_update.append(UpdateOne({"parent_id": str(request_data['area_id']),"old_id": old_id},
                 #                              {"$set": {"parent_id": str(request_data['area_id']),
