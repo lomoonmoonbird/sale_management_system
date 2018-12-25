@@ -34,10 +34,22 @@ from bson import ObjectId
 from concurrent.futures import ThreadPoolExecutor
 from statistics.export.export_base import ExportBase
 from mixins import DataExcludeMixin
-
+from webargs import fields
+from webargs.aiohttpparser import parser
 
 class FlexibleExport(BaseHandler, ExportBase, DataExcludeMixin):
     """
     自定义导出报表
+
+    实体 (总部，大区，渠道，市场，学校，年级，班级，个人)
+
+    报表类型 (年，季度，月，周，日)
+
+    数据字段 ( 起止时间， 顺序 )
+
     """
 
+    async def test_arge(self, request):
+        handler_args = {"name": fields.Str(missing="World")}
+        args = await parser.parse(handler_args, request)
+        return self.reply_ok({"name": args['name']})

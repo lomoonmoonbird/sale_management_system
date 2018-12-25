@@ -9,6 +9,7 @@ from statistics.export.clazz_export_api import ClazzExportReport
 from statistics.export.school_export_api import SchoolExportReport
 from statistics.export.grade_export_api import GradeExportReport
 from statistics.export.date_range_export_api import DateRangeExport
+from statistics.export.flexible_export_api import FlexibleExport
 
 globalexport = GlobalExportReport()
 area_export = AreaExportReport()
@@ -17,6 +18,8 @@ clazz_export = ClazzExportReport()
 school_export = SchoolExportReport()
 grade_export = GradeExportReport()
 daterange_export = DateRangeExport()
+flexible_export = FlexibleExport()
+
 
 def register(router: UrlDispatcher):
     router.add_get('/api/stat/report/month', globalexport.month)
@@ -33,3 +36,4 @@ def register(router: UrlDispatcher):
     router.add_get('/api/stat/report/daterange/global/arealist', daterange_export.area_list_export)
     router.add_get('/api/stat/report/daterange/area/channelist', daterange_export.channel_list_export)
     router.add_get('/api/stat/report/daterange/channel/marketlist', daterange_export.market_list_export)
+    router.add_get('/api/stat/report/flexible', flexible_export.test_arge)
