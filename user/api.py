@@ -172,16 +172,14 @@ class User(BaseHandler, DataExcludeMixin):
                    "status": 1})
         prepare_channel_info = await prepare_channel_info.to_list(None)
         can_operate_channel_ids = []
-
         for p_c_i in prepare_channel_info:
-            if p_c_i.get("operator", "") == request['user_info']['user_id'] or not p_c_i.get("operator", "") :
+            if p_c_i.get("operator", "") == int(request['user_info']['user_id']) or not p_c_i.get("operator", "") :
                 can_operate_channel_ids.append(p_c_i['old_id'])
         await request.app['mongodb'][self.db][self.instance_coll]\
             .update_many({
                           "old_id": {"$in": can_operate_channel_ids},
                           "role": Roles.CHANNEL.value,
                           "status": 1}, {"$set": {"status": 0, "operator": ""}})
-        print(can_operate_channel_ids)
         for old_id in can_operate_channel_ids:
             # bulk_update.append(UpdateOne({"parent_id": str(request_data['area_id']),"old_id": old_id},
             #                              {"$set": {"parent_id": str(request_data['area_id']),
