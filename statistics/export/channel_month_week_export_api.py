@@ -360,9 +360,8 @@ class ChannelExportReport(BaseHandler, ExportBase, DataExcludeMixin):
         """
         coll = request.app['mongodb'][self.db][self.grade_per_day_coll]
         items = []
-        current_week = self.current_week()
-        last_week = self.last_week()
-        last_last_week = self.last_last_week()
+        last_week = self.last_week_from_7_to_6()
+        last_last_week = self.last_last_week_from_7_to_6()
         last_week_first_day, last_week_last_day, \
         last_last_week_first_day, last_last_week_last_day =  last_week[0], last_week[6],\
                                                              last_last_week[0], last_last_week[6]

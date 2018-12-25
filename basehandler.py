@@ -95,7 +95,24 @@ class BaseHandler():
         上周 从星期日到星期六为一周期 日 一 二 三 四 五 六
         :return:
         """
-        return [(d-timedelta(days=1)).isoformat() for d in self._get_week((datetime.now() - timedelta(7)).date())]
+        return [d.isoformat() for d in self._get_week_from_7_to_6((datetime(2018, 12, 25)).date())]
+
+    def last_last_week_from_7_to_6(self):
+        """
+        上上周 从星期日到星期六为一周 日 一 二 三 四 五 六
+        :return:
+        """
+        return [d.isoformat() for d in self._get_week_from_7_to_6((datetime(2018, 12, 25) -timedelta(7) ).date())]
+
+
+    def _get_week_from_7_to_6(self, date):
+        one_day = timedelta(days=1)
+        day_idx = (date.weekday()+1) % 7
+        sunday = date - timedelta(days=7+day_idx)
+        date = sunday
+        for n in range(1,8):
+            yield date
+            date += one_day
 
     def _get_week(self, date):
         one_day = timedelta(days=1)
@@ -105,6 +122,7 @@ class BaseHandler():
         for n in range(7):
             yield date
             date += one_day
+
 
 
     def _curr_and_last_and_last_last_month(self):
@@ -122,4 +140,3 @@ class BaseHandler():
         return first_day_of_last_last_month.strftime("%Y-%m-%d"), last_day_of_last_last_month.strftime("%Y-%m-%d"), \
                first_day_of_last_month.strftime("%Y-%m-%d"), last_day_of_last_month.strftime("%Y-%m-%d"), \
                first_day_of_curr_month.strftime("%Y-%m-%d"), today.strftime("%Y-%m-%d")
-
