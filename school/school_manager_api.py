@@ -83,6 +83,7 @@ class SchoolManage(BaseHandler):
                             self.start_time.strftime("%Y-%m-%d"), datetime.now().strftime("%Y-%m-%d"))
 
         elif request_param.get('school_name'): #单个学校
+            total_school_count = 1
             school_page_sql = "select id,full_name, time_create  " \
                               "from sigma_account_ob_school" \
                               " where available = 1 " \
@@ -114,50 +115,30 @@ class SchoolManage(BaseHandler):
                 date_range = [self.start_time.strftime("%Y-%m-%d"), datetime.now().strftime("%Y-%m-%d")]
                 query.update({"open_time": {"$gte": datetime.strptime(date_range[0], "%Y-%m-%d"), "$lte": datetime.strptime(date_range[1], "%Y-%m-%d")}})
             query.update({"channel": {"$nin": exclude_channel}})
+            print(query)
             condition_schools = request.app['mongodb'][self.db][self.school_coll].find(query)
             condition_schools = await condition_schools.to_list(10000)
+            total_school_count = await request.app['mongodb'][self.db][self.school_coll].count_documents(query)
             if not condition_schools:
                 return self.reply_ok({})
             condition_school_ids = [item['school_id'] for item in condition_schools]
 
-            if int(request_stage) == StageEnum.Register.value:
-                school_page_sql = "select id,full_name, time_create  " \
-                                  "from sigma_account_ob_school" \
-                                  " where available = 1 " \
-                                  "and owner_id not in (%s) limit %s,%s" % (exclude_channel_str,
-                                                                            per_page * page,
-                                  per_page)
-                total_sql = "select count(id) as total_school_count " \
-                            "from sigma_account_ob_school" \
-                            " where available = 1 and owner_id not in (%s) and time_create >= '%s' " \
-                            "and time_create <= '%s'  " % (exclude_channel_str,
-                                date_range[0], date_range[1],)
-            else:
-                school_page_sql = "select id,full_name, time_create  " \
-                                  "from sigma_account_ob_school" \
-                                  " where available = 1 " \
-                                  "and owner_id not in (%s) " \
-                                  "and id in (%s) limit %s,%s" % (exclude_channel_str,
-                                                                  ','.join(['"'+str(id)+'"' for id in condition_school_ids]),
-                                                                  per_page*page, per_page)
-                total_sql = "select count(id) as total_school_count " \
-                            "from sigma_account_ob_school" \
-                            " where available = 1 " \
-                            "and owner_id not in (%s) " \
-                            "and time_create >= '%s' " \
-                            "and time_create <= '%s' and id in (%s) " % (exclude_channel_str,
-                                                                         date_range[0],
-                                                                         date_range[1],
-                                                                         ','.join(['"'+str(id)+'"' for id in condition_school_ids]))
+
+
+            school_page_sql = "select id,full_name, time_create  " \
+                              "from sigma_account_ob_school" \
+                              " where available = 1 " \
+                              "and owner_id not in (%s) " \
+                              "and id in (%s) limit %s,%s" % (exclude_channel_str,
+                                                              ','.join(['"'+str(id)+'"' for id in condition_school_ids]),
+                                                              per_page * page,
+                                                              per_page)
+
         else:
             pass
-        total_school_count = 1
+
         async with request.app['mysql'].acquire() as conn:
             async with conn.cursor(DictCursor) as cur:
-                if total_sql:
-                    await cur.execute(total_sql)
-                    total_school = await cur.fetchall()
-                    total_school_count = total_school[0]['total_school_count']
                 await cur.execute(school_page_sql)
                 schools = await cur.fetchall()
         school_ids = [item['id'] for item in schools]
@@ -236,11 +217,8 @@ class SchoolManage(BaseHandler):
                     school['grade_info'].append(g_info)
                     stage.append(stage_grade_union_map2.get(school_grade, {}).get("stage", StageEnum.Register.value))
             school['stage'] = StageEnum.Register.value if not stage else min(stage)
-            if flag ==3 and int(school['stage']) != int(request_stage):
-                total_school_count -= 1
-                continue
-            data.append(school)
 
+            data.append(school)
         return self.reply_ok({"school_list": data,
                               "extra": {"total":total_school_count,
                                         "number_per_page": per_page,

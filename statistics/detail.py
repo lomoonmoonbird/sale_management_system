@@ -1550,8 +1550,15 @@ class AreaDetail(QueryMixin, DataExcludeMixin):
                         "and time_create <= '%s' " % (channel_str,
                                                       self.start_time.strftime("%Y-%m-%d"),
                                                       datetime.now().strftime("%Y-%m-%d"))
+            async with request.app['mysql'].acquire() as conn:
+                async with conn.cursor(DictCursor) as cur:
+                    if total_sql:
+                        await cur.execute(total_sql)
+                        total_school = await cur.fetchall()
+                        total_school_count = total_school[0]['total_school_count']
 
         elif request_param.get('school_name'):  # 单个学校
+            total_school_count = 1
             school_page_sql = "select id,full_name, time_create  " \
                               "from sigma_account_ob_school" \
                               " where available = 1 " \
@@ -1587,50 +1594,25 @@ class AreaDetail(QueryMixin, DataExcludeMixin):
             query.update({"channel": {"$in": channels_of_area_old_ids}})
             condition_schools = request.app['mongodb'][self.db][self.school_coll].find(query)
             condition_schools = await condition_schools.to_list(10000)
+            total_school_count = await request.app['mongodb'][self.db][self.school_coll].count_documents(query)
             if not condition_schools:
                 return self.reply_ok({})
             condition_school_ids = [item['school_id'] for item in condition_schools]
 
-            if int(request_stage) == StageEnum.Register.value:
-                school_page_sql = "select id,full_name, time_create  " \
-                                  "from sigma_account_ob_school" \
-                                  " where available = 1 " \
-                                  "and owner_id in (%s) limit %s,%s" % (channel_str,
-                                                                            per_page * page,
-                                                                            per_page)
-                total_sql = "select count(id) as total_school_count " \
-                            "from sigma_account_ob_school" \
-                            " where available = 1 and owner_id in (%s) and time_create >= '%s' " \
-                            "and time_create <= '%s'  " % (channel_str,
-                                                           date_range[0], date_range[1],)
-            else:
-                school_page_sql = "select id,full_name, time_create  " \
-                                  "from sigma_account_ob_school" \
-                                  " where available = 1 " \
-                                  "and owner_id in (%s) " \
-                                  "and id in (%s) limit %s,%s" % (channel_str,
-                                                                  ','.join(['"' + str(id) + '"' for id in
-                                                                            condition_school_ids]),
-                                                                  per_page * page, per_page)
-                total_sql = "select count(id) as total_school_count " \
-                            "from sigma_account_ob_school" \
-                            " where available = 1 " \
-                            "and owner_id in (%s) " \
-                            "and time_create >= '%s' " \
-                            "and time_create <= '%s' and id in (%s) " % (channel_str,
-                                                                         date_range[0],
-                                                                         date_range[1],
-                                                                         ','.join(['"' + str(id) + '"' for id in
-                                                                                   condition_school_ids]))
+            school_page_sql = "select id,full_name, time_create  " \
+                              "from sigma_account_ob_school" \
+                              " where available = 1 " \
+                              "and owner_id in (%s)" \
+                              " and id in (%s) limit %s,%s" % (channel_str,
+                                                               ','.join(['"' + str(id) + '"' for id in
+                                                                        condition_school_ids]),
+                                                                        per_page * page,
+                                                                        per_page)
         else:
             pass
-        total_school_count = 1
+
         async with request.app['mysql'].acquire() as conn:
             async with conn.cursor(DictCursor) as cur:
-                if total_sql:
-                    await cur.execute(total_sql)
-                    total_school = await cur.fetchall()
-                    total_school_count = total_school[0]['total_school_count']
                 await cur.execute(school_page_sql)
                 schools = await cur.fetchall()
         school_ids = [item['id'] for item in schools]
@@ -1707,9 +1689,7 @@ class AreaDetail(QueryMixin, DataExcludeMixin):
                     school['grade_info'].append(g_info)
                     stage.append(stage_grade_union_map2.get(school_grade, {}).get("stage", StageEnum.Register.value))
             school['stage'] = StageEnum.Register.value if not stage else min(stage)
-            if flag ==3 and int(school['stage']) != int(request_stage):
-                total_school_count -= 1
-                continue
+
             data.append(school)
         return self.reply_ok({"school_list": data,
                               "extra": {"total": total_school_count,
@@ -1977,8 +1957,15 @@ class ChannelDetail(QueryMixin):
                         "and time_create <= '%s' " % (old_id,
                                                       self.start_time.strftime("%Y-%m-%d"),
                                                       datetime.now().strftime("%Y-%m-%d"))
+            async with request.app['mysql'].acquire() as conn:
+                async with conn.cursor(DictCursor) as cur:
+                    if total_sql:
+                        await cur.execute(total_sql)
+                        total_school = await cur.fetchall()
+                        total_school_count = total_school[0]['total_school_count']
 
         elif request_param.get('school_name'):  # 单个学校
+            total_school_count = 1
             school_page_sql = "select id,full_name, time_create  " \
                               "from sigma_account_ob_school" \
                               " where available = 1 " \
@@ -2014,52 +2001,25 @@ class ChannelDetail(QueryMixin):
             query.update({"channel": old_id})
             condition_schools = request.app['mongodb'][self.db][self.school_coll].find(query)
             condition_schools = await condition_schools.to_list(10000)
+            total_school_count = await request.app['mongodb'][self.db][self.school_coll].count_documents(query)
             if not condition_schools:
                 return self.reply_ok({})
             condition_school_ids = [item['school_id'] for item in condition_schools]
 
-            if int(request_stage) == StageEnum.Register.value:
-                school_page_sql = "select id,full_name, time_create  " \
-                                  "from sigma_account_ob_school" \
-                                  " where available = 1 " \
-                                  "and owner_id = %s limit %s,%s" % (old_id,
-                                                                        per_page * page,
-                                                                        per_page)
-                total_sql = "select count(id) as total_school_count " \
-                            "from sigma_account_ob_school" \
-                            " where available = 1 and owner_id = %s and time_create >= '%s' " \
-                            "and time_create <= '%s'  " % (old_id,
-                                                           date_range[0], date_range[1],)
-            else:
-                school_page_sql = "select id,full_name, time_create  " \
-                                  "from sigma_account_ob_school" \
-                                  " where available = 1 " \
-                                  "and owner_id = %s " \
-                                  "and id in (%s) limit %s,%s" % (old_id,
-                                                                  ','.join(['"' + str(id) + '"' for id in
-                                                                            condition_school_ids]),
+
+            school_page_sql = "select id,full_name, time_create  " \
+                              "from sigma_account_ob_school" \
+                              " where available = 1 " \
+                              "and owner_id = %s " \
+                              "and id in (%s) limit %s,%s" % (old_id,
+                                                              ','.join(['"' + str(id) + '"' for id in
+                                                                        condition_school_ids]),
                                                                   per_page * page, per_page)
-                total_sql = "select count(id) as total_school_count " \
-                            "from sigma_account_ob_school" \
-                            " where available = 1 " \
-                            "and owner_id = %s " \
-                            "and time_create >= '%s' " \
-                            "and time_create <= '%s' and id in (%s) " % (old_id,
-                                                                         date_range[0],
-                                                                         date_range[1],
-                                                                         ','.join(['"' + str(id) + '"' for id in
-                                                                                   condition_school_ids]))
 
         else:
             pass
-        total_school_count = 1
         async with request.app['mysql'].acquire() as conn:
             async with conn.cursor(DictCursor) as cur:
-                if total_sql:
-                    print(total_sql)
-                    await cur.execute(total_sql)
-                    total_school = await cur.fetchall()
-                    total_school_count = total_school[0]['total_school_count']
                 await cur.execute(school_page_sql)
                 schools = await cur.fetchall()
         school_ids = [item['id'] for item in schools]
@@ -2136,9 +2096,7 @@ class ChannelDetail(QueryMixin):
                     school['grade_info'].append(g_info)
                     stage.append(stage_grade_union_map2.get(school_grade, {}).get("stage", StageEnum.Register.value))
             school['stage'] = StageEnum.Register.value if not stage else min(stage)
-            if flag ==3 and int(school['stage']) != int(request_stage):
-                total_school_count -= 1
-                continue
+
             data.append(school)
         return self.reply_ok({"school_list": data,
                               "extra": {"total": total_school_count,
