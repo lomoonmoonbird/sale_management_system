@@ -163,11 +163,24 @@ class User(BaseHandler, DataExcludeMixin):
         :return:
         """
         request_data = await get_json(request)
+        old_channel_ids = [int(id) for id in request_data['old_channel_ids']]
         bulk_update = []
-        await request.app['mongodb'][self.db][self.instance_coll].update_many({"parent_id": str(request_data['area_id']),
-                                                                         "role": Roles.CHANNEL.value,
-                                                                         "status": 1}, {"$set": {"status": 0}})
-        for old_id in request_data['old_channel_ids']:
+        prepare_channel_info = request.app['mongodb'][self.db][self.instance_coll]\
+            .find({"parent_id": str(request_data['area_id']),
+                   "old_id": {"$in": old_channel_ids},
+                   "role": Roles.CHANNEL.value,
+                   "status": 1})
+        prepare_channel_info = await prepare_channel_info.to_list(None)
+        can_operate_channel_ids = []
+        for p_c_i in prepare_channel_info:
+            if p_c_i.get("operator", "") == request['user_info']['user_id']:
+                can_operate_channel_ids.append(p_c_i['old_id'])
+        await request.app['mongodb'][self.db][self.instance_coll]\
+            .update_many({"parent_id": str(request_data['area_id']),
+                          "old_id": {"$in": can_operate_channel_ids},
+                          "role": Roles.CHANNEL.value,
+                          "status": 1}, {"$set": {"status": 0, "operator": ""}})
+        for old_id in can_operate_channel_ids:
             # bulk_update.append(UpdateOne({"parent_id": str(request_data['area_id']),"old_id": old_id},
             #                              {"$set": {"parent_id": str(request_data['area_id']),
             #                                        "old_id": int(old_id),
@@ -177,8 +190,9 @@ class User(BaseHandler, DataExcludeMixin):
             #                                        "modify_at": time.time()
             #                                        }
             #                               },upsert=True))
-            bulk_update.append(UpdateOne({"old_id": int(old_id), "role": Roles.CHANNEL.value, "status": 1},
+            bulk_update.append(UpdateOne({"old_id": old_id, "role": Roles.CHANNEL.value, "status": 1},
                                          {"$set": {"parent_id": str(request_data['area_id']),
+                                                   "operator": request['user_info']['user_id'],
                                                    "role": Roles.CHANNEL.value,
                                                    "create_at": time.time(),
                                                    "modify_at": time.time()
@@ -196,7 +210,6 @@ class User(BaseHandler, DataExcludeMixin):
         :return:
         """
         request_param = await get_params(request)
-        # exclude_channels_u = request['data_permission']['exclude_channel']
         channel_oids = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": request_param.get("area_id"),
                                                                                  "role": Roles.CHANNEL.value,
                                                                                  "status": 1})
@@ -204,8 +217,7 @@ class User(BaseHandler, DataExcludeMixin):
         channel_ids = await channel_oids.to_list(10000)
 
         channel_ids = ','.join([str(id['old_id']) for id in channel_ids])
-        # channel_ids_2 = ','.join([str(id) for id in exclude_channels_u])
-        # channel_ids = list(set(channel_ids).difference(set(channel_ids_2)))
+
         if channel_ids:
             sql = "select id, name from " \
                   "sigma_account_us_user " \
@@ -277,10 +289,20 @@ class User(BaseHandler, DataExcludeMixin):
             async with conn.cursor(DictCursor) as cur:
                 await cur.execute(sql)
                 res = await cur.fetchall()
+        channel_that_has_belong_to_area = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": {"$nin": exclude_channels},
+                                                                                                    "role":Roles.CHANNEL.value,
+                                                                                                    "status": 1}, {"old_id": 1,
+                                                                                                                   "operator": 1,
+                                                                                                                   "_id": 0})
+        channel_that_has_belong_to_area = await channel_that_has_belong_to_area.to_list(None)
+        channel_that_has_belong_to_area_map = {}
+        for c_a in channel_that_has_belong_to_area:
+            channel_that_has_belong_to_area_map[c_a['old_id']] = c_a
         data = []
         for r in res:
             if r['id'] in exclude_channels:
                 continue
+            r['operator'] = channel_that_has_belong_to_area_map.get(r['id'], {}).get("operator", "")
             data.append(r)
         return self.reply_ok(data)
 
