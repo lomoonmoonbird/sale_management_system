@@ -95,7 +95,6 @@ class DateRangeExport(BaseHandler, ExportBase, DataExcludeMixin):
         old_ids = list(set(old_ids).difference(set(exclude_channels)))
 
         items = await self._channel_date_range_list(request, old_ids, begin_time, end_time)
-
         area_list_obj = AreaList()
         items = await area_list_obj.compute_area_list(request, areas, areas_map, channels_map, items)
         title = "总部 -"+ begin_time + "--" +  end_time + " 大区数据"
@@ -339,6 +338,7 @@ class DateRangeExport(BaseHandler, ExportBase, DataExcludeMixin):
             cell.font = self._white_font()
             cell.border = self._border()
             cell.fill = self._background_header_color()
+
         for index, item in enumerate(items):
             row = sheet[index+4]
             row[0].value = item['area_info']['name']

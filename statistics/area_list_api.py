@@ -217,6 +217,7 @@ class AreaList(BaseHandler, DataExcludeMixin):
                     "total_guardian_number": 0,
                     "range_guardian_number": 0,
                     "range_guardian_unique_count": 0,
+                    "total_guardian_unique_count": 0,
                     "total_pay_number": 0,
                     "total_pay_amount": 0,
                     "range_pay_amount": 0,

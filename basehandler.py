@@ -90,6 +90,13 @@ class BaseHandler():
         """
         return [d.isoformat() for d in self._get_week((datetime.now() - timedelta(14)).date())]
 
+    def last_week_from_7_to_6(self):
+        """
+        上周 从星期日到星期六为一周期 日 一 二 三 四 五 六
+        :return:
+        """
+        return [(d-timedelta(days=1)).isoformat() for d in self._get_week((datetime.now() - timedelta(7)).date())]
+
     def _get_week(self, date):
         one_day = timedelta(days=1)
         day_idx = (date.weekday()) % 7
@@ -115,3 +122,4 @@ class BaseHandler():
         return first_day_of_last_last_month.strftime("%Y-%m-%d"), last_day_of_last_last_month.strftime("%Y-%m-%d"), \
                first_day_of_last_month.strftime("%Y-%m-%d"), last_day_of_last_month.strftime("%Y-%m-%d"), \
                first_day_of_curr_month.strftime("%Y-%m-%d"), today.strftime("%Y-%m-%d")
+
