@@ -164,42 +164,56 @@ class User(BaseHandler, DataExcludeMixin):
         """
         request_data = await get_json(request)
         old_channel_ids = [int(id) for id in request_data['old_channel_ids']]
-        bulk_update = []
-        prepare_channel_info = request.app['mongodb'][self.db][self.instance_coll]\
-            .find({
-                   "old_id": {"$in": old_channel_ids},
-                   "role": Roles.CHANNEL.value,
-                   "status": 1})
-        prepare_channel_info = await prepare_channel_info.to_list(None)
-        can_operate_channel_ids = []
-        for p_c_i in prepare_channel_info:
-            if p_c_i.get("operator", "") == int(request['user_info']['user_id']) or not p_c_i.get("operator", "") :
-                can_operate_channel_ids.append(p_c_i['old_id'])
-        await request.app['mongodb'][self.db][self.instance_coll]\
-            .update_many({
-                          "old_id": {"$in": can_operate_channel_ids},
-                          "role": Roles.CHANNEL.value,
-                          "status": 1}, {"$set": {"status": 0, "operator": ""}})
-        for old_id in can_operate_channel_ids:
-            # bulk_update.append(UpdateOne({"parent_id": str(request_data['area_id']),"old_id": old_id},
-            #                              {"$set": {"parent_id": str(request_data['area_id']),
-            #                                        "old_id": int(old_id),
-            #                                        "role": Roles.CHANNEL.value,
-            #                                        "status": 1,
-            #                                        "create_at": time.time(),
-            #                                        "modify_at": time.time()
-            #                                        }
-            #                               },upsert=True))
-            bulk_update.append(UpdateOne({"old_id": old_id, "role": Roles.CHANNEL.value, "status": 1},
-                                         {"$set": {"parent_id": str(request_data['area_id']),
-                                                   "operator": request['user_info']['user_id'],
-                                                   "role": Roles.CHANNEL.value,
-                                                   "create_at": time.time(),
-                                                   "modify_at": time.time()
-                                                   }
-                                          }, upsert=True))
-        if bulk_update:
-            ret = await request.app['mongodb'][self.db][self.instance_coll].bulk_write(bulk_update)
+
+        if not old_channel_ids:
+            result = await request.app['mongodb'][self.db][self.instance_coll].update_many({"parent_id": str(request_data['area_id']),
+                                                                                   "role": Roles.CHANNEL.value,
+                                                                                   "status": 1}, {"$set": {"status":0,
+                                                                                                           "operator": ""}})
+            print(result.matched_count, result.modified_count)
+        else:
+            bulk_update = []
+            prepare_channel_info = request.app['mongodb'][self.db][self.instance_coll]\
+                .find({
+                       "old_id": {"$in": old_channel_ids},
+                       "role": Roles.CHANNEL.value,
+                       "status": 1})
+
+
+            prepare_channel_info = await prepare_channel_info.to_list(None)
+            can_operate_channel_ids = []
+            if not prepare_channel_info:
+                can_operate_channel_ids = old_channel_ids
+            else:
+                for p_c_i in prepare_channel_info:
+                    if p_c_i.get("operator", "") == int(request['user_info']['user_id']) or  p_c_i.get("operator", "") is "":
+                        can_operate_channel_ids.append(p_c_i['old_id'])
+            result = await request.app['mongodb'][self.db][self.instance_coll]\
+                .update_many({
+                              "old_id": {"$in": can_operate_channel_ids},
+                              "role": Roles.CHANNEL.value,
+                              "status": 1}, {"$set": {"status": 0, "operator": ""}})
+
+            for old_id in can_operate_channel_ids:
+                # bulk_update.append(UpdateOne({"parent_id": str(request_data['area_id']),"old_id": old_id},
+                #                              {"$set": {"parent_id": str(request_data['area_id']),
+                #                                        "old_id": int(old_id),
+                #                                        "role": Roles.CHANNEL.value,
+                #                                        "status": 1,
+                #                                        "create_at": time.time(),
+                #                                        "modify_at": time.time()
+                #                                        }
+                #                               },upsert=True))
+                bulk_update.append(UpdateOne({"old_id": old_id, "role": Roles.CHANNEL.value, "status": 1},
+                                             {"$set": {"parent_id": str(request_data['area_id']),
+                                                       "operator": request['user_info']['user_id'],
+                                                       "role": Roles.CHANNEL.value,
+                                                       "create_at": time.time(),
+                                                       "modify_at": time.time()
+                                                       }
+                                              }, upsert=True))
+            if bulk_update:
+                ret = await request.app['mongodb'][self.db][self.instance_coll].bulk_write(bulk_update)
         return self.reply_ok({})
 
     @validate_permission(data_validation=True)
