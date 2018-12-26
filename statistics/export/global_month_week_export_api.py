@@ -381,7 +381,6 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                                 "valid_exercise_count_curr_month": sum(data.get('valid_exercise_count_curr_month',[0]))})
 
         sorted_area = sorted(sorted_area, key = itemgetter("valid_exercise_count_curr_month"), reverse= True)
-        print(json.dumps(sorted_area, indent=4, cls=CustomEncoder))
 
         for sort_data in sorted_area:
             area_name = sort_data['name_id']

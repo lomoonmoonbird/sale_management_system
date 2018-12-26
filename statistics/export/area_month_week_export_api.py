@@ -185,8 +185,6 @@ class AreaExportReport(BaseHandler, ExportBase, DataExcludeMixin):
 
         return await self.replay_stream(sheet, "大区周报-" + datetime.now().strftime("%Y-%m-%d"), request)
 
-
-
     def sheet(self, template, items, channel_map, users, report_type, area_name):
         file = load_workbook(template)
         sheet_names = file.sheetnames
@@ -220,121 +218,83 @@ class AreaExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                 cell.font = self._black_font()
                 cell.alignment = self._alignment()
                 cell.border = self._border()
-            #大区名字
+            #渠道名字
             row[0].value = channel_map.get(item['_id'], {}).get('name')
             # 新增学校
             mom = (item['school_number_curr_month'] - item['school_number_last_month'])/item['school_number_last_month'] \
                 if item['school_number_last_month'] else 0
             row[1].value = item['total_school_number']
-            row[2].value = item['school_number_last_month']
-            row[3].value = item['school_number_curr_month']
-            row[4].value = self.percentage(mom)
+            row[2].value = str(item['school_number_last_month']) + '/' + str(item['school_number_curr_month'])
             summary_map[1].append(row[1].value)
             summary_map[2].append(row[2].value)
-            summary_map[3].append(row[3].value)
-            summary_map[4].append(str(item['school_number_last_month']) + "/" + str(item['school_number_curr_month']))
 
             # 新增教师数量
             mom = (item['teacher_number_curr_month'] - item['teacher_number_last_month']) / item[
                 'teacher_number_last_month'] \
                 if item['teacher_number_last_month'] else 0
-            row[5].value = item['total_teacher_number']
-            row[6].value = item['teacher_number_last_month']
-            row[7].value = item['teacher_number_curr_month']
-            row[8].value = self.percentage(mom)
-            summary_map[5].append(row[5].value)
-            summary_map[6].append(row[6].value)
-            summary_map[7].append(row[7].value)
-            summary_map[8].append(str(item['teacher_number_last_month']) + "/" + str(item['teacher_number_curr_month']))
+            row[3].value = str(item['teacher_number_last_month']) + '/' + str(item['teacher_number_curr_month'])
+            summary_map[3].append(row[3].value)
 
             # 新增学生数量
             mom = (item['student_number_curr_month'] - item['student_number_last_month']) / item[
                 'student_number_last_month'] \
                 if item['student_number_last_month'] else 0
-            row[9].value = item['total_student_number']
-            row[10].value = item['student_number_last_month']
-            row[11].value = item['student_number_curr_month']
-            row[12].value = self.percentage(mom)
-            summary_map[9].append(row[9].value)
-            summary_map[10].append(row[10].value)
-            summary_map[11].append(row[11].value)
-            summary_map[12].append(str(item['student_number_last_month']) + "/" + str(item['student_number_curr_month']))
+            row[4].value = str(item['student_number_last_month']) + '/' + str(item['student_number_curr_month'])
+            summary_map[4].append(row[4].value)
             # 新增考试数量
             mom = (item['valid_exercise_count_curr_month'] - item['valid_exercise_count_last_month']) / item[
                 'valid_exercise_count_last_month'] \
                 if item['valid_exercise_count_last_month'] else 0
-            row[13].value = item['valid_exercise_count']
-            row[14].value = item['valid_exercise_count_last_month']
-            row[15].value = item['valid_exercise_count_curr_month']
-            row[16].value = self.percentage(mom)
-            summary_map[13].append(row[13].value)
-            summary_map[14].append(row[14].value)
-            summary_map[15].append(row[15].value)
-            summary_map[16].append(str(item['valid_exercise_count_last_month']) + "/" + str(item['valid_exercise_count_curr_month']))
-            # 新增考试图片数量
+            row[5].value = item['valid_exercise_count']
+            row[6].value = str(item['valid_exercise_count_last_month']) + '/' + str(item['valid_exercise_count_curr_month'])
+            summary_map[5].append(row[5].value)
+            summary_map[6].append(row[6].value)
+            # 单词
             mom = (item['e_image_c_curr_month'] - item['e_image_c_last_month']) / item[
                 'e_image_c_last_month'] \
                 if item['e_image_c_last_month'] else 0
-            row[17].value = item['e_image_c_last_month']
-            row[18].value = item['e_image_c_curr_month']
-            row[19].value = self.percentage(mom)
-            summary_map[17].append(row[17].value)
-            summary_map[18].append(row[18].value)
-            summary_map[19].append(str(item['e_image_c_last_month']) + "/" + str(item['e_image_c_curr_month']))
-            # 新增单词数量
+            row[7].value = item['valid_word_count']
+            row[8].value = str(item['valid_word_count_last_month']) + '/' + str(item['valid_word_count_curr_month'])
+            summary_map[7].append(row[7].value)
+            summary_map[8].append(row[8].value)
+            # 新增阅读
             mom = (item['valid_word_count_curr_month'] - item['valid_word_count_last_month']) / item[
                 'valid_word_count_last_month'] \
                 if item['valid_word_count_last_month'] else 0
-            row[20].value = item['valid_word_count']
-            row[21].value = item['valid_word_count_last_month']
-            row[22].value = item['valid_word_count_curr_month']
-            row[23].value = self.percentage(mom)
-            summary_map[20].append(row[20].value)
-            summary_map[21].append(row[21].value)
-            summary_map[22].append(row[22].value)
-            summary_map[23].append(str(item['valid_word_count_last_month']) + "/" + str(item['valid_word_count_curr_month']))
-            # 新增单词图像数量
+            row[9].value = item['valid_reading_count']
+            row[10].value = str(item['valid_reading_count_last_month']) + "/" + str(item['valid_reading_count_curr_month'])
+            summary_map[9].append(row[9].value)
+            summary_map[10].append(row[10].value)
+
+            # 图像总数
             mom = (item['w_image_c_curr_month'] - item['w_image_c_last_month']) / item[
                 'w_image_c_last_month'] \
                 if item['w_image_c_last_month'] else 0
             # row[24].value = sum(channel_data['w_image_c'])
-            row[24].value = item['w_image_c_last_month']
-            row[25].value = item['w_image_c_curr_month']
-            row[26].value = self.percentage(mom)
-            summary_map[24].append(row[24].value)
-            summary_map[25].append(row[25].value)
-            summary_map[26].append(str(item['w_image_c_last_month']) + "/" + str(item['w_image_c_curr_month']))
+            row[11].value = item['total_images']
+            row[12].value = str(item['total_images_last_month']) + '/' + str(item['total_images_curr_month'])
+            summary_map[11].append(row[11].value)
+            summary_map[12].append(row[12].value)
 
-            # 新增阅读数量
+            # 绑定
             mom = (item['valid_reading_count_curr_month'] - item['valid_reading_count_last_month']) / item[
                 'valid_reading_count_last_month'] \
                 if item['valid_reading_count_last_month'] else 0
-            row[27].value = item['valid_reading_count']
-            row[28].value = item['valid_reading_count_last_month']
-            row[29].value = item['valid_reading_count_curr_month']
-            row[30].value = self.percentage(mom)
-            summary_map[27].append(row[27].value)
-            summary_map[28].append(row[28].value)
-            summary_map[29].append(row[29].value)
-            summary_map[30].append(str(item['valid_reading_count_last_month']) + "/" + str(item['valid_reading_count_curr_month']))
-            # 新增家长数量
-            mom = (item['guardian_unique_number_curr_month'] - item['guardian_unique_number_last_month']) / item[
-                'guardian_unique_number_last_month'] if item['guardian_unique_number_last_month'] else 0
-            avg = item['total_unique_guardian_number'] / item['total_student_number'] if item['total_student_number'] >0 else 0
-            row[31].value = self.percentage(avg)
-            row[32].value = item['guardian_number_last_month']
-            row[33].value = item['guardian_number_curr_month']
-            row[34].value = self.percentage(mom)
-            summary_map[31].append(str(item['total_unique_guardian_number']) +"/"+ str(item['total_student_number']))
-            summary_map[32].append(row[32].value)
-            summary_map[33].append(row[33].value)
-            summary_map[34].append(str(item['guardian_number_last_month']) + "/" + str(item['guardian_number_curr_month']))
+            avg = item['total_unique_guardian_number'] / item['total_student_number'] if item[
+                                                                                             'total_student_number'] > 0 else 0
+            row[13].value = item['total_unique_guardian_number']
+            row[14].value = self.percentage(avg)
+            row[15].value = str(item['guardian_unique_number_last_month']) + '/' + str(item['guardian_unique_number_curr_month'])
+            summary_map[13].append(row[13].value)
+            summary_map[14].append(row[15].value)
+            summary_map[15].append(row[15].value)
+
             # 新增付费
             mom = (item['pay_amount_curr_month'] - item['pay_amount_last_month']) / item[
                                                                                                               'pay_amount_last_month']\
                 if item['pay_amount_last_month'] else 0
-            row[35].value = item['total_pay_amount']
-            row[36].value = item['pay_amount_last_month']
+            row[16].value = item['total_pay_amount']
+            row[17].value = item['pay_amount_last_month']
             row[37].value = item['pay_amount_curr_month']
             row[38].value = self.percentage(mom)
             summary_map[35].append(row[35].value)
@@ -593,6 +553,7 @@ class AreaExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                             "valid_word_count": {"$sum": "$valid_word_count"},
                             "e_image_c": {"$sum": "$e_image_c"},
                             "w_image_c": {"$sum": "$w_image_c"},
+                            "total_images": {"$sum": "$total_images"},
                             "total_school_number": {"$sum": "$school_number"},
                             "total_teacher_number": {"$sum": "$teacher_number"},
                             "total_student_number": {"$sum": "$student_number"},
@@ -641,6 +602,9 @@ class AreaExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                         "valid_word_count": 1,
                         "e_image_c": 1,
                         "w_image_c": 1,
+                        "total_images": 1,
+                        "total_images_curr_month": 1,
+                        "total_images_last_month": 1,
                         "school_number_curr_month": 1,
                         "school_number_last_month": 1,
                         "teacher_number_curr_month": 1,
