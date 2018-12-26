@@ -1717,7 +1717,7 @@ class ChannelDetail(QueryMixin):
         :return:
         """
         request_param = await get_params(request)
-        channel_old_id = request_param.get("channel_id", "")
+        channel_old_id = request_param.get("channel_old_id", "")
         if not channel_old_id:
             return self.reply_ok({"pay_total": 0,
                                   "pay_curr_week_new_number": 0,
@@ -1994,6 +1994,8 @@ class ChannelDetail(QueryMixin):
             "total_valid_word_number": 0,
             "total_exercise_image_number": 0,
             "total_word_image_number": 0,
+            "contest_coverage_ratio": 0,
+            "contest_average_per_person":0,
             "pay_ratio": 0.0,
             "bind_ratio": 0.0,
         }
