@@ -36,6 +36,7 @@ from statistics.export.export_base import ExportBase
 from mixins import DataExcludeMixin
 from webargs import fields
 from webargs.aiohttpparser import parser
+from statistics.export.export_repository import ExportRepository
 
 class FlexibleExport(BaseHandler, ExportBase, DataExcludeMixin):
     """
@@ -53,3 +54,14 @@ class FlexibleExport(BaseHandler, ExportBase, DataExcludeMixin):
         handler_args = {"name": fields.Str(missing="World")}
         args = await parser.parse(handler_args, request)
         return self.reply_ok({"name": args['name']})
+
+
+    async def export_daily_pay_amount(self, request: Request):
+        """
+        每日付费导出
+        :param request:
+        :return:
+        """
+        items = await ExportRepository().daily_new_pay(request, [1,5554])
+        print(json.dumps(items, indent=4))
+        return self.reply_ok({})

@@ -36,4 +36,4 @@ def register(router: UrlDispatcher):
     router.add_get('/api/stat/report/daterange/global/arealist', daterange_export.area_list_export)
     router.add_get('/api/stat/report/daterange/area/channelist', daterange_export.channel_list_export)
     router.add_get('/api/stat/report/daterange/channel/marketlist', daterange_export.market_list_export)
-    router.add_get('/api/stat/report/flexible', flexible_export.test_arge)
+    router.add_get('/api/stat/report/flexible/daily_pay', flexible_export.export_daily_pay_amount)
