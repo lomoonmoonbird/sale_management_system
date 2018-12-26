@@ -1799,7 +1799,31 @@ class ChannelDetail(QueryMixin):
                                   "contest_curr_week_new_number": contest_curr_week_new_number,
                                   "contest_last_week_new_number": contest_last_week_new_number
                                   })
-        return self.reply_ok([])
+        return self.reply_ok({"pay_total": 0,
+                                  "pay_curr_week_new_number": 0,
+                                  "pay_last_week_new_number": 0,
+                                  "pay_amount": 0,
+                                  "pay_curr_week_new_amount": 0,
+                                  "pay_last_week_new_amount": 0,
+                                  "total_school_number": 0,
+                                  "curr_week_new_school_number": 0,
+                                  "last_week_new_school_number": 0,
+                                  "total_teacher_number": 0,
+                                  "teacher_curr_week_new_number": 0,
+                                  "teacher_last_week_new_number": 0,
+                                  "student_total": 0,
+                                  "student_curr_week_new_number": 0,
+                                  "student_last_week_new_number": 0,
+                                  "image_total": 0,
+                                  "image_curr_week_new_number": 0,
+                                  "image_last_week_new_number": 0,
+                                  "guardian_total": 0,
+                                  "guardian_curr_week_new_number": 0,
+                                  "guardian_last_week_new_number": 0,
+                                  "contest_total": 0,
+                                  "contest_curr_week_new_number": 0,
+                                  "contest_last_week_new_number": 0
+                                  })
 
     @validate_permission()
     async def market_list(self, request: Request):
