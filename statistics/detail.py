@@ -1711,16 +1711,16 @@ class ChannelDetail(QueryMixin):
         """
         渠道详情总览
         {
-            "channel_id": ""
+            "channel_old_id": ""
         }
         :param request:
         :return:
         """
         request_param = await get_params(request)
-        channel_id = request_param.get("channel_id", "")
-        if not channel_id:
+        channel_old_id = request_param.get("channel_id", "")
+        if not channel_old_id:
             return self.reply_ok([])
-        channel = await request.app['mongodb'][self.db][self.instance_coll].find_one({"_id": ObjectId(channel_id), "status": 1})
+        channel = await request.app['mongodb'][self.db][self.instance_coll].find_one({"old_id": channel_old_id, "status": 1})
         if channel:
             channel_old_id = [channel.get("old_id", 0)]
             channel_old_id = list(set(channel_old_id).difference(set(request['data_permission']['exclude_channel'])))
@@ -1907,10 +1907,80 @@ class ChannelDetail(QueryMixin):
 
         return self.reply_ok({"market_list": items, "extra": {"total": total_count, "number_per_page": per_page, "curr_page": page + 1}})
 
+
+    @validate_permission(data_validation=True)
+    async def school_list_detail(self, request: Request):
+        """
+        渠道详情的学校列表
+        {
+            "page": "",
+            "channel_old_id": ""
+        }
+        :param request:
+        :return:
+        """
+        request_param = await get_params(request)
+        page = int(request_param.get("page", 1)) - 1
+        per_page = 10
+        total_school_count = 0
+        channel_old_id = request_param.get("channel_old_id", "")
+
+        total_sql = "select count(id) as total_school_count from sigma_account_ob_school " \
+                    "where owner_id = %s " \
+                    "and time_create >= '%s' " \
+                    "and time_create <= '%s' " % (channel_old_id,
+                                               self.start_time.strftime("%Y-%m-%d"),
+                                               datetime.now().strftime("%Y-%m-%d"))
+
+        school_sql = "select id,full_name from sigma_account_ob_school " \
+                    "where owner_id = %s " \
+                     "and available = 1 " \
+                    "and time_create >= '%s' " \
+                    "and time_create <= '%s' limit %s,%s" % (channel_old_id,
+                                                  self.start_time.strftime("%Y-%m-%d"),
+                                                  datetime.now().strftime("%Y-%m-%d"), page*per_page, per_page)
+
+        async with request.app['mysql'].acquire() as conn:
+            async with conn.cursor(DictCursor) as cur:
+                await cur.execute(total_sql)
+                total_school = await cur.fetchall()
+                total_school_count = total_school[0]['total_school_count']
+                await cur.execute(school_sql)
+                schools = await cur.fetchall()
+        school_map = {}
+        for school in schools:
+            school_map[school['id']] = school
+        school_ids = [item['id'] for item in schools]
+
+        items = await self._list_school(request, school_ids)
+        item_map = {}
+        for item in items:
+            item_map[item['_id']] = item
+
+        default = {
+            "total_school_number": 0,
+            "total_teacher_number": 0,
+            "total_student_number": 0,
+            "total_guardian_number": 0,
+            "total_guardian_unique_count": 0,
+            "total_pay_number": 0,
+            "total_pay_amount": 0,
+            "total_valid_reading_number": 0,
+            "total_valid_exercise_number": 0,
+            "total_valid_word_number": 0,
+            "total_exercise_image_number": 0,
+            "total_word_image_number": 0,
+            "pay_ratio": 0.0,
+            "bind_ratio": 0.0,
+        }
+        for school in schools:
+            school['stat_info'] = item_map.get(school['id'], default)
+        return self.reply_ok({"school_list": schools, "extra": {"total": total_school_count, "number_per_page": per_page, "curr_page": page + 1}})
+
+
     @validate_permission()
     async def school_list(self, request: Request):
         """
-        学校列表
 
         学校列表
         {
