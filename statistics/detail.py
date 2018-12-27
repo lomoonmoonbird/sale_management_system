@@ -1744,86 +1744,86 @@ class ChannelDetail(QueryMixin):
                                   "contest_curr_week_new_number": 0,
                                   "contest_last_week_new_number": 0
                                   })
-        channel = await request.app['mongodb'][self.db][self.instance_coll].find_one({"old_id": channel_old_id, "status": 1})
-        if channel:
-            channel_old_id = [channel.get("old_id", 0)]
-            channel_old_id = list(set(channel_old_id).difference(set(request['data_permission']['exclude_channel'])))
+        # channel = await request.app['mongodb'][self.db][self.instance_coll].find_one({"old_id": channel_old_id, "status": 1})
+        # if channel:
+        channel_old_id = [channel_old_id]
+        channel_old_id = list(set(channel_old_id).difference(set(request['data_permission']['exclude_channel'])))
 
 
-            pay_total, pay_curr_week_new_number, pay_last_week_new_number = await self._pay_number(request, channel_old_id,
-                                                                                                   "$channel")
+        pay_total, pay_curr_week_new_number, pay_last_week_new_number = await self._pay_number(request, channel_old_id,
+                                                                                               "$channel")
 
-            pay_amount, pay_curr_week_new_amount, pay_last_week_new_amount = await self._pay_amount(request, channel_old_id,
-                                                                                                    "$channel")
+        pay_amount, pay_curr_week_new_amount, pay_last_week_new_amount = await self._pay_amount(request, channel_old_id,
+                                                                                                "$channel")
 
-            total_school_number, curr_week_new_school_number, last_week_new_school_number = await self._school_number(
-                request, channel_old_id, "$channel")
+        total_school_number, curr_week_new_school_number, last_week_new_school_number = await self._school_number(
+            request, channel_old_id, "$channel")
 
-            teacher_total, teacher_curr_week_new_number, teacher_last_week_new_number = await self._teacher_number(
-                request, channel_old_id, "$channel")
-            student_total, student_curr_week_new_number, student_last_week_new_number = await self._student_number(
-                request, channel_old_id, "$channel")
+        teacher_total, teacher_curr_week_new_number, teacher_last_week_new_number = await self._teacher_number(
+            request, channel_old_id, "$channel")
+        student_total, student_curr_week_new_number, student_last_week_new_number = await self._student_number(
+            request, channel_old_id, "$channel")
 
-            image_total, image_curr_week_new_number, image_last_week_new_number = await self._images_number(request,
-                                                                                                            channel_old_id,
-                                                                                                            "$channel")
+        image_total, image_curr_week_new_number, image_last_week_new_number = await self._images_number(request,
+                                                                                                        channel_old_id,
+                                                                                                        "$channel")
 
-            guardian_total, guardian_curr_week_new_number, guardian_last_week_new_number = await self._guardian_number(
-                request, channel_old_id, "$channel")
+        guardian_total, guardian_curr_week_new_number, guardian_last_week_new_number = await self._guardian_number(
+            request, channel_old_id, "$channel")
 
-            contest_total, contest_curr_week_new_number, contest_last_week_new_number = await self._valid_contest_number(
-                request, channel_old_id, "$channel")
+        contest_total, contest_curr_week_new_number, contest_last_week_new_number = await self._valid_contest_number(
+            request, channel_old_id, "$channel")
 
-            return self.reply_ok({"pay_total": pay_total,
-                                  "pay_curr_week_new_number": pay_curr_week_new_number,
-                                  "pay_last_week_new_number": pay_last_week_new_number,
-                                  "pay_amount": pay_amount,
-                                  "pay_curr_week_new_amount": pay_curr_week_new_amount,
-                                  "pay_last_week_new_amount": pay_last_week_new_amount,
-                                  "total_school_number": total_school_number,
-                                  "curr_week_new_school_number": curr_week_new_school_number,
-                                  "last_week_new_school_number": last_week_new_school_number,
-                                  "total_teacher_number": teacher_total,
-                                  "teacher_curr_week_new_number": teacher_curr_week_new_number,
-                                  "teacher_last_week_new_number": teacher_last_week_new_number,
-                                  "student_total": student_total,
-                                  "student_curr_week_new_number": student_curr_week_new_number,
-                                  "student_last_week_new_number": student_last_week_new_number,
-                                  "image_total": image_total,
-                                  "image_curr_week_new_number": image_curr_week_new_number,
-                                  "image_last_week_new_number": image_last_week_new_number,
-                                  "guardian_total": guardian_total,
-                                  "guardian_curr_week_new_number": guardian_curr_week_new_number,
-                                  "guardian_last_week_new_number": guardian_last_week_new_number,
-                                  "contest_total": contest_total,
-                                  "contest_curr_week_new_number": contest_curr_week_new_number,
-                                  "contest_last_week_new_number": contest_last_week_new_number
-                                  })
-        return self.reply_ok({"pay_total": 0,
-                                  "pay_curr_week_new_number": 0,
-                                  "pay_last_week_new_number": 0,
-                                  "pay_amount": 0,
-                                  "pay_curr_week_new_amount": 0,
-                                  "pay_last_week_new_amount": 0,
-                                  "total_school_number": 0,
-                                  "curr_week_new_school_number": 0,
-                                  "last_week_new_school_number": 0,
-                                  "total_teacher_number": 0,
-                                  "teacher_curr_week_new_number": 0,
-                                  "teacher_last_week_new_number": 0,
-                                  "student_total": 0,
-                                  "student_curr_week_new_number": 0,
-                                  "student_last_week_new_number": 0,
-                                  "image_total": 0,
-                                  "image_curr_week_new_number": 0,
-                                  "image_last_week_new_number": 0,
-                                  "guardian_total": 0,
-                                  "guardian_curr_week_new_number": 0,
-                                  "guardian_last_week_new_number": 0,
-                                  "contest_total": 0,
-                                  "contest_curr_week_new_number": 0,
-                                  "contest_last_week_new_number": 0
-                                  })
+        return self.reply_ok({"pay_total": pay_total,
+                              "pay_curr_week_new_number": pay_curr_week_new_number,
+                              "pay_last_week_new_number": pay_last_week_new_number,
+                              "pay_amount": pay_amount,
+                              "pay_curr_week_new_amount": pay_curr_week_new_amount,
+                              "pay_last_week_new_amount": pay_last_week_new_amount,
+                              "total_school_number": total_school_number,
+                              "curr_week_new_school_number": curr_week_new_school_number,
+                              "last_week_new_school_number": last_week_new_school_number,
+                              "total_teacher_number": teacher_total,
+                              "teacher_curr_week_new_number": teacher_curr_week_new_number,
+                              "teacher_last_week_new_number": teacher_last_week_new_number,
+                              "student_total": student_total,
+                              "student_curr_week_new_number": student_curr_week_new_number,
+                              "student_last_week_new_number": student_last_week_new_number,
+                              "image_total": image_total,
+                              "image_curr_week_new_number": image_curr_week_new_number,
+                              "image_last_week_new_number": image_last_week_new_number,
+                              "guardian_total": guardian_total,
+                              "guardian_curr_week_new_number": guardian_curr_week_new_number,
+                              "guardian_last_week_new_number": guardian_last_week_new_number,
+                              "contest_total": contest_total,
+                              "contest_curr_week_new_number": contest_curr_week_new_number,
+                              "contest_last_week_new_number": contest_last_week_new_number
+                              })
+        # return self.reply_ok({"pay_total": 0,
+        #                           "pay_curr_week_new_number": 0,
+        #                           "pay_last_week_new_number": 0,
+        #                           "pay_amount": 0,
+        #                           "pay_curr_week_new_amount": 0,
+        #                           "pay_last_week_new_amount": 0,
+        #                           "total_school_number": 0,
+        #                           "curr_week_new_school_number": 0,
+        #                           "last_week_new_school_number": 0,
+        #                           "total_teacher_number": 0,
+        #                           "teacher_curr_week_new_number": 0,
+        #                           "teacher_last_week_new_number": 0,
+        #                           "student_total": 0,
+        #                           "student_curr_week_new_number": 0,
+        #                           "student_last_week_new_number": 0,
+        #                           "image_total": 0,
+        #                           "image_curr_week_new_number": 0,
+        #                           "image_last_week_new_number": 0,
+        #                           "guardian_total": 0,
+        #                           "guardian_curr_week_new_number": 0,
+        #                           "guardian_last_week_new_number": 0,
+        #                           "contest_total": 0,
+        #                           "contest_curr_week_new_number": 0,
+        #                           "contest_last_week_new_number": 0
+        #                           })
 
     @validate_permission()
     async def market_list(self, request: Request):
