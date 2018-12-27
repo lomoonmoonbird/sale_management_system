@@ -2025,6 +2025,8 @@ class ChannelDetail(QueryMixin):
         }
         for school in schools:
             school['stat_info'] = item_map.get(school['id'], default)
+            school['stat_info'].update({"contest_coverage_ratio": 0})
+            school['stat_info'].update({"contest_average_per_person": 0})
         return self.reply_ok({"school_list": schools, "extra": {"total": total_school_count, "number_per_page": per_page, "curr_page": page + 1}})
 
 
