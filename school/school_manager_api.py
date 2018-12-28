@@ -27,8 +27,9 @@ from tasks.celery_base import BaseTask
 from utils import CustomEncoder
 from models.mysql.centauri import StageEnum
 from collections import defaultdict
+from mixins import DataExcludeMixin
 
-class SchoolManage(BaseHandler):
+class SchoolManage(BaseHandler, DataExcludeMixin):
     def __init__(self):
         self.db = 'sales'
         self.user_coll = 'sale_user'
@@ -61,7 +62,7 @@ class SchoolManage(BaseHandler):
         total_school_count = 0
         flag = 0
         request_stage = int(request_param.get('stage')) if request_param.get('stage') else -1
-        exclude_channel = request['data_permission']['exclude_channel']
+        exclude_channel = request['data_permission']['exclude_channel'] + self.exclude_channel(request.app['mysql'])
         exclude_channel_str = ','.join(['"'+str(id)+'"' for id in exclude_channel]) if exclude_channel else "''"
         if not request_param.get('school_name') and request_stage not in [StageEnum.Register.value,
                                                                                        StageEnum.Using.value,
@@ -115,7 +116,6 @@ class SchoolManage(BaseHandler):
                 date_range = [self.start_time.strftime("%Y-%m-%d"), datetime.now().strftime("%Y-%m-%d")]
                 query.update({"open_time": {"$gte": datetime.strptime(date_range[0], "%Y-%m-%d"), "$lte": datetime.strptime(date_range[1], "%Y-%m-%d")}})
             query.update({"channel": {"$nin": exclude_channel}})
-            print(query)
             condition_schools = request.app['mongodb'][self.db][self.school_coll].find(query)
             condition_schools = await condition_schools.to_list(10000)
             total_school_count = await request.app['mongodb'][self.db][self.school_coll].count_documents(query)
