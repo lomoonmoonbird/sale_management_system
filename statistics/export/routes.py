@@ -36,4 +36,8 @@ def register(router: UrlDispatcher):
     router.add_get('/api/stat/report/daterange/global/arealist', daterange_export.area_list_export)
     router.add_get('/api/stat/report/daterange/area/channelist', daterange_export.channel_list_export)
     router.add_get('/api/stat/report/daterange/channel/marketlist', daterange_export.market_list_export)
-    router.add_get('/api/stat/report/flexible/daily_pay', flexible_export.export_daily_pay_amount)
+
+    #数据专用
+    #渠道新增和学校新增，一个excel多个sheet
+    router.add_get('/api/stat/report/flexible/channel_daily', flexible_export.export_channel_daily)
+    router.add_get('/api/stat/report/flexible/channel_daily_pay', flexible_export.export_channel_pay_daily)

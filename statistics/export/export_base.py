@@ -1,5 +1,6 @@
 
 from openpyxl.styles import PatternFill, Border, Side, Alignment, Protection, Font, GradientFill,Alignment
+from datetime import datetime, timedelta
 
 class ExportBase():
     def _red_font(self):
@@ -40,3 +41,16 @@ class ExportBase():
         font = Font(b=True, color="FF0000")
         al = Alignment(horizontal="center", vertical="center")
         return border
+
+    def all_day_between_2_date(self, begin, end):
+        """
+        获取两个日期之间的所有日期
+        :param begin:
+        :param end:
+        :return:
+        """
+        end = datetime.strptime(end, "%Y-%m-%d")
+        begin = datetime.strptime(begin, "%Y-%m-%d")
+        delta = end - begin
+        for i in range(delta.days + 1):
+            yield (begin + timedelta(i)).strftime("%Y-%m-%d")
