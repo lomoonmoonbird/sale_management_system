@@ -2429,6 +2429,8 @@ class MarketDetail(QueryMixin, DataExcludeMixin):
                 "total_valid_word_number": 0,
                 "total_exercise_image_number": 0,
                 "total_word_image_number": 0,
+                "contest_coverage_ratio": 0,
+                "contest_average_per_person": 0,
                 "pay_ratio": 0,
                 "bind_ratio": 0,
             }
