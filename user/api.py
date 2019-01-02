@@ -115,6 +115,8 @@ class User(BaseHandler, DataExcludeMixin):
             create_resp = await self.json_post_request(request.app['http_session'],
                                                 UC_SYSTEM_API_ADMIN_URL + '/user/bulkCreate',
                                                 data=ujson.dumps(uc_create_user))
+            if create_resp['status'] == 1001:
+                raise UserExistError("user exist")
             if create_resp['status'] == 0:
 
                 themis_role_user = {
@@ -469,6 +471,8 @@ class User(BaseHandler, DataExcludeMixin):
         create_resp = await self.json_post_request(request.app['http_session'],
                                                    UC_SYSTEM_API_ADMIN_URL + '/user/bulkCreate',
                                                    data=ujson.dumps(uc_create_user))
+        if create_resp['status'] == 1001:
+            raise UserExistError("user exist")
         if create_resp['status'] == 0:
             themis_role_user = {
                 "appKey": permissionAppKey,
@@ -728,7 +732,8 @@ class User(BaseHandler, DataExcludeMixin):
             create_resp = await self.json_post_request(request.app['http_session'],
                                                        UC_SYSTEM_API_ADMIN_URL + '/user/bulkCreate',
                                                        data=ujson.dumps(uc_create_user))
-            print (create_resp)
+            if create_resp['status'] == 1001:
+                raise UserExistError("user exist")
             if create_resp['status'] == 0:
 
                 themis_role_user = {
