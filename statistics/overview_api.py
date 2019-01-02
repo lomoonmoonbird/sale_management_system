@@ -425,6 +425,7 @@ class Overview(BaseHandler, DataExcludeMixin):
         """
         coll = request.app['mongodb'][self.db][self.channel_per_day_coll]
         total_image_count_list = []
+        total_image_count_list = []
         current_week_new_image_count_list = []
         last_week_new_image_count_list = []
         current_week = self.current_week()

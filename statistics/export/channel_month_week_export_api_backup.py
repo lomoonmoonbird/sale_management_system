@@ -51,6 +51,7 @@ class ChannelExportReport(BaseHandler, ExportBase, DataExcludeMixin):
         self.class_per_day_coll = 'class_per_day'
         self.grade_per_day_coll = 'grade_per_day'
         self.channel_per_day_coll = 'channel_per_day'
+        self.school_per_day_coll = 'school_per_day'
         self.thread_pool = ThreadPoolExecutor(20)
 
 
@@ -148,6 +149,16 @@ class ChannelExportReport(BaseHandler, ExportBase, DataExcludeMixin):
             return await self.replay_stream(sheet, "渠道周报-" + datetime.now().strftime("%Y-%m-%d"), request)
         return self.reply_ok({})
 
+
+    @validate_permission(data_validation=True)
+    async def month_school(self, request: Request):
+        """
+        渠道学校月报
+        :param request:
+        :return:
+        """
+
+
     async def _list_month(self, request: Request, school_ids: list):
         """
         月报
@@ -156,7 +167,7 @@ class ChannelExportReport(BaseHandler, ExportBase, DataExcludeMixin):
         :return:
         """
 
-        coll = request.app['mongodb'][self.db][self.grade_per_day_coll]
+        coll = request.app['mongodb'][self.db][self.school_per_day_coll]
         items = []
 
         last_last_month_first_day, last_last_month_last_day, last_month_first_day, last_month_last_day,\

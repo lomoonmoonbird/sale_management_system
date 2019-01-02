@@ -257,7 +257,7 @@ class ExportRepository(BaseHandler, ExportBase, DataExcludeMixin):
                             "total_exercise": {"$sum": "$valid_exercise_count"},
                             "total_reading": {"$sum": "$valid_reading_count"},
                             "total_word": {"$sum": "$valid_word_count"},
-                            "total_images": {"$sum": {"$add": ["$e_image_c", "$w_image_c"]}},
+                            "total_images": {"$sum": [ "$e_image_c", "$w_image_c" ] },
                             "total_unique_guardian_range": {"$sum": "$guardian_unique_count_range"},
                             "total_unique_guardian": {"$sum": "$guardian_unique_count"},
                             "total_pay_number": {"$sum": "$pay_number"},
