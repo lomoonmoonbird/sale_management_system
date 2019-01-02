@@ -257,7 +257,7 @@ class ExportRepository(BaseHandler, ExportBase, DataExcludeMixin):
                             "total_exercise": {"$sum": "$valid_exercise_count"},
                             "total_reading": {"$sum": "$valid_reading_count"},
                             "total_word": {"$sum": "$valid_word_count"},
-                            "total_images": {"$sum": [ "$e_image_c", "$w_image_c" ] },
+                            "total_images": {"$sum": {"$add": [ "$e_image_c", "$w_image_c" ]} },
                             "total_unique_guardian_range": {"$sum": "$guardian_unique_count_range"},
                             "total_unique_guardian": {"$sum": "$guardian_unique_count"},
                             "total_pay_number": {"$sum": "$pay_number"},
@@ -357,6 +357,8 @@ class ExportRepository(BaseHandler, ExportBase, DataExcludeMixin):
                            '新增单词使用次数', '新增图片数量', '新增绑定人数数量', '新增付费人数', '新增付费金额', '绑定率'])
 
                 for row in range(0, len(school_items)):
+                    print(channel_mysql_map)
+                    print(school_items[row]['_id']['channel'], channel_mysql_map.get(school_items[row]['_id']['channel']), "channel_mysql_map.get(school_items[row]['_id']['channel'])")
                     ws.append([channel_mysql_map.get(school_items[row]['_id']['channel']).get("name"),
                                school_mysql_map.get(school_items[row]['_id']['school_id']).get("full_name"),
                                school_items[row]['total_exercise'],
@@ -429,7 +431,7 @@ class ExportRepository(BaseHandler, ExportBase, DataExcludeMixin):
                 #         else:
                 #             one_row.append(s['total_pay_amount_day'])
                 #     ws.append(one_row)
-                area_channel_stat_defaultdict["aaaaaaaaaaaaaaaaa"] = area_channel_stat_defaultdict["5c0539dbc6453208d23a8c86"]
+                # area_channel_stat_defaultdict["aaaaaaaaaaaaaaaaa"] = area_channel_stat_defaultdict["5c0539dbc6453208d23a8c86"]
                 # print(json.dumps(area_channel_stat_defaultdict, indent=4))
                 # print(len(area_channel_stat_defaultdict))
                 for area_id, data in area_channel_stat_defaultdict.items():

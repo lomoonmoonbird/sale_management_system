@@ -1749,7 +1749,7 @@ class ChannelDetail(QueryMixin):
         channel_old_id = [channel_old_id]
         channel_old_id = list(set(channel_old_id).difference(set(request['data_permission']['exclude_channel'])))
 
-
+        print('channel_old_id', channel_old_id)
         pay_total, pay_curr_week_new_number, pay_last_week_new_number = await self._pay_number(request, channel_old_id,
                                                                                                "$channel")
 

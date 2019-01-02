@@ -62,7 +62,6 @@ class FlexibleExport(BaseHandler, ExportBase, DataExcludeMixin):
         :param request:
         :return:
         """
-
         request_param = await get_params(request)
         area_name = request_param.get("area_name")
         channel_name = request_param.get("channel_name")
@@ -93,6 +92,7 @@ class FlexibleExport(BaseHandler, ExportBase, DataExcludeMixin):
 
         sql = "select id, name from sigma_account_us_user where available = 1 and id in (%s) " % \
               ','.join([str(id) for id in old_ids])
+
         async with request.app['mysql'].acquire() as conn:
             async with conn.cursor(DictCursor) as cur:
                 await cur.execute(sql)
@@ -111,6 +111,7 @@ class FlexibleExport(BaseHandler, ExportBase, DataExcludeMixin):
         #学校 begin
         sql = "select id, name from sigma_account_us_user where available = 1 and name in (%s) " % \
               ','.join(["'"+str(username)+"'" for username in channel_name.split(",")])
+        print(sql)
         async with request.app['mysql'].acquire() as conn:
             async with conn.cursor(DictCursor) as cur:
                 await cur.execute(sql)
@@ -134,10 +135,12 @@ class FlexibleExport(BaseHandler, ExportBase, DataExcludeMixin):
 
             for channel in real_channels:
                 channel_mysql_map[channel['id']] = channel
-
+            print("real_channels", real_channels)
             for school in real_schools:
                 school_mysql_map[school['id']] = school
-            school_items = await self.exportrepository.school_new_delta(request, old_ids, begin_time, end_time)
+            school_items = await self.exportrepository.school_new_delta(request, channel_ids, begin_time, end_time)
+        print(json.dumps(school_items, indent=4))
+        print('channel_mysql_map', channel_mysql_map)
         sheet = await request.app.loop.run_in_executor(self.thread_pool,
                                                        self.exportrepository.sheet,
                                                        items,
@@ -148,6 +151,11 @@ class FlexibleExport(BaseHandler, ExportBase, DataExcludeMixin):
     async def export_channel_pay_daily(self, request: Request):
         """
         学校每日新增
+        {
+            "area_name":""
+            "begin_time":"",
+            "end_time": ""
+        }
         :param request:
         :return:
         """
