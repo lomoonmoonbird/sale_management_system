@@ -89,7 +89,7 @@ class SchoolExportReport(BaseHandler, ExportBase):
             }
             cla['stat_info'] = items_map.get(cla['id'], default)
 
-        title = school['full_name'] + " 所有班級考試詳情 "
+        title = school['full_name'] + " 所有班级考试详情 "
         template_path = os.path.dirname(__file__) + "/templates/school_class_contest_related_template.xlsx"
         sheet = await request.app.loop.run_in_executor(self.thread_pool,
                                                        self.contest_sheet,

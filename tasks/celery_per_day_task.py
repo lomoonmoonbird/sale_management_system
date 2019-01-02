@@ -826,13 +826,13 @@ class PerDaySubTask_PAYMENTS(BaseTask):
         :return:
         """
         for one_date in date_range:
-            q_payments = select([ob_order.c.user_id, ob_order.c.coupon_amount])\
+            q_payments = select([ob_order.c.user_id, ob_order.c.coupon_amount, ob_order.c.time_create])\
                 .where(and_(ob_order.c.available == 1,
                             ob_order.c.status == 3,
                             ob_order.c.time_create >= one_date[0],
-                            ob_order.c.time_create < one_date[1])
+                            ob_order.c.time_create <= one_date[1])
                        )
-
+            # print(q_payments.compile(dialect=mysql.dialect(), compile_kwargs={"literal_binds": True}).string.replace("%%", "%"))
             payments = self._query(q_payments)
 
             user_ids = list(set([item['user_id'] for item in payments]))

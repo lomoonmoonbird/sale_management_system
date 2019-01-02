@@ -143,6 +143,7 @@ sales_celery.register_task(per_day_task)
 
 per_day_exercise_images = PerDaySubTask_IMAGES()
 sales_celery.register_task(per_day_exercise_images)
+# sales_celery.send_task('tasks.celery_per_day_task.PerDaySubTask_IMAGES')
 
 per_day_guardian = PerDaySubTask_GUARDIAN()
 sales_celery.register_task(per_day_guardian)
@@ -162,7 +163,7 @@ sales_celery.register_task(per_day_users_number)
 
 per_day_valid_exercise_word = PerDayTask_VALIDCONTEST()
 sales_celery.register_task(per_day_valid_exercise_word)
-# sales_celery.send_task('tasks.celery_per_day_task.PerDayTask_VALIADCONTEST')
+# sales_celery.send_task('tasks.celery_per_day_task.PerDayTask_VALIDCONTEST')
 
 per_day_valid_reading = PerDayTask_VALIDREADING()
 sales_celery.register_task(per_day_valid_reading)
