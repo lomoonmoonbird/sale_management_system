@@ -164,54 +164,45 @@ class User(BaseHandler, DataExcludeMixin):
         """
         request_data = await get_json(request)
         old_channel_ids = [int(id) for id in request_data['old_channel_ids']]
-        if not old_channel_ids:
-            result = await request.app['mongodb'][self.db][self.instance_coll].update_many({"parent_id": str(request_data['area_id']),
-                                                                                   "role": Roles.CHANNEL.value,
-                                                                                   "status": 1}, {"$set": {"status":0,
-                                                                                                           "operator": ""}})
+        channels = request.app['mongodb'][self.db][self.instance_coll].find({
+            # "parent_id": str(request_data['area_id']),
+            # "operator": request['user_info']['user_id'],
+            "old_id": {"$in": old_channel_ids},
+            "role": Roles.CHANNEL.value,
+            "status": 1
+        }, {"old_id": 1, "operator": 1, "_id": 0})
+        channels = await channels.to_list(None)
+        can_operate_channel_ids = []
+        if not channels:
+            can_operate_channel_ids = old_channel_ids
         else:
-            bulk_update = []
-            prepare_channel_info = request.app['mongodb'][self.db][self.instance_coll]\
-                .find({
-                       "old_id": {"$in": old_channel_ids},
-                       "role": Roles.CHANNEL.value,
-                       "status": 1}, {"old_id": 1, "operator": 1, "_id": 0})
-
-
-            prepare_channel_info = await prepare_channel_info.to_list(None)
-            prepare_channel_info_map = {}
-            for p_c_i in prepare_channel_info:
-                prepare_channel_info_map[p_c_i['old_id']] = p_c_i
-
-            prepare_channels_map = {}
-            for id in old_channel_ids:
-                prepare_channels_map[id] = prepare_channel_info_map.get(id, {})
-            can_operate_channel_ids = []
-            # if not prepare_channel_info:
-            #     can_operate_channel_ids = old_channel_ids
-            # else:
-            for id in old_channel_ids:
-                if prepare_channels_map.get(id):
-                    if prepare_channels_map.get(id).get("operator", "") == int(request['user_info']['user_id']) \
-                            or  prepare_channels_map.get(id).get("operator", "") is "":
-                        can_operate_channel_ids.append(id)
+            channels_map = {}
+            for c in channels:
+                channels_map[c['old_id']] = c
+            for old_id in old_channel_ids:
+                operator = channels_map.get(old_id, {}).get("operator")
+                if operator and operator != request['user_info']['user_id']:
+                    continue
                 else:
-                    can_operate_channel_ids.append(id)
+                    can_operate_channel_ids.append(old_id)
+
+
+        if not can_operate_channel_ids:
+            result = await request.app['mongodb'][self.db][self.instance_coll]\
+                .update_many({"parent_id": str(request_data['area_id']),
+                              "operator": request['user_info']['user_id'],
+                              "role": Roles.CHANNEL.value,
+                              "status": 1}, {"$set": {"status":0,
+                                                      "operator": ""}})
+        else:
             result = await request.app['mongodb'][self.db][self.instance_coll]\
                 .update_many({
                               "parent_id": str(request_data['area_id']),
+                              "operator": request['user_info']['user_id'],
                               "role": Roles.CHANNEL.value,
                               "status": 1}, {"$set": {"status": 0, "operator": ""}})
+            bulk_update = []
             for old_id in can_operate_channel_ids:
-                # bulk_update.append(UpdateOne({"parent_id": str(request_data['area_id']),"old_id": old_id},
-                #                              {"$set": {"parent_id": str(request_data['area_id']),
-                #                                        "old_id": int(old_id),
-                #                                        "role": Roles.CHANNEL.value,
-                #                                        "status": 1,
-                #                                        "create_at": time.time(),
-                #                                        "modify_at": time.time()
-                #                                        }
-                #                               },upsert=True))
                 bulk_update.append(UpdateOne({"old_id": old_id, "role": Roles.CHANNEL.value, "status": 1},
                                              {"$set": {"parent_id": str(request_data['area_id']),
                                                        "operator": request['user_info']['user_id'],
@@ -222,7 +213,56 @@ class User(BaseHandler, DataExcludeMixin):
                                               }, upsert=True))
             if bulk_update:
                 ret = await request.app['mongodb'][self.db][self.instance_coll].bulk_write(bulk_update)
+
         return self.reply_ok({})
+
+
+
+
+        # else:
+        #     bulk_update = []
+        #     prepare_channel_info = request.app['mongodb'][self.db][self.instance_coll]\
+        #         .find({
+        #                "old_id": {"$in": old_channel_ids},
+        #                "role": Roles.CHANNEL.value,
+        #                "status": 1}, {"old_id": 1, "operator": 1, "_id": 0})
+        #
+        #
+        #     prepare_channel_info = await prepare_channel_info.to_list(None)
+        #     prepare_channel_info_map = {}
+        #     for p_c_i in prepare_channel_info:
+        #         prepare_channel_info_map[p_c_i['old_id']] = p_c_i
+        #
+        #     prepare_channels_map = {}
+        #     for id in old_channel_ids:
+        #         prepare_channels_map[id] = prepare_channel_info_map.get(id, {})
+        #     can_operate_channel_ids = []
+        #
+        #     for id in old_channel_ids:
+        #         if prepare_channels_map.get(id):
+        #             if prepare_channels_map.get(id).get("operator", "") == int(request['user_info']['user_id']) \
+        #                     or  prepare_channels_map.get(id).get("operator", "") is "":
+        #                 can_operate_channel_ids.append(id)
+        #         else:
+        #             can_operate_channel_ids.append(id)
+        #     result = await request.app['mongodb'][self.db][self.instance_coll]\
+        #         .update_many({
+        #                       "parent_id": str(request_data['area_id']),
+        #                       "role": Roles.CHANNEL.value,
+        #                       "status": 1}, {"$set": {"status": 0, "operator": ""}})
+        #     for old_id in can_operate_channel_ids:
+        #
+        #         bulk_update.append(UpdateOne({"old_id": old_id, "role": Roles.CHANNEL.value, "status": 1},
+        #                                      {"$set": {"parent_id": str(request_data['area_id']),
+        #                                                "operator": request['user_info']['user_id'],
+        #                                                "role": Roles.CHANNEL.value,
+        #                                                "create_at": time.time(),
+        #                                                "modify_at": time.time()
+        #                                                }
+        #                                       }, upsert=True))
+        #     if bulk_update:
+        #         ret = await request.app['mongodb'][self.db][self.instance_coll].bulk_write(bulk_update)
+        # return self.reply_ok({})
 
     @validate_permission(data_validation=True)
     async def get_one_area_channels(self, request: Request):
