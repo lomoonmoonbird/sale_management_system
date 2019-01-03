@@ -431,9 +431,7 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                 mom = (sum(area_data['city_number_curr_month']) - sum(area_data['city_number_last_month'])) / sum(
                     area_data['city_number_last_month']) \
                     if sum(area_data['city_number_last_month']) else 0
-                print(area_name.split('@')[1])
-                if area_name.split('@')[1] == '5be540070195cfd8c80602b5':
-                    print("stat_areas_channel.get(area_name.split('@')[1])",stat_areas_channel.get(area_name.split('@')[1]))
+
                 row[1].value = len(stat_areas_channel.get(area_name.split('@')[1], []))
                 row[2].value = str(last_month_channel) + "/" + str(curr_month_channel)
                 summary_map[1].append(row[1].value)
@@ -494,8 +492,9 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                     area_data[
                         'guardian_unique_number_last_month']) \
                     if sum(area_data['guardian_unique_number_last_month']) else 0
+                ratio = sum(area_data['total_unique_guardian_number']) / sum(area_data['total_student_number']) if sum(area_data['total_student_number']) else 0
                 row[13].value = sum(area_data['total_unique_guardian_number'])
-                row[14].value = self.percentage(mom)
+                row[14].value = self.percentage(ratio)
                 row[15].value = str(sum(area_data['guardian_unique_number_last_month'])) + "/" + str(
                     sum(area_data['guardian_unique_number_curr_month']))
                 summary_map[13].append(row[13].value)
@@ -598,7 +597,8 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                 # print('summary_map.get(index, ["0/0"])',index, summary_map.get(index, ["0/0"]))
                 last_summary = sum([float(item.split('/')[0]) for item in summary_map.get(index, ["0/0"])])
                 curr_summary = sum([float(item.split('/')[1]) for item in summary_map.get(index, ["0/0"])])
-                cell.value = self.percentage((curr_summary - last_summary) / last_summary if last_summary else 0)
+                # cell.value = self.percentage((curr_summary - last_summary) / last_summary if last_summary else 0)
+                cell.value = self.percentage(last_summary/curr_summary if curr_summary else 0)
             elif index in (1,3,5,7,9,11,13,16): #求和
                 cell.value = self.rounding(sum([item for item in summary_map.get(index, 0)]))
             elif index in (2, 4, 6, 8, 10, 12, 15, 17):  # / 求和
