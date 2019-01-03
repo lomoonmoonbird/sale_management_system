@@ -196,7 +196,7 @@ class ChannelExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                                                        channel_items,
                                                        schools,
                                                        channel,
-                                                       "month")
+                                                       "week")
 
         last_week = self.last_week_from_7_to_6()
         return await self.replay_stream(sheet, "渠道周报-" + last_week[0]+"--"+last_week[6], request)
@@ -1332,15 +1332,14 @@ class ChannelExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                 summary_channel_map[9].append(row[9].value)
                 summary_channel_map[10].append(row[10].value)
                 # 绑定
+                avg = shool_data['total_unique_guardian_number'] / shool_data['total_student_number'] if shool_data['total_student_number'] else 0
                 row[11].value = shool_data['total_unique_guardian_number']
-                row[12].value = self.percentage(
-                    shool_data['guardian_unique_number_last_month'] / shool_data['total_student_number'] if shool_data[
-                                                                                                    'total_student_number'] > 0 else 0)
+                row[12].value = self.percentage(avg)
                 row[13].value = str(shool_data['guardian_unique_number_last_month']) + '/' + str(
                     shool_data['guardian_unique_number_curr_month'])
                 summary_channel_map[11].append(row[11].value)
                 summary_channel_map[12].append(
-                    str(shool_data['guardian_unique_number_last_month']) + '/' + str(shool_data['total_student_number']))
+                    str(shool_data['total_unique_guardian_number']) + '/' + str(shool_data['total_student_number']))
                 summary_channel_map[13].append(row[13].value)
                 # 付费
                 row[14].value = shool_data['total_pay_amount']
