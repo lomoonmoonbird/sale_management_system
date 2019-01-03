@@ -280,6 +280,7 @@ def validate_permission(*require_arg, **optional_arg):
                 request['data_permission']['exclude_market'] = d.get("exclude_market", [])
                 request['data_permission']['exclude_school'] = d.get("exclude_school", [])
                 request['data_permission']['include_channel'] = d.get("include_channel", [])
+                request['data_permission']['include_area'] = d.get("include_area", [])
             request['data_permission']['pay_stat_start_time'] = d.get("pay_stat_start_time",
                                                                       BaseTask().start_time.strftime("%Y-%m-%d"))
             return await func(*args, **kwargs)
