@@ -1302,6 +1302,7 @@ class ChannelExportReport(BaseHandler, ExportBase, DataExcludeMixin):
 
                 # 学校名
                 row[0].value = shool_data.get("full_name", "")
+                row[0].width = len(shool_data.get("full_name", ""))
                 # 教师
                 row[1].value = shool_data['total_teacher_number']
                 row[2].value = str(shool_data['teacher_number_last_month']) + '/' + str(shool_data['teacher_number_curr_month'])

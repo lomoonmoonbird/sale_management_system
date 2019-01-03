@@ -1019,7 +1019,7 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
 
         last_last_month_first_day, last_last_month_last_day, last_month_first_day, last_month_last_day,\
         curr_month_first_day, curr_month_last_day = self._curr_and_last_and_last_last_month()
-        
+
         item_count = coll.aggregate(
             [
                 {
