@@ -402,7 +402,7 @@ class User(BaseHandler, DataExcludeMixin):
 
         channels_counts = await request.app['mongodb'][self.db][self.instance_coll].count_documents({"parent_id": request_data['area_id'],
                                                                                         "role": Roles.CHANNEL.value, "status": 1})
-        print(channels_counts)
+
         if channels_counts > 0:
             raise DELETEERROR("Area has channels")
         await request.app['mongodb'][self.db][self.instance_coll].update_many({"_id": ObjectId(request_data['area_id'])},
@@ -450,7 +450,7 @@ class User(BaseHandler, DataExcludeMixin):
 
         if bulk_update:
             ret = await request.app['mongodb'][self.db][self.instance_coll].bulk_write(bulk_update)
-            print(ret.bulk_api_result)
+
         return self.reply_ok({})
 
     @validate_permission()
@@ -544,7 +544,7 @@ class User(BaseHandler, DataExcludeMixin):
         channel_id = channel_user.get("channel_id", "")
         market_user = request.app['mongodb'][self.db][self.user_coll].find({"instance_role_id": Roles.MARKET.value, "channel_id": channel_id, "status": 1})
         market_user = await market_user.to_list(10000)
-        print(len(market_user),market_user)
+
         if market_user:
             raise DELETEERROR("channel has markets")
         await request.app['mongodb'][self.db][self.user_coll].update_one({"user_id": user_id,
@@ -795,7 +795,7 @@ class User(BaseHandler, DataExcludeMixin):
                                                           cookie=request.headers.get('Cookie'))
 
 
-                print (bindg_resp)
+
                 if bindg_resp['status'] == 0:
                     user_data = {
                         "username": create_resp['data'][0]['username'],
