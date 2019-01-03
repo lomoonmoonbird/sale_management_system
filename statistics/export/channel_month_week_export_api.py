@@ -1087,7 +1087,7 @@ class ChannelExportReport(BaseHandler, ExportBase, DataExcludeMixin):
         if channel_items:
             row1 = sheet[1]
             if report_type == 'week':
-                last_week = last_week = self.last_week_from_7_to_6()
+                last_week = self.last_week_from_7_to_6()
                 row1[0].value = "渠道_" + last_week[0] + "-" + last_week[6] + "周报数据"
             elif report_type == 'month':
                 _, _, last_month, _, _, _ = self._curr_and_last_and_last_last_month()

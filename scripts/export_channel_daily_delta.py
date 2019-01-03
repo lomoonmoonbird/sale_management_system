@@ -75,7 +75,7 @@ def school_new_delta(mongo, channel_ids=[], begin_time=BaseTask().start_time.str
     if not end_time:
         end_time = end_time
 
-    coll = mongo.school_per_day_coll
+    coll = mongo.school_per_day
 
     item_count = coll.aggregate(
         [
@@ -121,7 +121,7 @@ def school_new_delta(mongo, channel_ids=[], begin_time=BaseTask().start_time.str
                         "total_word": {"$sum": "$valid_word_count"},
                         "total_images": {"$sum": {"$add": ["$e_image_c", "$w_image_c"]}},
                         "total_unique_guardian_range": {"$sum": "$guardian_unique_count_range"},
-                        "total_unique_guardian": {"$sum": "$guardian_unique_count"},
+                        "total_unique_guardian": {"$sum": "$total_unique_guardian_range"},
                         "total_pay_number": {"$sum": "$pay_number"},
                         "total_pay_amount": {"$sum": "$pay_amount"},
                         "total_student": {'$sum': "$student_number"},
@@ -168,7 +168,7 @@ def channel_new_delta( mongo, channel_ids=[], begin_time=BaseTask().start_time.s
         end_time = end_time
 
     coll = mongo.channel_per_day
-
+    print(begin_time, end_time, '00000000000000000000')
     item_count = coll.aggregate(
         [
             {
@@ -212,7 +212,7 @@ def channel_new_delta( mongo, channel_ids=[], begin_time=BaseTask().start_time.s
                         "total_word": {"$sum": "$valid_word_count"},
                         # "total_images": {"$sum": {"$add": ["$e_image_c", "$w_image_c"]}}, #这种用法是错误的，如果某一条记录其中一个字段不存在所有的都会返回0
                         "total_unique_guardian_range": {"$sum": "$guardian_unique_count_range"},
-                        "total_unique_guardian": {"$sum": "$guardian_unique_count"},
+                        "total_unique_guardian": {"$sum": "$total_unique_guardian_range"},
                         "total_pay_number": {"$sum": "$pay_number"},
                         "total_pay_amount": {"$sum": "$pay_amount"},
                         "total_student": {'$sum': "$student_number"},
@@ -309,9 +309,13 @@ def sheet( items=[], area_map=None, channel_map=None, school_items=[], channel_m
         ws.append(['渠道', '学校名称', '新增测试使用次数', '新增阅读使用次数',
                    '新增单词使用次数', '新增图片数量', '新增绑定人数数量', '新增付费人数', '新增付费金额', '绑定率'])
 
+        print("school_mysql_map", school_mysql_map)
         for row in range(0, len(school_items)):
-            print(channel_mysql_map)
-            print(school_items[row]['_id']['channel'], channel_mysql_map.get(school_items[row]['_id']['channel']), "channel_mysql_map.get(school_items[row]['_id']['channel'])")
+
+            print(school_items[row]['_id']['school_id'],
+                  school_mysql_map.get(school_items[row]['_id']['school_id']), "school_mysql_map.get(school_items[row]['_id']['school_id'])")
+            if not school_mysql_map.get(school_items[row]['_id']['school_id']):
+                continue
             ws.append([channel_mysql_map.get(school_items[row]['_id']['channel']).get("name"),
                        school_mysql_map.get(school_items[row]['_id']['school_id']).get("full_name"),
                        school_items[row]['total_exercise'],
@@ -329,16 +333,17 @@ def sheet( items=[], area_map=None, channel_map=None, school_items=[], channel_m
 #              ("2018-05-01", "2018-05-31"), ("2018-06-01", "2018-06-30"), ("2018-07-01", "2018-07-31"),("2018-08-01","2018-08-31"),
 #              ("2018-09-01", "2018-09-30"),("2018-10-01", "2018-10-31"),("2018-11-01", "2018-11-30"),("2018-12-01","2018-12-31")]
 
-daterange = [("2019-01-01", "2019-01-01")]
-area_names = ["华东大区","华南大区", "华北大区","西部大区","华中大区","西南大区","东南大区","东北大区"]
-channel_names = ''
-
+daterange = [("2019-01-01", "2019-01-02")]
+# area_names = ["华东大区","华南大区", "华北大区","西部大区","华中大区","西南大区","东南大区","东北大区"]
+area_names = ['自营大区']
+channel_names = '长沙渠道,广西渠道,霞浦渠道,益阳渠道,湘潭渠道,广西直营,长沙直营,郴州渠道'
+# channel_names = ''
 for area_name in area_names:
     for d in daterange:
         area_name = area_name
         begin_time = d[0]
         end_time = d[1]
-        channel_name = ''
+        channel_name = channel_names
         #渠道 begin
         query = { "role": Roles.AREA.value, "status": 1}
         if area_name:
@@ -386,7 +391,7 @@ for area_name in area_names:
         #学校 begin
         sql = "select id, name from sigma_account_us_user where available = 1 and name in (%s) " % \
               ','.join(["'"+str(username)+"'" for username in channel_name.split(",")])
-
+        # print(sql)
         cursor = connection.cursor()
         cursor.execute(sql)
         real_channels = cursor.fetchall()
@@ -410,7 +415,6 @@ for area_name in area_names:
 
 
 
-
             for channel in real_channels:
                 channel_mysql_map[channel['id']] = channel
 
@@ -418,8 +422,9 @@ for area_name in area_names:
                 school_mysql_map[school['id']] = school
             school_items = school_new_delta(mongo, old_ids, begin_time, end_time)
 
-
-        sheet(items,area_map,channel_mongo_map, school_items,channel_mysql_map,school_mysql_map, area_name,begin_time, end_time)
+        # print("school_mysql_map", json.dumps(school_mysql_map,indent=4))
+        sheet(items,area_map,channel_mongo_map,
+              school_items,channel_mysql_map,school_mysql_map, area_name,begin_time, end_time)
 
 
 server_mongo.stop()

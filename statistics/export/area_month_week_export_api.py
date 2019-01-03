@@ -272,7 +272,7 @@ class AreaExportReport(BaseHandler, ExportBase, DataExcludeMixin):
             items.append(channel)
 
         if report_type == 'week':
-            last_week = last_week = self.last_week_from_7_to_6()
+            last_week = self.last_week_from_7_to_6()
             row1[0].value =area_name+ "大区_" + last_week[0] + "-" + last_week[6] + "周报数据"
             row1[0].border = self._border()
         elif report_type == 'month':
@@ -504,7 +504,7 @@ class AreaExportReport(BaseHandler, ExportBase, DataExcludeMixin):
             sheet.merge_cells(start_row=start_point + delta + 2, start_column=1, end_row=start_point + delta + 3,
                               end_column=21)
             if report_type == 'week':
-                last_week = self.last_week()
+                last_week = self.last_week_from_7_to_6()
                 row[0].value = channel_map.get(int(channel), {}).get('name', '') + last_week[0] + "-" + last_week[6] + "周报数据"
                 row[0].border = self._border()
                 row[0].font = self._black_font()
