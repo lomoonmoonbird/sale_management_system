@@ -210,8 +210,8 @@ class AreaExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                                                            channel_users,
                                                            "week",
                                                            area_name)
-
-        return await self.replay_stream(sheet, "大区周报-" + datetime.now().strftime("%Y-%m-%d"), request)
+        last_week = self.last_week_from_7_to_6()
+        return await self.replay_stream(sheet, "大区周报-" + last_week[0]+'--'+last_week[6], request)
 
     def sheet(self, template, items, school_items, channel_map, real_schools, users, report_type, area_name):
         file = load_workbook(template)
@@ -272,7 +272,7 @@ class AreaExportReport(BaseHandler, ExportBase, DataExcludeMixin):
             items.append(channel)
 
         if report_type == 'week':
-            last_week = self.last_week()
+            last_week = last_week = self.last_week_from_7_to_6()
             row1[0].value =area_name+ "大区_" + last_week[0] + "-" + last_week[6] + "周报数据"
             row1[0].border = self._border()
         elif report_type == 'month':

@@ -136,6 +136,8 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
         :param request:
         :return:
         """
+        last_week = self.last_week_from_7_to_6()
+
         exclude_areas = request['data_permission']['exclude_area']
         exclude_channels_u = request['data_permission']['exclude_channel']
         exclude_area_objectid = [ObjectId(id) for id in exclude_areas]
@@ -200,7 +202,7 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                                                            "week")
 
 
-        return await self.replay_stream(sheet, "总部周报-"+datetime.now().strftime("%Y-%m-%d"), request)
+        return await self.replay_stream(sheet, "总部周报-"+last_week[0]+"--"+last_week[6], request)
 
 
     def sheet(self, template, items, channel_map, area_name_id_map, real_channels, users, stat_areas_channel, report_type):
@@ -355,7 +357,7 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
         summary_map = defaultdict(list)
         row1 = sheet[1]
         if report_type == 'week':
-            last_week = self.last_week()
+            last_week = last_week = self.last_week_from_7_to_6()
             row1[0].value = "全局市场_" + last_week[0] + "-" + last_week[6] + "周报数据"
             row1[0].border = self._border()
             row1[0].font = self._black_font()
