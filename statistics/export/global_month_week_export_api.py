@@ -628,9 +628,9 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                 cell.value = "环比新增率"
                 continue
             cell.alignment = self._alignment()
-            if index in (1, 3, 5, 7, 9, 11, 13, 14, 16):  # 不带/last_summary
+            if index in (1, 3, 5, 7, 9, 11, 12, 13, 14, 16):  # 不带/last_summary
                 cell.value = "/"
-            elif index in (2, 4, 6, 8, 10 , 12, 15, 17):  # 带/
+            elif index in (2, 4, 6, 8, 10 ,15, 17):  # 带/
                 last_summary = sum([float(item.split('/')[0]) for item in summary_map.get(index, ["0/0"])])
                 curr_summary = sum([float(item.split('/')[1]) for item in summary_map.get(index, ["0/0"])])
                 cell.value = self.percentage((curr_summary - last_summary) / last_summary if last_summary else 0)
