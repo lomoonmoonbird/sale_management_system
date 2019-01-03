@@ -598,7 +598,7 @@ class DateRangeExport(BaseHandler, ExportBase, DataExcludeMixin):
                             "total_valid_reading_number": {"$sum": "$valid_reading_count"},
                             "range_valid_reading_count": {"$sum": "$range_valid_reading_count"},
                             "total_valid_exercise_number": {"$sum": "$valid_exercise_count"},
-                            "range_valid_exercise_count": {"$sum": "range_valid_exercise_count"},
+                            "range_valid_exercise_count": {"$sum": "$range_valid_exercise_count"},
                             "total_valid_word_number": {"$sum": "$valid_word_count"},
                             "range_valid_word_count": {"$sum": "$range_valid_word_count"},
                             "total_exercise_image_number": {"$sum": "$e_image_c"},
