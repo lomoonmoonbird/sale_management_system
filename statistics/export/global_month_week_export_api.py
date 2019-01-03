@@ -799,8 +799,8 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                     row[12].value = channel_stat.get("channel_stat", {}).get("total_unique_guardian_number", 0)
                     row[13].value = self.percentage(avg)
                     row[14].value = str(
-                        channel_stat.get("channel_stat", {}).get("guardian_number_last_month", 0)) + "/" + str(
-                        channel_stat.get("channel_stat", {}).get("guardian_number_curr_month", 0))
+                        channel_stat.get("channel_stat", {}).get("guardian_unique_number_last_month", 0)) + "/" + str(
+                        channel_stat.get("channel_stat", {}).get("guardian_unique_number_curr_month", 0))
                     summary_channel_map[12].append(row[12].value)
                     summary_channel_map[13].append(str(channel_stat.get("channel_stat", {}).get("total_unique_guardian_number", 0))
                                                    + "/" + str(channel_stat.get("channel_stat", {}).get("total_student_number", 0)))
