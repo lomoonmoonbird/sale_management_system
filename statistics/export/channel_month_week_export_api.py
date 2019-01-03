@@ -80,10 +80,10 @@ class ChannelExportReport(BaseHandler, ExportBase, DataExcludeMixin):
             channel_info = await request.app['mongodb'][self.db][self.instance_coll].find_one({"old_id": int(channel_id),
                                                                                                      "role": Roles.CHANNEL.value,
                                                                                                      "status": 1})
-        channel_old_id = channel_info.get("old_id", "")
-        if not channel_old_id:
-            return self.reply_ok({})
 
+        if not channel_info:
+            raise RequestError("channel doesn't exist")
+        channel_old_id = channel_info.get("old_id", "")
         # schools = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": channel_id,
         #                                                                     "role": Roles.SCHOOL.value,"status": 1})
         # schools = await schools.to_list(10000)
@@ -141,7 +141,9 @@ class ChannelExportReport(BaseHandler, ExportBase, DataExcludeMixin):
         channel_old_id = -1
         channel_info = {}
         if request['user_info']['instance_role_id'] == Roles.CHANNEL.value:
+            print('i am channel')
             channel_id = request['user_info']['channel_id']
+            print(channel_id, "channel_id")
             channel_info = await request.app['mongodb'][self.db][self.instance_coll].find_one({"parent_id": channel_id,
                                                                                                "role": Roles.CHANNEL.value,
                                                                                                "status": 1},
@@ -152,9 +154,11 @@ class ChannelExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                 {"old_id": int(channel_id),
                  "role": Roles.CHANNEL.value,
                  "status": 1})
+
+        if not channel_info:
+            raise RequestError("channel doesn't exist")
         channel_old_id = channel_info.get("old_id", "")
-        if not channel_old_id:
-            return self.reply_ok({})
+
 
         # schools = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": channel_id,
         #                                                                     "role": Roles.SCHOOL.value,"status": 1})
