@@ -65,7 +65,7 @@ class SchoolManage(BaseHandler, DataExcludeMixin):
         exclude_channel = await self.exclude_channel(request.app['mysql'])
         exclude_channel = request['data_permission']['exclude_channel'] + exclude_channel
         exclude_channel_str = ','.join(['"'+str(id)+'"' for id in exclude_channel]) if exclude_channel else "''"
-        include_channel = request['date_permission']['include_channel']
+        include_channel = request['data_permission']['include_channel']
         include_channel_str = ','.join(['"'+str(id)+'"' for id in include_channel]) if include_channel else "''"
         if not request_param.get('school_name') and request_stage not in [StageEnum.Register.value,
                                                                                        StageEnum.Using.value,
