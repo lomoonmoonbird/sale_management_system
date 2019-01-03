@@ -485,9 +485,9 @@ class DateRangeExport(BaseHandler, ExportBase, DataExcludeMixin):
             row[7].value = item['total_word_image_number']
             row[8].value = item['total_valid_reading_number']
             row[9].value = item['total_guardian_number']
-            row[10].value = item['bind_ratio']
+            row[10].value = self.percentage(item['bind_ratio'])
             row[11].value = item['total_pay_number']
-            row[12].value = item['pay_ratio']
+            row[12].value = self.percentage(item['pay_ratio'])
             row[13].value = item['total_pay_amount']
 
             for cell in row:
