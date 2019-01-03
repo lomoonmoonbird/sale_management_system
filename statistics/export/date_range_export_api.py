@@ -97,8 +97,6 @@ class DateRangeExport(BaseHandler, ExportBase, DataExcludeMixin):
         items = await self._channel_date_range_list(request, old_ids, begin_time, end_time)
         area_list_obj = AreaList()
         items = await area_list_obj.compute_area_list(request, areas, areas_map, channels_map, items)
-        print(json.dumps(items,indent=4,cls=CustomEncoder))
-        print(items)
         title = "总部 -"+ begin_time + "--" +  end_time + " 大区数据"
         template_path = os.path.dirname(__file__) + "/templates/global_area_date_range_template.xlsx"
         sheet = await request.app.loop.run_in_executor(self.thread_pool,
@@ -370,7 +368,7 @@ class DateRangeExport(BaseHandler, ExportBase, DataExcludeMixin):
 
             row[19].value = item['total_pay_amount']
             row[20].value = item['range_pay_amount']
-            print(row[20].value)
+
             for cell in row:
                 cell.alignment = self._alignment()
                 cell.font = self._black_font()
@@ -580,9 +578,7 @@ class DateRangeExport(BaseHandler, ExportBase, DataExcludeMixin):
 
                         "range_pay_amount": {"$cond": [{"$and": [{"$lte": ["$day", end_time]}, {
                             "$gte": ["$day", pay_stat_start_time ]}]}, "$pay_amount", 0]},
-                        "pay_amount": {
-                            "$cond": [{"$and": [{"$lte": ["$day", end_time]},{
-                            "$gte": ["$day", pay_stat_start_time]}]}, "$pay_amount", 0]},
+                        "pay_amount": 1,
 
                         "day": 1
                     }

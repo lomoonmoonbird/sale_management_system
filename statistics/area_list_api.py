@@ -179,7 +179,7 @@ class AreaList(BaseHandler, DataExcludeMixin):
                     "range_guardian_unique_count": sum(item['range_guardian_unique_count']),
                     "total_pay_number": sum(item['total_pay_number']),
                     "total_pay_amount": sum(item['total_pay_amount']),
-                    "range_pay_amount": sum(item['total_pay_amount']),
+                    "range_pay_amount": sum(item['range_pay_amount']),
                     "total_valid_exercise_number": sum(item['total_valid_exercise_number']),
                     "range_valid_exercise_count": sum(item['range_valid_exercise_count']),
                     "total_valid_word_number": sum(item['total_valid_word_number']),
