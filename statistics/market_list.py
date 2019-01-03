@@ -111,6 +111,7 @@ class MarketList(BaseHandler, DataExcludeMixin):
             for market in markets:
                 tmp = {
                     "market_name": market['nickname'],
+                    "user_id":market['user_id'],
                     "total_school_number": 0,
                     "total_teacher_number": 0,
                     "total_student_number": 0,
@@ -154,7 +155,7 @@ class MarketList(BaseHandler, DataExcludeMixin):
 
 
             return self.reply_ok({"market_stat": data, "extra": {"total": total_market_count, "number_per_page": per_page, "curr_page": page + 1}})
-        return self.reply_ok({"extra": {"total": 0, "number_per_page": per_page, "curr_page": page + 1}})
+        return self.reply_ok({"market_stat": [], "extra": {"total": 0, "number_per_page": per_page, "curr_page": page + 1}})
 
 
     async def _list(self, request: Request, channel_ids: list):
