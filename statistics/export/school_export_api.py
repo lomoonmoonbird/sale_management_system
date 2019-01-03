@@ -119,7 +119,7 @@ class SchoolExportReport(BaseHandler, ExportBase):
                    "from sigma_account_re_userwechat " \
                    "where available = 1 and " \
                    "user_id in ( select id from sigma_account_us_user" \
-                   " where school_id = %s and available = 1 )" % school_id
+                   " where school_id = %s and available = 1 and role_id = 2)" % school_id
 
         student_sql = "select id, name from sigma_account_us_user " \
                       "where available = 1 " \

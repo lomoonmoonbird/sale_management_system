@@ -91,7 +91,7 @@ class GradeExportReport(BaseHandler, ExportBase):
             }
             cla['stat_info'] = items_map.get(cla['id'], default)
 
-        title = school['full_name'] + str(grade) + "级 班級考試詳情 "
+        title = school['full_name'] + str(grade) + "级 班级考试详情 "
         template_path = os.path.dirname(__file__) + "/templates/school_class_contest_related_template.xlsx"
         sheet = await request.app.loop.run_in_executor(self.thread_pool,
                                                        self.contest_sheet,
@@ -123,12 +123,12 @@ class GradeExportReport(BaseHandler, ExportBase):
                    "from sigma_account_re_userwechat " \
                    "where available = 1 and " \
                    "user_id in ( select id from sigma_account_us_user" \
-                   " where school_id = %s and available = 1 )" % school_id
+                   " where school_id = %s and available = 1 and role_id = 2 )" % school_id
 
         student_sql = "select u.id, u.name, g.grade  " \
                       "from sigma_account_us_user as u " \
                       "join sigma_account_re_groupuser as gu " \
-                      "on u.available = 1 and gu.available =1 and u.id = gu.user_id " \
+                      "on u.available = 1 and gu.available =1 and u.role_id = 2 and u.id = gu.user_id " \
                       "join sigma_account_ob_group as g " \
                       "on g.id = gu.group_id and g.school_id = %s and g.grade = %s" % (school_id, grade)
 
