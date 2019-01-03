@@ -198,7 +198,7 @@ class AreaExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                     await cur.execute(school_sql)
                     real_schools = await cur.fetchall()
             items = await self._list_week(request, old_ids)
-            school_items = await self._list_month_channel_school(request, old_ids)
+            school_items = await self._list_week_channel_school(request, old_ids)
             template_path = os.path.dirname(__file__) + "/templates/area_week_template.xlsx"
             sheet = await request.app.loop.run_in_executor(self.thread_pool,
                                                            self.sheet,
