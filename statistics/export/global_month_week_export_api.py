@@ -598,7 +598,7 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                 curr_summary = sum([float(item.split('/')[1]) for item in summary_map.get(index, ["0/0"])])
                 cell.value = self.percentage((curr_summary - last_summary) / last_summary if last_summary else 0)
             elif index in (1,3,5,7,9,11,13,16): #求和
-                cell.value = sum([int(item) for item in summary_map.get(index, 0)])
+                cell.value = self.rounding(sum([item for item in summary_map.get(index, 0)]))
             elif index in (2, 4, 6, 8, 10, 12, 15, 17):  # / 求和
                 cell.value = str(
                     sum([float(item.split('/')[0]) for item in summary_map.get(index, "0/0")])) + "/" + str(
