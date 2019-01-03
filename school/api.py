@@ -124,9 +124,9 @@ class School(BaseHandler):
         per_page = 10
         total_count = 0
         schools= []
+        include_channel = request['data_permission']['include_channel']
         if request['user_info']['instance_role_id'] == Roles.CHANNEL.value: #渠道
             channel_id = request['user_info']['channel_id']
-            print( channel_id)
             market_school = []
             if not channel_id:
                 return self.reply_ok({"market_school": market_school})
@@ -196,24 +196,49 @@ class School(BaseHandler):
         elif request['user_info']['instance_role_id'] == Roles.GLOBAL.value: #总部
             exclude_channel = request['data_permission']['exclude_channel']
             exclude_channel_str = ','.join(['"' + str(id) + '"' for id in exclude_channel]) if exclude_channel else "''"
-            sql = "select id, full_name, time_create " \
-                  "from sigma_account_ob_school " \
-                  "where available = 1 " \
-                  "and owner_id not in (%s) " \
-                  "and time_create>='%s' " \
-                  "and time_create <='%s' " \
-                  "limit %s, %s" %(exclude_channel_str,
-                                   self.start_time.strftime("%Y-%m-%d"),
-                                   datetime.now().strftime("%Y-%m-%d"),
-                                   per_page*page, per_page)
-            total_sql = "select count(id) as total " \
-                        "from sigma_account_ob_school " \
-                        "where available = 1 " \
-                        "and owner_id not in (%s) " \
-                        "and time_create>='%s' " \
-                        "and time_create <='%s'" % (exclude_channel_str,
-                                                    self.start_time.strftime("%Y-%m-%d"),
-                                                    datetime.now().strftime("%Y-%m-%d"))
+            include_channel_str = ','.join(['"' + str(id) + '"' for id in include_channel]) if include_channel else "''"
+            sql = ''
+            total_sql = ''
+            if not include_channel:
+                sql = "select id, full_name, time_create " \
+                      "from sigma_account_ob_school " \
+                      "where available = 1 " \
+                      "and owner_id not in (%s) " \
+                      "and time_create>='%s' " \
+                      "and time_create <='%s' " \
+                      "limit %s, %s" %(exclude_channel_str,
+                                       self.start_time.strftime("%Y-%m-%d"),
+                                       datetime.now().strftime("%Y-%m-%d"),
+                                       per_page*page, per_page)
+                total_sql = "select count(id) as total " \
+                            "from sigma_account_ob_school " \
+                            "where available = 1 " \
+                            "and owner_id not in (%s) " \
+                            "and time_create>='%s' " \
+                            "and time_create <='%s'" % (exclude_channel_str,
+                                                        self.start_time.strftime("%Y-%m-%d"),
+                                                        datetime.now().strftime("%Y-%m-%d"))
+            else:
+                sql = "select id, full_name, time_create " \
+                      "from sigma_account_ob_school " \
+                      "where available = 1 " \
+                      "and owner_id in (%s) " \
+                      "and time_create>='%s' " \
+                      "and time_create <='%s' " \
+                      "limit %s, %s" % (include_channel_str,
+                                        self.start_time.strftime("%Y-%m-%d"),
+                                        datetime.now().strftime("%Y-%m-%d"),
+                                        per_page * page, per_page)
+                total_sql = "select count(id) as total " \
+                            "from sigma_account_ob_school " \
+                            "where available = 1 " \
+                            "and owner_id in (%s) " \
+                            "and time_create>='%s' " \
+                            "and time_create <='%s'" % (include_channel_str,
+                                                        self.start_time.strftime("%Y-%m-%d"),
+                                                        datetime.now().strftime("%Y-%m-%d"))
+
+
             async with request.app['mysql'].acquire() as conn:
                 async with conn.cursor(DictCursor) as cur:
                     await cur.execute(sql)

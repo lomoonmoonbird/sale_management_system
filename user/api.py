@@ -309,8 +309,19 @@ class User(BaseHandler, DataExcludeMixin):
         per_page = 10
         total_count = 0
         exclude_area = [ObjectId(id) for id in request['data_permission']['exclude_area']]
-        total_count = await request.app['mongodb'][self.db][self.instance_coll].count_documents({"_id": {"$nin": exclude_area}, "role": Roles.AREA.value, "status": 1})
-        areas = request.app['mongodb'][self.db][self.instance_coll].find({"_id": {"$nin": exclude_area}, "role": Roles.AREA.value, "status": 1}).sort('create_at', -1).skip(page*per_page).limit(per_page)
+        include_area = [ObjectId(id) for id in request['data_permission']['include_area']]
+
+        query = {}
+        if not include_area:
+            query = {"_id": {"$nin": exclude_area},
+                              "role": Roles.AREA.value, "status": 1}
+        else:
+            query = {"_id": {"$in": include_area},
+             "role": Roles.AREA.value, "status": 1}
+        total_count = await request.app['mongodb'][self.db][self.instance_coll]\
+            .count_documents(query)
+        areas = request.app['mongodb'][self.db][self.instance_coll]\
+            .find(query).sort('create_at', -1).skip(page*per_page).limit(per_page)
         users = request.app['mongodb'][self.db][self.user_coll].find({"instance_role_id": Roles.AREA.value, "status": 1})
         areas = await areas.to_list(10000)
         users = await users.to_list(10000)
@@ -348,7 +359,13 @@ class User(BaseHandler, DataExcludeMixin):
         # page = int(request_param['page'])
         exclude_channels_u = request['data_permission']['exclude_channel']
         exclude_channels = await self.exclude_channel(request.app['mysql']) + exclude_channels_u
-        sql = "select * from sigma_account_us_user where available = 1 and role_id=6"
+        exclude_channel_str = ','.join(['"' + str(id) + '"' for id in exclude_channels]) if exclude_channels else "''"
+        include_channel = request['data_permission']['include_channel']
+        include_channel_str = ','.join(['"' + str(id) + '"' for id in include_channel]) if include_channel else "''"
+        sql = "select * from sigma_account_us_user where available = 1 and role_id=6 and id not in (%s)" % (exclude_channel_str)
+        if include_channel:
+            sql = "select * from sigma_account_us_user where available = 1 and role_id=6 and id in (%s)" % (
+                include_channel_str)
         async with request.app['mysql'].acquire() as conn:
             async with conn.cursor(DictCursor) as cur:
                 await cur.execute(sql)
@@ -618,27 +635,55 @@ class User(BaseHandler, DataExcludeMixin):
             elif int(request["user_info"]["instance_role_id"]) == Roles.GLOBAL.value:
                 exclude_channel = request['data_permission']['exclude_channel']
                 exclude_channel_str = ','.join(['"'+str(id)+'"' for id in exclude_channel]) if exclude_channel else "''"
-                sql = "select * from sigma_account_us_user " \
-                      "where available = 1 " \
-                      "and role_id = 6 " \
-                      "and id not in (%s)" \
-                      "and time_create >= '%s' " \
-                      "and time_create <= '%s' " \
-                      " limit %s, %s " % (exclude_channel_str,
-                                          self.start_time.strftime("%Y-%m-%d"),
+                include_channel = request['data_permission']['include_channel']
+                include_channel_str = ','.join(
+                    ['"' + str(id) + '"' for id in include_channel]) if include_channel else "''"
+                sql = ''
+                count_sql = ''
+                if not include_channel:
+                    sql = "select * from sigma_account_us_user " \
+                          "where available = 1 " \
+                          "and role_id = 6 " \
+                          "and id not in (%s)" \
+                          "and time_create >= '%s' " \
+                          "and time_create <= '%s' " \
+                          " limit %s, %s " % (exclude_channel_str,
+                                              self.start_time.strftime("%Y-%m-%d"),
+                                                  datetime.now().strftime("%Y-%m-%d"),
+                                                  page*per_page,
+                                                  per_page)
+
+                    count_sql = "select count(id) as total_count " \
+                                "from sigma_account_us_user " \
+                                "where available = 1 " \
+                                "and id not in (%s)" \
+                                "and role_id = 6 " \
+                                "and time_create>='%s'" \
+                                " and time_create<='%s'" %(exclude_channel_str,
+                                                           self.start_time.strftime("%Y-%m-%d"),
+                                                         datetime.now().strftime("%Y-%m-%d"))
+                else:
+                    sql = "select * from sigma_account_us_user " \
+                          "where available = 1 " \
+                          "and role_id = 6 " \
+                          "and id in (%s)" \
+                          "and time_create >= '%s' " \
+                          "and time_create <= '%s' " \
+                          " limit %s, %s " % (include_channel_str,
+                                              self.start_time.strftime("%Y-%m-%d"),
                                               datetime.now().strftime("%Y-%m-%d"),
-                                              page*per_page,
+                                              page * per_page,
                                               per_page)
 
-                count_sql = "select count(id) as total_count " \
-                            "from sigma_account_us_user " \
-                            "where available = 1 " \
-                            "and id not in (%s)" \
-                            "and role_id = 6 " \
-                            "and time_create>='%s'" \
-                            " and time_create<='%s'" %(exclude_channel_str,
-                                                       self.start_time.strftime("%Y-%m-%d"),
-                                                     datetime.now().strftime("%Y-%m-%d"))
+                    count_sql = "select count(id) as total_count " \
+                                "from sigma_account_us_user " \
+                                "where available = 1 " \
+                                "and id in (%s)" \
+                                "and role_id = 6 " \
+                                "and time_create>='%s'" \
+                                " and time_create<='%s'" % (include_channel_str,
+                                                            self.start_time.strftime("%Y-%m-%d"),
+                                                            datetime.now().strftime("%Y-%m-%d"))
                 async with request.app['mysql'].acquire() as conn:
                     async with conn.cursor(DictCursor) as cur:
                         await   cur.execute(sql)
@@ -828,7 +873,7 @@ class User(BaseHandler, DataExcludeMixin):
 
         return self.reply_ok({})
 
-    @validate_permission()
+    @validate_permission(data_validation=True)
     async def get_market_user(self, request: Request):
         """
         获取市场用户
@@ -848,13 +893,16 @@ class User(BaseHandler, DataExcludeMixin):
         total_count = 0
         if request['user_info']['instance_role_id'] == Roles.GLOBAL.value:
 
-
-            users = request.app['mongodb'][self.db][self.user_coll].find({"instance_role_id": Roles.MARKET.value,
-                                                                          "status": 1}).skip(page*per_page).limit(per_page)
+            include_channel = request['data_permission']['include_channel']
+            query = {}
+            if not include_channel:
+                query = {"instance_role_id": Roles.MARKET.value, "status": 1}
+            else:
+                query = {"instance_role_id": Roles.MARKET.value, "parent_id": {"$in": include_channel},  "status": 1}
+            users = request.app['mongodb'][self.db][self.user_coll].find(query).skip(page*per_page).limit(per_page)
             users = await users.to_list(10000)
 
-            total_count = await request.app['mongodb'][self.db][self.user_coll].count_documents({"instance_role_id": Roles.MARKET.value,
-                                                                          "status": 1})
+            total_count = await request.app['mongodb'][self.db][self.user_coll].count_documents(query)
             area_ids = list(set([item['area_id'] for item in users]))
             channel_ids = list(set([item['channel_id'] for item in users]))
             area_info = request.app['mongodb'][self.db][self.instance_coll].find({"_id": area_ids, "status": 1})
