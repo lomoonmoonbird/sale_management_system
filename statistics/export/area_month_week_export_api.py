@@ -607,7 +607,7 @@ class AreaExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                 row[13].value =  str(item['guardian_unique_number_last_month']) + '/' + str(
                     item['guardian_unique_number_curr_month'])
                 summary_channel_map[11].append(row[11].value)
-                summary_channel_map[12].append( str(item['guardian_unique_number_last_month']) + '/' + str(item['total_student_number']) )
+                summary_channel_map[12].append( str(item['total_unique_guardian_number']) + '/' + str(item['total_student_number']) )
                 summary_channel_map[13].append(row[13].value)
                 #付费
                 row[14].value = item['total_pay_amount']
