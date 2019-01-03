@@ -602,12 +602,15 @@ class AreaExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                 summary_channel_map[9].append(row[9].value)
                 summary_channel_map[10].append(row[10].value)
                 #绑定
+                avg = item['total_unique_guardian_number'] / item['total_student_number'] if item[
+                    'total_student_number'] else 0
                 row[11].value = item['total_unique_guardian_number']
-                row[12].value = self.percentage( item['guardian_unique_number_last_month'] / item['total_student_number'] if item['total_student_number'] >0 else 0 )
+                row[12].value = self.percentage( avg )
                 row[13].value =  str(item['guardian_unique_number_last_month']) + '/' + str(
                     item['guardian_unique_number_curr_month'])
+
                 summary_channel_map[11].append(row[11].value)
-                summary_channel_map[12].append( str(item['total_unique_guardian_number']) + '/' + str(item['total_student_number']) )
+                summary_channel_map[12].append(str(item['total_unique_guardian_number']) + "/"+ str(item['total_student_number']))
                 summary_channel_map[13].append(row[13].value)
                 #付费
                 row[14].value = item['total_pay_amount']
