@@ -78,10 +78,163 @@ class AreaList(BaseHandler, DataExcludeMixin):
 
         items = await self._list(request, old_ids)
 
-        items = await self.compute_area_list(request, areas, areas_map, channels_map, items)
+        items = await self.compute_area_list_for_page(request, areas, areas_map, channels_map, items)
 
         return self.reply_ok({"area_list": items, "extra": {'total': total_count, "number_per_page": per_page, "curr_page": page + 1}})
 
+    async def compute_area_list_for_page(self, request, areas, areas_map, channels_map, items):
+        """
+        计算大区列表总和
+        :param request:
+        :return:
+        """
+
+
+        from collections import defaultdict
+        area_compact_data = defaultdict(dict)
+        for item in items:
+            item['contest_coverage_ratio'] = 0
+            item['contest_average_per_person'] = 0
+            area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
+                'total_school_number', []).append(item.get('total_school_number',0))
+
+            area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
+                'range_school_number', []).append(item.get('range_school_number', 0))
+
+            area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
+                'total_teacher_number', []).append(item.get('total_teacher_number',0))
+
+            area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
+                'total_student_number', []).append(item.get('total_student_number',0))
+
+            area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
+                'total_guardian_number', []).append(item.get('total_guardian_number',0))
+            area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
+                'range_guardian_number', []).append(item.get('range_guardian_number', 0))
+
+
+            area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
+                'total_guardian_unique_count', []).append(item.get('total_guardian_unique_count',0))
+            area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
+                'range_guardian_unique_count', []).append(item.get('range_guardian_unique_count', 0))
+
+            area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
+                'total_pay_number', []).append(item.get('total_pay_number',0))
+
+            area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
+                'total_pay_amount', []).append(item.get('total_pay_amount',0))
+            area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
+                'range_pay_amount', []).append(item.get('range_pay_amount', 0))
+
+            area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
+                'total_valid_reading_number', []).append(item.get('total_valid_reading_number',0))
+            area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
+                'range_valid_reading_count', []).append(item.get('range_valid_reading_count', 0))
+            area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
+                'total_valid_exercise_number', []).append(item.get('total_valid_exercise_number',0))
+            area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
+                'range_valid_exercise_count', []).append(item.get('range_valid_exercise_count', 0))
+
+            area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
+                'total_valid_word_number', []).append(item.get('total_valid_word_number',0))
+            area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
+                'range_valid_word_count', []).append(item.get('range_valid_word_count', 0))
+
+            area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
+                'total_exercise_image_number', []).append(item.get('total_exercise_image_number',0))
+            area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
+                'range_exercise_image_number', []).append(item.get('range_exercise_image_number', 0))
+
+            area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
+                'total_word_image_number', []).append(item.get('total_word_image_number',0))
+            area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
+                'range_word_image_number', []).append(item.get('range_word_image_number', 0))
+
+            area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
+                'pay_ratio', []).append(item.get('pay_ratio',0))
+
+            area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
+                'bind_ratio', []).append(item.get('bind_ratio',0))
+
+            area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
+                'contest_coverage_ratio', []).append(item.get('contest_coverage_ratio',0))
+
+            area_compact_data.setdefault(channels_map.get(item['_id'], 0), {}).setdefault(
+                'contest_average_per_person', []).append(item.get('contest_average_per_person',0))
+
+            item["area_info"] = areas_map.get(channels_map.get(item['_id'], 0), {})
+
+        items = []
+        for area_id, item in area_compact_data.items():
+            items.append(
+                {
+                    "total_school_number": sum(item['total_school_number']),
+                    "range_school_number": sum(item['range_school_number']),
+                    "total_teacher_number": sum(item['total_teacher_number']),
+                    "total_student_number": sum(item['total_student_number']),
+                    "total_guardian_number": sum(item['total_guardian_number']),
+                    "range_guardian_number": sum(item['range_guardian_number']),
+                    "total_guardian_unique_count": sum(item['total_guardian_unique_count']),
+                    "range_guardian_unique_count": sum(item['range_guardian_unique_count']),
+                    "total_pay_number": sum(item['total_pay_number']),
+                    "total_pay_amount": sum(item['total_pay_amount']),
+                    "range_pay_amount": sum(item['range_pay_amount']),
+                    "total_valid_exercise_number": sum(item['total_valid_exercise_number']),
+                    "range_valid_exercise_count": sum(item['range_valid_exercise_count']),
+                    "total_valid_word_number": sum(item['total_valid_word_number']),
+                    "range_valid_word_count": sum(item['range_valid_word_count']),
+                    "total_exercise_image_number": sum(item['total_exercise_image_number']),
+                    "range_exercise_image_number": sum(item['range_exercise_image_number']),
+                    "total_word_image_number": sum(item['total_word_image_number']),
+                    "range_word_image_number": sum(item['range_word_image_number']),
+                    "total_valid_reading_number": sum(item['total_valid_reading_number']),
+                    "range_valid_reading_count": sum(item['range_valid_reading_count']),
+                    "pay_ratio": sum(item['total_pay_number']) / sum(item['total_student_number']) if sum(
+                        item['total_student_number']) else 0,
+                    "bind_ratio": sum(item['total_guardian_unique_count']) / sum(item['total_student_number']) if sum(
+                        item['total_student_number']) else 0,
+                    "contest_coverage_ratio": sum(item['contest_coverage_ratio']),
+                    "contest_average_per_person": sum(item['contest_average_per_person']),
+                    "area_info": areas_map.get(area_id, {})
+                }
+            )
+        channel_compact_data = {}
+        for item in items:
+            channel_compact_data[str(item['area_info'].get('_id', ""))] = item
+        items = []
+        for area in areas:
+            if channel_compact_data.get(str(area['_id'])):
+                items.append(channel_compact_data.get(str(area['_id'])))
+            else:
+                items.append({
+                    "total_school_number": 0,
+                    "range_school_number": 0,
+                    "total_teacher_number": 0,
+                    "total_student_number": 0,
+                    "total_guardian_number": 0,
+                    "range_guardian_number": 0,
+                    "range_guardian_unique_count": 0,
+                    "total_guardian_unique_count": 0,
+                    "total_pay_number": 0,
+                    "total_pay_amount": 0,
+                    "range_pay_amount": 0,
+                    "total_valid_exercise_number": 0,
+                    "range_valid_exercise_count": 0,
+                    "total_valid_word_number": 0,
+                    "range_valid_word_count": 0,
+                    "total_exercise_image_number": 0,
+                    "range_exercise_image_number": 0,
+                    "total_word_image_number": 0,
+                    "range_word_image_number": 0,
+                    "total_valid_reading_number": 0,
+                    "range_valid_reading_count": 0,
+                    "pay_ratio": 0,
+                    "bind_ratio": 0,
+                    "contest_coverage_ratio": 0,
+                    "contest_average_per_person": 0,
+                    "area_info": areas_map.get(str(area['_id']), {})
+                })
+        return items
 
     async def compute_area_list(self, request, areas, areas_map, channels_map, items):
         """
