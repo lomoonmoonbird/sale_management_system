@@ -498,7 +498,7 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                 row[15].value = str(sum(area_data['guardian_unique_number_last_month'])) + "/" + str(
                     sum(area_data['guardian_unique_number_curr_month']))
                 summary_map[13].append(row[13].value)
-                summary_map[14].append(row[15].value)
+                summary_map[14].append(str(sum(area_data['total_unique_guardian_number'])) + '/' + str(sum(area_data['total_student_number'])))
                 summary_map[15].append(row[15].value)
 
                 # 新增付费
