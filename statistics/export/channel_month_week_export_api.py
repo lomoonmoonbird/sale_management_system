@@ -72,7 +72,7 @@ class ChannelExportReport(BaseHandler, ExportBase, DataExcludeMixin):
         channel_info = {}
         if request['user_info']['instance_role_id'] == Roles.CHANNEL.value:
             channel_id = request['user_info']['channel_id']
-            channel_info = await request.app['mongodb'][self.db][self.instance_coll].find_one({"parent_id": channel_id,
+            channel_info = await request.app['mongodb'][self.db][self.instance_coll].find_one({"_id": ObjectId(channel_id),
                                                                                 "role": Roles.CHANNEL.value,
                                                                                 "status": 1}, {"old_id": 1, "_id": 0})
 
@@ -144,7 +144,7 @@ class ChannelExportReport(BaseHandler, ExportBase, DataExcludeMixin):
             print('i am channel')
             channel_id = request['user_info']['channel_id']
             print(channel_id, "channel_id")
-            channel_info = await request.app['mongodb'][self.db][self.instance_coll].find_one({"parent_id": channel_id,
+            channel_info = await request.app['mongodb'][self.db][self.instance_coll].find_one({"_id": ObjectId(channel_id),
                                                                                                "role": Roles.CHANNEL.value,
                                                                                                "status": 1},
                                                                                               {"old_id": 1, "_id": 0})
