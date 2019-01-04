@@ -46,9 +46,9 @@ class Overview(BaseHandler, DataExcludeMixin):
         if request['user_info']['instance_role_id'] == Roles.GLOBAL.value:
             exclude_channels += request['data_permission']['exclude_channel']
             exclude_area = request['data_permission']['exclude_area']
-            include_channel = request['data_permission']['include_channel']
+            include_area = request['data_permission']['include_area']
             channels = []
-            if not include_channel:
+            if not include_area:
                 channels = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": {"$nin": exclude_area},
                                                                                         "role": Roles.CHANNEL.value,
                                                                                         "status": 1},
@@ -56,7 +56,7 @@ class Overview(BaseHandler, DataExcludeMixin):
                 channels = await channels.to_list(None)
             else:
                 channels = request.app['mongodb'][self.db][self.instance_coll].find(
-                    {"parent_id": {"$nin": exclude_area},
+                    {"parent_id": {"$in": include_area},
                      "role": Roles.CHANNEL.value,
                      "status": 1},
                     {"old_id": 1})
