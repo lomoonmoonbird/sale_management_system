@@ -46,11 +46,21 @@ class Overview(BaseHandler, DataExcludeMixin):
         if request['user_info']['instance_role_id'] == Roles.GLOBAL.value:
             exclude_channels += request['data_permission']['exclude_channel']
             exclude_area = request['data_permission']['exclude_area']
-            channels = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": {"$nin": exclude_area},
-                                                                                    "role": Roles.CHANNEL.value,
-                                                                                    "status": 1},
-                                                                                   {"old_id": 1})
-            channels = await channels.to_list(None)
+            include_channel = request['data_permission']['include_channel']
+            channels = []
+            if not include_channel:
+                channels = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": {"$nin": exclude_area},
+                                                                                        "role": Roles.CHANNEL.value,
+                                                                                        "status": 1},
+                                                                                       {"old_id": 1})
+                channels = await channels.to_list(None)
+            else:
+                channels = request.app['mongodb'][self.db][self.instance_coll].find(
+                    {"parent_id": {"$in": include_channel},
+                     "role": Roles.CHANNEL.value,
+                     "status": 1},
+                    {"old_id": 1})
+                channels = await channels.to_list(None)
             channel_ids = [item['old_id'] for item in channels if item['old_id'] not in exclude_channels]
             pay_total, pay_curr_week_new_number, pay_last_week_new_number = await self._pay_number(request, channel_ids)
 

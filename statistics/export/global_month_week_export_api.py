@@ -1053,7 +1053,8 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                             "$cond": [{"$and": [{"$gte": ["$day", request['data_permission']['pay_stat_start_time']]}]},
                                       "$pay_number", 0]},
                         "total_pay_amount": {
-                            "$cond": [{"$and": [{"$gte": ["$day", request['data_permission']['pay_stat_start_time']]}]},
+                            "$cond": [{"$and": [{"$gte": ["$day", request['data_permission']['pay_stat_start_time']]},
+                                                {"$lte": ["$day", last_month_last_day]}]},
                                       "$pay_amount", 0]},
 
                         "total_refund_number": {
@@ -1295,7 +1296,8 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                             "$cond": [{"$and": [{"$gte": ["$day", request['data_permission']['pay_stat_start_time']]}]},
                                       "$pay_number", 0]},
                         "total_pay_amount": {
-                            "$cond": [{"$and": [{"$gte": ["$day", request['data_permission']['pay_stat_start_time']]}]},
+                            "$cond": [{"$and": [{"$gte": ["$day", request['data_permission']['pay_stat_start_time']]},
+                                                {"$lte": ["$day", last_week_last_day]}]},
                                       "$pay_amount", 0]},
 
                         "total_refund_number": {
