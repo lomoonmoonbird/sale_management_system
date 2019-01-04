@@ -56,7 +56,7 @@ class Overview(BaseHandler, DataExcludeMixin):
                 channels = await channels.to_list(None)
             else:
                 channels = request.app['mongodb'][self.db][self.instance_coll].find(
-                    {"parent_id": {"$in": include_channel},
+                    {"parent_id": {"$nin": exclude_area},
                      "role": Roles.CHANNEL.value,
                      "status": 1},
                     {"old_id": 1})
