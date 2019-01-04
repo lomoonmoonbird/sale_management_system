@@ -16,7 +16,8 @@ import aiohttp
 import ujson
 from utils import get_json, get_params, validate_permission
 from basehandler import BaseHandler
-from exceptions import InternalError, UserExistError, CreateUserError, DELETEERROR, RequestError, ChannelNotExist
+from exceptions import InternalError, UserExistError, CreateUserError, DELETEERROR, \
+    RequestError, ChannelNotExist, DataPermissionError
 from menu.menu import Menu
 from motor.core import Collection
 from enum import Enum
@@ -1392,6 +1393,10 @@ class AreaDetail(QueryMixin, DataExcludeMixin):
         if not area_id:
             return self.reply_ok([])
 
+        include_area = request['data_permission']['include_area']
+        if include_area and area_id not in include_area:
+            raise DataPermissionError("you have no right to access data")
+
         channels = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": area_id,
                                                                              "role": Roles.CHANNEL.value,
                                                                              "status": 1})
@@ -1465,6 +1470,10 @@ class AreaDetail(QueryMixin, DataExcludeMixin):
         total_count = 0
         if not area_id:
             return self.reply_ok([])
+
+        include_area = request['data_permission']['include_area']
+        if include_area and area_id not in include_area:
+            raise DataPermissionError("you have no right to access data")
 
         channels = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": area_id,
                                                                              "role": Roles.CHANNEL.value,
@@ -1744,6 +1753,24 @@ class ChannelDetail(QueryMixin):
                                   "contest_curr_week_new_number": 0,
                                   "contest_last_week_new_number": 0
                                   })
+        include_channel = request['data_permission']['include_channel']
+        if include_channel and channel_old_id not in include_channel:
+            raise DataPermissionError("you have no right to access data")
+        if request['user_info']['instance_role_id'] == Roles.AREA.value:
+            exist = await request.app['mongodb'][self.db][self.instance_coll]\
+                .find_one({"parent_id": request['user_info']['area_id'],
+                           'old_id': channel_old_id,
+                           'status': 1})
+            if not exist:
+                raise DataPermissionError("you have no right to access data")
+        if request['user_info']['instance_role_id'] == Roles.GLOBAL.value:
+            exist = await request.app['mongodb'][self.db][self.instance_coll] \
+                .find_one({
+                           'old_id': channel_old_id,
+                           'status': 1})
+            if not exist:
+                raise DataPermissionError("you have no right to access data")
+
         # channel = await request.app['mongodb'][self.db][self.instance_coll].find_one({"old_id": channel_old_id, "status": 1})
         # if channel:
         channel_old_id = [channel_old_id]
@@ -1825,7 +1852,7 @@ class ChannelDetail(QueryMixin):
         #                           "contest_last_week_new_number": 0
         #                           })
 
-    @validate_permission()
+    @validate_permission(data_validation=True)
     async def market_list(self, request: Request):
         """
         市场列表
@@ -1839,10 +1866,30 @@ class ChannelDetail(QueryMixin):
         request_param = await get_params(request)
         channel_id = request_param.get("channel_id", "")
         page = int(request_param.get("page", 1)) - 1
+
         per_page = 10
         total_count = 0
         if not channel_id:
             return self.reply_ok({"market_list": [], "extra": {"total": 0,"number_per_page": per_page,"curr_page": page + 1}})
+
+        valid_channel = await request.app['mongodb'][self.db][self.instance_coll].find_one({"_id": ObjectId(channel_id),
+                                                                                            'status': 1})
+        channel_id = valid_channel.get('old_id', '')
+        include_channel = request['data_permission']['include_channel']
+        if include_channel and channel_id not in include_channel:
+            raise DataPermissionError("you have no right to access data")
+
+        if request['user_info']['instance_role_id'] == Roles.AREA.value:
+            exist = await request.app['mongodb'][self.db][self.instance_coll]\
+                .find_one({"parent_id": request['user_info']['area_id'],
+                           'role': Roles.CHANNEL.value,
+                           'old_id': channel_id,
+                           'status': 1})
+            if not exist:
+                raise DataPermissionError("you have no right to access data")
+
+
+
         schools = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": channel_id,
                                                                             "role": Roles.SCHOOL.value,
                                                                             "status": 1})
@@ -1971,7 +2018,26 @@ class ChannelDetail(QueryMixin):
         page = int(request_param.get("page", 1)) - 1
         per_page = 10
         total_school_count = 0
-        channel_old_id = request_param.get("channel_old_id", "")
+        channel_old_id = int(request_param.get("channel_old_id", ""))
+
+        include_channel = request['data_permission']['include_channel']
+        if include_channel and channel_old_id not in include_channel:
+            raise DataPermissionError("you have no right to access data")
+        if request['user_info']['instance_role_id'] == Roles.AREA.value:
+            exist = await request.app['mongodb'][self.db][self.instance_coll] \
+                .find_one({"parent_id": request['user_info']['area_id'],
+                           'old_id': channel_old_id,
+                           'status': 1})
+            if not exist:
+                raise DataPermissionError("you have no right to access data")
+        if request['user_info']['instance_role_id'] == Roles.GLOBAL.value:
+            exist = await request.app['mongodb'][self.db][self.instance_coll] \
+                .find_one({
+                'old_id': channel_old_id,
+                'status': 1})
+            if not exist:
+                raise DataPermissionError("you have no right to access data")
+
 
         total_sql = "select count(id) as total_school_count from sigma_account_ob_school " \
                     "where owner_id = %s " \
@@ -2246,6 +2312,38 @@ class SchoolDetail(QueryMixin):
         school_id = int(request_param.get("school_id"))
         if not school_id:
             raise RequestError("school_id must not be empty")
+
+        channel_old_id = ''
+        channel_id = ''
+        user_id = ''
+        one_market = await request.app['mongodb'][self.db][self.instance_coll] \
+            .find_one({"school_id": school_id,
+                       "role": Roles.SCHOOL.value,
+                       'status': 1})
+        if one_market:
+            user_id = one_market.get("user_id", '')
+            one_channel = await request.app['mongodb'][self.db][self.instance_coll] \
+                .find_one({"_id": ObjectId(one_market.get("parent_id")),
+                           'role': Roles.CHANNEL.value,
+                           'status': 1})
+            if one_channel:
+                channel_old_id = one_channel.get('old_id')
+                channel_id = str(one_channel.get("_id", ''))
+        if request['user_info']['instance_role_id'] == Roles.GLOBAL.value:
+            include_channel = request['data_permission']['include_channel']
+            if include_channel and channel_old_id not in include_channel:
+                raise DataPermissionError("you have no right to access data")
+
+        elif request['user_info']['instance_role_id'] == Roles.CHANNEL.value:
+            if request['user_info']['channel_id'] != channel_id:
+                raise DataPermissionError("you have no right to access data")
+        elif request['user_info']['instance_role_id'] == Roles.MARKET.value:
+            if int(request['user_info']['user_id']) != user_id:
+                raise DataPermissionError("you have no right to access data")
+        elif request['user_info']['instance_role_id'] == -1:
+            raise DataPermissionError("you have no right to access data")
+
+
         items = await self._list_school_clazz(request, school_id)
         group_ids = [item["_id"] for item in items]
         if group_ids:
@@ -2272,8 +2370,11 @@ class GradeDetail(QueryMixin):
     """
     年级详情
     """
+    def __init__(self):
+        super(GradeDetail, self).__init__()
+        self.instance_coll = 'instance'
 
-    @validate_permission()
+    @validate_permission(data_validation=True)
     async def grade_list(self, request: Request):
         """
         年级详情
@@ -2289,9 +2390,38 @@ class GradeDetail(QueryMixin):
             school_id = int(request_param.get("school_id"))
             grade = request_param.get("grade")
             if not grade:
-                raise Exception
+                raise RequestError("school_id or grade not exist")
         except:
             raise RequestError("school_id or grade is wrong")
+
+        channel_old_id = ''
+        channel_id = ''
+        user_id = ''
+        one_market = await request.app['mongodb'][self.db][self.instance_coll]\
+            .find_one({"school_id": school_id,
+                       "role": Roles.SCHOOL.value,
+                       'status': 1})
+        if one_market:
+            user_id = one_market.get("user_id", '')
+            one_channel = await request.app['mongodb'][self.db][self.instance_coll]\
+                .find_one({"_id": ObjectId(one_market.get("parent_id")),
+                           'role': Roles.CHANNEL.value,
+                           'status': 1})
+            if one_channel:
+                channel_old_id = one_channel.get('old_id')
+                channel_id = str(one_channel.get("_id",''))
+        if request['user_info']['instance_role_id'] == Roles.GLOBAL.value:
+            include_channel = request['data_permission']['include_channel']
+            if include_channel and channel_old_id not in include_channel:
+                raise DataPermissionError("you have no right to access data")
+
+        elif request['user_info']['instance_role_id'] == Roles.CHANNEL.value:
+            if request['user_info']['channel_id'] != channel_id:
+                raise DataPermissionError("you have no right to access data")
+        elif request['user_info']['instance_role_id'] == Roles.MARKET.value:
+            if int(request['user_info']['user_id']) != user_id:
+                raise DataPermissionError("you have no right to access data")
+
         items = await self._list_grade(request, school_id, grade)
         group_ids = [item["_id"] for item in items]
         if group_ids:
@@ -2310,7 +2440,7 @@ class GradeDetail(QueryMixin):
             return self.reply_ok({"grade_info": items})
         return self.reply_ok({})
 
-    @validate_permission()
+    @validate_permission(data_validation=True)
     async def wap_grade_list(self, request: Request):
         """
         移动端年级班级详情
@@ -2324,6 +2454,36 @@ class GradeDetail(QueryMixin):
         request_param = await get_params(request)
         school_id = int(request_param.get("school_id"))
         grade = str(request_param.get('grade'))
+
+        channel_old_id = ''
+        channel_id = ''
+        user_id = ''
+        one_market = await request.app['mongodb'][self.db][self.instance_coll] \
+            .find_one({"school_id": school_id,
+                       "role": Roles.SCHOOL.value,
+                       'status': 1})
+        if one_market:
+            user_id = one_market.get("user_id", '')
+            one_channel = await request.app['mongodb'][self.db][self.instance_coll] \
+                .find_one({"_id": ObjectId(one_market.get("parent_id")),
+                           'role': Roles.CHANNEL.value,
+                           'status': 1})
+            if one_channel:
+                channel_old_id = one_channel.get('old_id')
+                channel_id = str(one_channel.get("_id", ''))
+        if request['user_info']['instance_role_id'] == Roles.GLOBAL.value:
+            include_channel = request['data_permission']['include_channel']
+            if include_channel and channel_old_id not in include_channel:
+                raise DataPermissionError("you have no right to access data")
+
+        elif request['user_info']['instance_role_id'] == Roles.CHANNEL.value:
+            if request['user_info']['channel_id'] != channel_id:
+                raise DataPermissionError("you have no right to access data")
+        elif request['user_info']['instance_role_id'] == Roles.MARKET.value:
+            if int(request['user_info']['user_id']) != user_id:
+                raise DataPermissionError("you have no right to access data")
+        elif request['user_info']['instance_role_id'] == -1:
+            raise DataPermissionError("you have no right to access data")
 
         data = []
 
@@ -2362,7 +2522,11 @@ class ClazzDetail(BaseHandler):
     """
     班级详情
     """
-    @validate_permission()
+    def __init__(self):
+        self.db = 'sales'
+        self.instance_coll = 'instance'
+
+    @validate_permission(data_validation=True)
     async def clazz_list(self, request: Request):
         """
         班级详情
@@ -2374,9 +2538,48 @@ class ClazzDetail(BaseHandler):
         """
         request_param = await get_params(request)
         group_id = request_param.get("group_id")
+        school_id = ''
         class_data = []
         if not group_id:
             raise RequestError("group_id must not be empty")
+
+        school_id_sql = "select school_id from sigma_account_ob_group where available =1 and id = %s" % group_id
+        async with request.app['mysql'].acquire() as conn:
+            async with conn.cursor(DictCursor) as cur:
+                await cur.execute(school_id_sql)
+                school_id = await cur.fetchone()
+        school_id = school_id.get("school_id", '')
+
+        channel_old_id = ''
+        channel_id = ''
+        user_id = ''
+        one_market = await request.app['mongodb'][self.db][self.instance_coll] \
+            .find_one({"school_id": school_id,
+                       "role": Roles.SCHOOL.value,
+                       'status': 1})
+        if one_market:
+            user_id = one_market.get("user_id", '')
+            one_channel = await request.app['mongodb'][self.db][self.instance_coll] \
+                .find_one({"_id": ObjectId(one_market.get("parent_id")),
+                           'role': Roles.CHANNEL.value,
+                           'status': 1})
+            if one_channel:
+                channel_old_id = one_channel.get('old_id')
+                channel_id = str(one_channel.get("_id", ''))
+        if request['user_info']['instance_role_id'] == Roles.GLOBAL.value:
+            include_channel = request['data_permission']['include_channel']
+            if include_channel and channel_old_id not in include_channel:
+                raise DataPermissionError("you have no right to access data")
+
+        elif request['user_info']['instance_role_id'] == Roles.CHANNEL.value:
+            if request['user_info']['channel_id'] != channel_id:
+                raise DataPermissionError("you have no right to access data")
+        elif request['user_info']['instance_role_id'] == Roles.MARKET.value:
+            if int(request['user_info']['user_id']) != user_id:
+                raise DataPermissionError("you have no right to access data")
+        elif request['user_info']['instance_role_id'] == -1:
+            raise DataPermissionError("you have no right to access data")
+
 
         user_sql = "select u.id, u.name, u.student_vip_expire " \
                    "from sigma_account_us_user as u " \
@@ -2394,7 +2597,7 @@ class ClazzDetail(BaseHandler):
             user_wechat_sql = "select user_id from sigma_account_re_userwechat where user_id in (%s)" % (','.join([str(id) for id in user_ids]))
 
 
-            print(user_wechat_sql)
+
             async with request.app['mysql'].acquire() as conn:
                 async with conn.cursor(DictCursor) as cur:
                     await cur.execute(user_wechat_sql)
@@ -2492,7 +2695,7 @@ class MarketDetail(QueryMixin, DataExcludeMixin):
                 "bind_ratio": 0,
             }
 
-    @validate_permission()
+    @validate_permission(data_validation=True)
     async def school_list(self, request: Request):
         """
         学校列表
@@ -2506,9 +2709,45 @@ class MarketDetail(QueryMixin, DataExcludeMixin):
         request_param = await get_params(request)
         page = int(request_param.get("page", 1)) - 1
         per_page = 10
+        channel_old_id = ''
+        area_id = ''
+        channel_id = ''
         user_id = request_param.get("user_id")
         if request['user_info']['instance_role_id'] == Roles.MARKET.value: #市场
             user_id = request['user_info']['user_id']
+        else:
+
+            one_market = await request.app['mongodb'][self.db][self.instance_coll]\
+                .find_one({"user_id": int(user_id),
+                           "role": Roles.SCHOOL.value,
+                           "status": 1})
+            if one_market:
+                one_channel = await request.app['mongodb'][self.db][self.instance_coll]\
+                    .find_one({"_id": ObjectId(one_market.get("parent_id")),
+                               "role": Roles.CHANNEL.value,
+                               'status': 1})
+                if one_channel:
+                    channel_old_id = one_channel.get('old_id','')
+                    area_id = one_channel.get("parent_id", '')
+                    channel_id = str(one_channel.get("_id" , ''))
+        if request['user_info']['instance_role_id'] == Roles.GLOBAL.value:
+            include_channel = request['data_permission']['include_channel']
+            if include_channel and channel_old_id not in include_channel:
+                raise DataPermissionError("you have no right to access data")
+            exist = await request.app['mongodb'][self.db][self.instance_coll]\
+                .find_one({"old_id": channel_old_id,
+                           "role": Roles.CHANNEL.value,
+                           'status': 1})
+            if not exist:
+                raise DataPermissionError("you have no right to access data")
+        elif request['user_info']['instance_role_id'] == Roles.AREA.value:
+            if request['user_info']['area_id'] != area_id:
+                raise DataPermissionError("you have no right to access data")
+        elif request['user_info']['instance_role_id'] == Roles.CHANNEL.value:
+            if request['user_info']['channel_id'] != channel_id:
+                raise DataPermissionError("you have no right to access data")
+
+
         total_counts = await request.app['mongodb'][self.db][self.instance_coll].count_documents({"user_id": int(user_id),
                                                                             "role": Roles.SCHOOL.value,
                                                                         "status": 1})

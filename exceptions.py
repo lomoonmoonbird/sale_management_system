@@ -17,6 +17,8 @@ class RequestError(Exception):
 class PermissionError(Exception):
     status_code = ErrorCode.UNAUTHORIZED
 
+class DataPermissionError(Exception):
+    status_code = ErrorCode.DATAFORBIDDEN
 
 class LoginError(RequestError):
     """Invalid login info."""
