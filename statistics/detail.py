@@ -2739,7 +2739,8 @@ class MarketDetail(QueryMixin, DataExcludeMixin):
                            "role": Roles.CHANNEL.value,
                            'status': 1})
             if not exist:
-                raise DataPermissionError("you have no right to access data")
+                return self.reply_ok(
+                    {"school_list": [], "extra": {"total": 0, "number_per_page": per_page, "curr_page": page + 1}})
         elif request['user_info']['instance_role_id'] == Roles.AREA.value:
             if request['user_info']['area_id'] != area_id:
                 raise DataPermissionError("you have no right to access data")
