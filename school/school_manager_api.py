@@ -74,6 +74,7 @@ class SchoolManage(BaseHandler, DataExcludeMixin):
                 and not request_param.get('open_time_range'): #全部
 
             flag = 1
+            print('1')
             if not include_channel:
                 school_page_sql = "select id,full_name, time_create  " \
                                   "from sigma_account_ob_school" \
@@ -101,6 +102,13 @@ class SchoolManage(BaseHandler, DataExcludeMixin):
                                                           self.start_time.strftime("%Y-%m-%d"),
                                                           datetime.now().strftime("%Y-%m-%d"))
 
+            print(school_page_sql)
+            print(total_sql)
+            async with request.app['mysql'].acquire() as conn:
+                async with conn.cursor(DictCursor) as cur:
+                    await cur.execute(total_sql)
+                    total_school_count = await cur.fetchall()
+            total_school_count = total_school_count[0]['total_school_count']
         elif request_param.get('school_name'): #单个学校
             total_school_count = 1
             if not include_channel:
