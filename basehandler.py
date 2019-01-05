@@ -95,7 +95,7 @@ class BaseHandler():
         上周 从星期日到星期六为一周期 日 一 二 三 四 五 六
         :return:
         """
-        return [d.isoformat() for d in self._get_week_from_7_to_6((datetim).date())]
+        return [d.isoformat() for d in self._get_week_from_7_to_6((datetime).date())]
 
     def last_last_week_from_7_to_6(self):
         """
