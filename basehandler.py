@@ -102,7 +102,7 @@ class BaseHandler():
         上上周 从星期日到星期六为一周 日 一 二 三 四 五 六
         :return:
         """
-        return [d.isoformat() for d in self._get_week_from_7_to_6((datetime(2018, 12, 25) -timedelta(7) ).date())]
+        return [d.isoformat() for d in self._get_week_from_7_to_6((datetime.now() -timedelta(7) ).date())]
 
 
     def _get_week_from_7_to_6(self, date):
