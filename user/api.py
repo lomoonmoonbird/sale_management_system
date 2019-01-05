@@ -270,6 +270,9 @@ class User(BaseHandler, DataExcludeMixin):
     async def get_one_area_channels(self, request: Request):
         """
         获取某一个大区的渠道
+        {
+            "area_id": ""
+        }
         :param request:
         :return:
         """
@@ -362,9 +365,9 @@ class User(BaseHandler, DataExcludeMixin):
         exclude_channel_str = ','.join(['"' + str(id) + '"' for id in exclude_channels]) if exclude_channels else "''"
         include_channel = request['data_permission']['include_channel']
         include_channel_str = ','.join(['"' + str(id) + '"' for id in include_channel]) if include_channel else "''"
-        sql = "select * from sigma_account_us_user where available = 1 and role_id=6 and id not in (%s)" % (exclude_channel_str)
+        sql = "select id,username,name from sigma_account_us_user where available = 1 and role_id=6 and id not in (%s)" % (exclude_channel_str)
         if include_channel:
-            sql = "select * from sigma_account_us_user where available = 1 and role_id=6 and id in (%s)" % (
+            sql = "select id,username,name from sigma_account_us_user where available = 1 and role_id=6 and id in (%s)" % (
                 include_channel_str)
         async with request.app['mysql'].acquire() as conn:
             async with conn.cursor(DictCursor) as cur:
