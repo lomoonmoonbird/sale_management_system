@@ -115,6 +115,7 @@ class ClazzExportReport(BaseHandler, ExportBase ):
                          "on g.available = 1 and g.school_id = s.id"
         async with request.app['mysql'].acquire() as conn:
             async with conn.cursor(DictCursor) as cur:
+
                 await cur.execute(group_info_sql)
                 group_info = await cur.fetchone()
 
