@@ -6,7 +6,7 @@
 """
 
 from sqlalchemy import Table, Column, Integer, String, MetaData, \
-ForeignKey, Boolean, DateTime, SmallInteger, select
+ForeignKey, Boolean, DateTime, SmallInteger, select, Float
 from sqlalchemy.dialects import mysql
 from enum import Enum 
 
@@ -140,7 +140,7 @@ ob_order = Table('sigma_pay_ob_order', metadata,
                 Column('id', Integer, primary_key=True), #主键id
                 Column('uid', String(128), unique=True, index=True, nullable=True), #账单id
                 Column('user_id', Integer, index=True, nullable=True), #购买者用户id
-                Column('origin_amount', default=2, nullable=False), #订单原始金额
+                Column('amount', default=2, nullable=False), #订单原始金额
                 Column('current_amount', Boolean, default=1), #订单当前金额
                 Column('coupon_amount', DateTime), #使用优惠券之后价格，实际支付价格
                 Column('status', default=2, nullable=False), #订单状态
@@ -148,6 +148,16 @@ ob_order = Table('sigma_pay_ob_order', metadata,
                 Column('time_create', DateTime), #创建时间
                 Column('time_modify', DateTime) #修改时间
                 )
+
+#refund 退款订单
+ob_refund = Table('sigma_pay_ob_refund', metadata,
+                  Column('id', Integer, primary_key=True),  # 主键id
+                  Column('order_id', Integer, default=0),  # 订单id
+                  Column('amount', Float),  # 退款金额
+                  Column('status', default=4, nullable=False),  # 订单状态
+                  Column('time_create', DateTime),  # 创建时间
+                  Column('time_modify', DateTime)  # 修改时间
+                  )
 
 #地理位置
 st_location = Table('sigma_pool_st_location', metadata,

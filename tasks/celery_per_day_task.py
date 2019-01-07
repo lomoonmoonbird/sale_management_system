@@ -9,7 +9,7 @@ import json
 from celery import Task
 from models.mysql.centauri import ob_school, us_user, re_userwechat, ob_group, \
 ob_groupuser, ob_exercise, as_hermes, ob_order, re_userwechat, Roles, StageEnum, \
-    StudentRelationEnum, ExerciseTypeEnum, ob_exercisemeta, st_location, ob_reading
+    StudentRelationEnum, ExerciseTypeEnum, ob_exercisemeta, st_location, ob_reading, ob_refund
 import pymysql
 import pymongo
 from pymongo import InsertOne, DeleteMany, ReplaceOne, UpdateOne
@@ -830,7 +830,7 @@ class PerDaySubTask_PAYMENTS(BaseTask):
                 .where(and_(ob_order.c.available == 1,
                             ob_order.c.status == 3,
                             ob_order.c.time_create >= one_date[0],
-                            ob_order.c.time_create <= one_date[1])
+                            ob_order.c.time_create < one_date[1])
                        )
             # print(q_payments.compile(dialect=mysql.dialect(), compile_kwargs={"literal_binds": True}).string.replace("%%", "%"))
             payments = self._query(q_payments)
@@ -1066,14 +1066,30 @@ class PerDaySubTask_PAYMENTS(BaseTask):
         :return:
         """
         for one_date in date_range:
-            q_payments = select([ob_order.c.user_id, ob_order.c.coupon_amount])\
-                .where(and_(ob_order.c.available == 1,
-                            ob_order.c.status == 6,
-                            ob_order.c.time_modify >= one_date[0],
-                            ob_order.c.time_modify < one_date[1])
+            q_refund =  select([ob_refund.c.order_id, ob_refund.c.amount])\
+                .where(and_(
+                            ob_refund.c.status == 6,
+                            ob_refund.c.time_create >= one_date[0],
+                            ob_refund.c.time_create < one_date[1])
+                       )
+            refunds = self._query(q_refund)
+            refund_order_ids = list(set([item['order_id'] for item in refunds]))
+            q_payments = select([ob_order.c.id, ob_order.c.user_id, ob_order.c.coupon_amount])\
+                .where(and_(
+                            # ob_order.c.available == 1,
+                            # ob_order.c.status == 6,
+                            ob_order.c.id.in_(refund_order_ids),
+                            # ob_order.c.time_modify >= one_date[0],
+                            # ob_order.c.time_modify < one_date[1]
+                            )
                        )
 
             payments = self._query(q_payments)
+
+            refund_map = defaultdict(list)
+            for refund in refunds:
+                refund_map[refund['order_id']].append(refund['amount'])
+
 
             user_ids = list(set([item['user_id'] for item in payments]))
 
@@ -1138,64 +1154,66 @@ class PerDaySubTask_PAYMENTS(BaseTask):
             channel_payment_default_dict = defaultdict(lambda: defaultdict(dict))
             # print(payments)
             for payment in payments:
+                refund_number = len(refund_map.get(payment['id'], []))
+                refund_amount = sum(refund_map.get(payment['id'], []))
                 if float(payment['coupon_amount']) <=0:
                     continue
                 for data in usergroup_map.get(payment['user_id'], {}):
                     # print(data, '@@@@####')
                     #班级
                     if class_payment_default_dict[data.get("group_id", 0)]["refund_n"]:
-                        class_payment_default_dict[data.get("group_id", 0)]["refund_n"].append(1)
+                        class_payment_default_dict[data.get("group_id", 0)]["refund_n"].append(refund_number)
                     else:
                         class_payment_default_dict[data.get("group_id", 0)][
-                            "refund_n"] = [1]
+                            "refund_n"] = [refund_number]
                     if class_payment_default_dict[data.get("group_id", 0)]["refund_amount"]:
                         class_payment_default_dict[data.get("group_id", 0)][
-                            "refund_amount"].append(payment['coupon_amount'])
+                            "refund_amount"].append(refund_amount)
                     else:
                         class_payment_default_dict[data.get("group_id", 0)][
-                            "refund_amount"] = [payment['coupon_amount']]
+                            "refund_amount"] = [refund_amount]
 
                 #年级
                 if grade_payment_default_dict[str(usergroup_single_map.get(payment['user_id'], {}).get("school_id", -1))+"@"+str(usergroup_single_map.get(payment['user_id'], {}).get("grade", -1))]['refund_n']:
-                    grade_payment_default_dict[str(usergroup_single_map.get(payment['user_id'], {}).get("school_id", -1))+"@"+str(usergroup_single_map.get(payment['user_id'], {}).get("grade", -1))]['refund_n'].append(1)
+                    grade_payment_default_dict[str(usergroup_single_map.get(payment['user_id'], {}).get("school_id", -1))+"@"+str(usergroup_single_map.get(payment['user_id'], {}).get("grade", -1))]['refund_n'].append(refund_number)
                 else:
-                    grade_payment_default_dict[str(usergroup_single_map.get(payment['user_id'], {}).get("school_id", -1))+"@"+str(usergroup_single_map.get(payment['user_id'], {}).get("grade", -1))]['refund_n'] = [1]
+                    grade_payment_default_dict[str(usergroup_single_map.get(payment['user_id'], {}).get("school_id", -1))+"@"+str(usergroup_single_map.get(payment['user_id'], {}).get("grade", -1))]['refund_n'] = [refund_number]
 
                 if grade_payment_default_dict[str(usergroup_single_map.get(payment['user_id'], {}).get("school_id", -1))+"@"+str(usergroup_single_map.get(payment['user_id'], {}).get("grade", -1))]['refund_amount']:
-                    grade_payment_default_dict[str(usergroup_single_map.get(payment['user_id'], {}).get("school_id", -1))+"@"+str(usergroup_single_map.get(payment['user_id'], {}).get("grade", -1))]['refund_amount'].append(payment['coupon_amount'])
+                    grade_payment_default_dict[str(usergroup_single_map.get(payment['user_id'], {}).get("school_id", -1))+"@"+str(usergroup_single_map.get(payment['user_id'], {}).get("grade", -1))]['refund_amount'].append(refund_amount)
                 else:
-                    grade_payment_default_dict[str(usergroup_single_map.get(payment['user_id'], {}).get("school_id", -1))+"@"+str(usergroup_single_map.get(payment['user_id'], {}).get("grade", -1))]['refund_amount'] = [payment['coupon_amount']]
+                    grade_payment_default_dict[str(usergroup_single_map.get(payment['user_id'], {}).get("school_id", -1))+"@"+str(usergroup_single_map.get(payment['user_id'], {}).get("grade", -1))]['refund_amount'] = [refund_amount]
 
                 #学校
                 if school_payment_default_dict[usergroup_single_map.get(payment['user_id'], {}).get("school_id", -1)]['refund_n']:
-                    school_payment_default_dict[usergroup_single_map.get(payment['user_id'], {}).get("school_id", -1)]['refund_n'].append(1)
+                    school_payment_default_dict[usergroup_single_map.get(payment['user_id'], {}).get("school_id", -1)]['refund_n'].append(refund_number)
                 else:
-                    school_payment_default_dict[usergroup_single_map.get(payment['user_id'], {}).get("school_id", -1)]['refund_n'] = [1]
+                    school_payment_default_dict[usergroup_single_map.get(payment['user_id'], {}).get("school_id", -1)]['refund_n'] = [refund_number]
 
                 if school_payment_default_dict[usergroup_single_map.get(payment['user_id'], {}).get("school_id", -1)]['refund_amount']:
-                    school_payment_default_dict[usergroup_single_map.get(payment['user_id'], {}).get("school_id", -1)]['refund_amount'].append(payment['coupon_amount'])
+                    school_payment_default_dict[usergroup_single_map.get(payment['user_id'], {}).get("school_id", -1)]['refund_amount'].append(refund_amount)
                 else:
-                    school_payment_default_dict[usergroup_single_map.get(payment['user_id'], {}).get("school_id", -1)]['refund_amount'] = [payment['coupon_amount']]
+                    school_payment_default_dict[usergroup_single_map.get(payment['user_id'], {}).get("school_id", -1)]['refund_amount'] = [refund_amount]
                 #渠道
                 # if school_channel_map.get(school_channel_map.get(payment['user_id'], {}).get("school_id", -1), -1) == -1:
                 #     self.mongo.no_channel_students.update_one({"name": "no_channels_students"}, {"$set": {"student": payment['user_id']}},upsert=True)
                 if channel_payment_default_dict[school_channel_map.get(usergroup_single_map.get(payment['user_id'], {}).get("school_id", -1), -1)]['refund_n']:
                     channel_payment_default_dict[
                         school_channel_map.get(usergroup_single_map.get(payment['user_id'], {}).get("school_id", -1), -1)][
-                        'refund_n'].append(1)
+                        'refund_n'].append(refund_number)
                 else:
                     channel_payment_default_dict[
                         school_channel_map.get(usergroup_single_map.get(payment['user_id'], {}).get("school_id", -1), -1)][
-                        'refund_n'] = [1]
+                        'refund_n'] = [refund_number]
 
                 if channel_payment_default_dict[school_channel_map.get(usergroup_single_map.get(payment['user_id'], {}).get("school_id", -1), -1)]['refund_amount']:
                     channel_payment_default_dict[
                         school_channel_map.get(usergroup_single_map.get(payment['user_id'], {}).get("school_id", -1),-1)][
-                        'refund_amount'].append(payment['coupon_amount'])
+                        'refund_amount'].append(refund_amount)
                 else:
                     channel_payment_default_dict[
                         school_channel_map.get(usergroup_single_map.get(payment['user_id'], {}).get("school_id", -1), -1)][
-                        'refund_amount'] = [payment['coupon_amount']]
+                        'refund_amount'] = [refund_amount]
 
 
 
@@ -1207,7 +1225,7 @@ class PerDaySubTask_PAYMENTS(BaseTask):
                     "school_id": usergroup_map_class_key.get(k, {}).get("school_id", -1),
                     "channel": school_channel_map.get(usergroup_map_class_key.get(k, {}).get("school_id", -1), -1),
                     "grade": usergroup_map_class_key.get(k, {}).get("grade", -1),
-                    "refund_number": len(v['refund_n']),
+                    "refund_number": sum(v['refund_n']),
                     "refund_amount": sum(v['refund_amount'])
                 }
 
@@ -1219,7 +1237,7 @@ class PerDaySubTask_PAYMENTS(BaseTask):
                 pay_amount_schema = {
                     "school_id": int(k.split("@")[0]),
                     "channel": school_channel_map.get(int(k.split("@")[0]), -1),
-                    "refund_number": len(v['refund_n']),
+                    "refund_number": sum(v['refund_n']),
                     "refund_amount": sum(v['refund_amount'])
                 }
 
@@ -1232,7 +1250,7 @@ class PerDaySubTask_PAYMENTS(BaseTask):
                 pay_amount_schema = {
                     "school_id": k,
                     "channel": school_channel_map.get(k, -1),
-                    "refund_number": len(v['refund_n']),
+                    "refund_number": sum(v['refund_n']),
                     "refund_amount": sum(v['refund_amount'])
                 }
 
@@ -1242,7 +1260,7 @@ class PerDaySubTask_PAYMENTS(BaseTask):
             channel_bulk_update = []
             for k, v in channel_payment_default_dict.items():
                 pay_amount_schema = {
-                    "refund_number": len(v['refund_n']),
+                    "refund_number": sum(v['refund_n']),
                     "refund_amount": sum(v['refund_amount'])
                 }
 
@@ -1350,7 +1368,7 @@ class PerDayTask_SCHOOL(BaseTask):
 
         for one_date in date_range:
 
-            print(locations_map)
+
             q_schools = select([ob_school.c.id, ob_school.c.owner_id, ob_school.c.location_id])\
                 .where(and_(ob_school.c.available == 1,
                             ob_school.c.time_create >= one_date[0],
@@ -1379,17 +1397,6 @@ class PerDayTask_SCHOOL(BaseTask):
                     distinct_location_set.append(locations_map.get(school['location_id'], ""))
                 else:
                     pass
-                # self.mongo[self.location_distinct_coll].insert(
-                #                                                {"city_id2": locations_map.get(school['location_id'], "")},
-                #                                                )
-
-
-                # school_schema = {
-                #     "channel": school['owner_id'],
-                # }
-
-                # self_school_bulk_update.append(UpdateOne({"school_id": school['id'], "day": one_date[0]},
-                #                                    {'$set': school_schema}, upsert=True))
 
             self.mongo[self.location_distinct_coll].update({"_id": "city"}, {"$set": {"city_id": list(set(distinct_location_set))}}, upsert=True)
 
@@ -1403,17 +1410,12 @@ class PerDayTask_SCHOOL(BaseTask):
                 channel_school_bulk_update.append(UpdateOne({"channel": k, "day": one_date[0]},
                                                          {'$set': school_schema}, upsert=True))
 
-            # if self_school_bulk_update:
-            #     try:
-            #         bulk_update_ret = self.mongo.schools.bulk_write(self_school_bulk_update)
-            #         print(bulk_update_ret.bulk_api_result)
-            #     except BulkWriteError as bwe:
-            #         print(bwe.details)
+
 
             if channel_school_bulk_update:
                 try:
                     bulk_update_ret = self.mongo.channel_per_day.bulk_write(channel_school_bulk_update)
-                    print(bulk_update_ret.bulk_api_result)
+                    # print(bulk_update_ret.bulk_api_result)
                 except BulkWriteError as bwe:
                     print(bwe.details)
 
@@ -2857,6 +2859,130 @@ class PerDayTask_VALIDREADING(BaseTask):
 
 
         return
+
+
+# class PerDayTask_SCHOOL(BaseTask):
+#     def __init__(self):
+#         super(PerDayTask_SCHOOL, self).__init__()
+#         self.mongo = pymongo.MongoClient(MONGODB_CONN_URL).sales
+#         self.schoolstage_delta_record_coll = "record_schoolstage_delta"
+#         self.location_distinct_coll = 'location_distinct'
+#         self.cursor = None
+#         self.connection = None
+#
+#
+#     def _query(self, query):
+#         """
+#         执行查询 返回数据库结果
+#         """
+#         self.cursor = self.connection.cursor()
+#         logger.debug(
+#             query.compile(dialect=mysql.dialect(), compile_kwargs={"literal_binds": True}).string.replace("%%", "%"))
+#
+#         self.cursor.execute(
+#             query.compile(dialect=mysql.dialect(), compile_kwargs={"literal_binds": True}).string.replace("%%", "%"))
+#         ret = self.cursor.fetchall()
+#         return ret
+#
+#     def _execute_raw(self, query):
+#         cursor = self.connection.cursor()
+#         cursor.execute(query)
+#         ret = cursor.fetchall()
+#         return ret
+#
+#     def run(self):
+#         try:
+#             self.connection = self.get_connection()
+#             date_range = self._date_range("school_number_per_day_begin_time")  # 时间分段
+#             self._school(date_range) #学校数
+#             date_range = self._date_range("school_stage_begin_time")  # 时间分段
+#             # date_range =[("2018-05-27", "2018-05-28")]
+#             self._schools(date_range)  # 学校
+#
+#             if self.cursor:
+#                 self.cursor.close()
+#                 self.cursor = None
+#             if self.connection:
+#                 self.connection.close()
+#                 self.connection = None
+#         except Exception as e:
+#             import traceback
+#             traceback.print_exc()
+#
+#             raise self.retry(exc=e, countdown=30, max_retries=5)
+#
+#
+#     def _school(self, date_range):
+#         """
+#         学校数
+#         :param date_range:
+#         :return:
+#         """
+#         q_locations = select([st_location.c.id, st_location.c.city_id])
+#         locations = self._query(q_locations)
+#         locations_map = {}
+#         for location in locations:
+#             locations_map[location['id']] = location['city_id']
+#         distinct_location_set = []
+#         mongo_distinct_locations = self.mongo[self.location_distinct_coll].find_one({"_id": "city"})
+#         if mongo_distinct_locations:
+#             distinct_location_set = mongo_distinct_locations.get('city_id', [])
+#
+#         for one_date in date_range:
+#
+#
+#             q_schools = select([ob_school.c.id, ob_school.c.owner_id, ob_school.c.location_id])\
+#                 .where(and_(ob_school.c.available == 1,
+#                             ob_school.c.time_create >= one_date[0],
+#                             ob_school.c.time_create < one_date[1])
+#                        )
+#
+#             schools = self._query(q_schools)
+#
+#             school_defaultdict = defaultdict(lambda: defaultdict(dict))
+#
+#             self_school_bulk_update = []
+#             channel_school_bulk_update = []
+#             for school in schools:
+#                 if school_defaultdict[school['owner_id']]['school_n']:
+#                     school_defaultdict[school['owner_id']]['school_n'].append(1)
+#                 else:
+#                     school_defaultdict[school['owner_id']]['school_n'] = [1]
+#
+#
+#                 if locations_map.get(school['location_id'], "") not in distinct_location_set:
+#                     if school_defaultdict[school['owner_id']]['location_n']:
+#                         school_defaultdict[school['owner_id']]['location_n'].append(1)
+#
+#                     else:
+#                         school_defaultdict[school['owner_id']]['location_n'] = [1]
+#                     distinct_location_set.append(locations_map.get(school['location_id'], ""))
+#                 else:
+#                     pass
+#
+#             self.mongo[self.location_distinct_coll].update({"_id": "city"}, {"$set": {"city_id": list(set(distinct_location_set))}}, upsert=True)
+#
+#             for k,v in school_defaultdict.items():
+#                 school_schema = {
+#
+#                     "school_number": sum(v['school_n']),
+#                     "city_number": sum(v['location_n'])
+#                 }
+#
+#                 channel_school_bulk_update.append(UpdateOne({"channel": k, "day": one_date[0]},
+#                                                          {'$set': school_schema}, upsert=True))
+#
+#
+#
+#             if channel_school_bulk_update:
+#                 try:
+#                     bulk_update_ret = self.mongo.channel_per_day.bulk_write(channel_school_bulk_update)
+#                     # print(bulk_update_ret.bulk_api_result)
+#                 except BulkWriteError as bwe:
+#                     print(bwe.details)
+#
+#             self._set_time_threadshold("school_number_per_day_begin_time",
+#                                        datetime.datetime.strptime(one_date[1], "%Y-%m-%d"))
 
 
 class PerDayTask(BaseTask):
