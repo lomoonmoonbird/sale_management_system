@@ -1262,6 +1262,8 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
         items = []
         last_week = self.last_week_from_7_to_6()
         last_last_week = self.last_last_week_from_7_to_6()
+        # print(last_week)
+        # print(last_last_week)
         last_week_first_day, last_week_last_day, last_last_week_first_day, last_last_week_last_day =  \
             last_week[0], last_week[6], last_last_week[0], last_last_week[6]
 
@@ -1451,8 +1453,8 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                         "e_image_c": 1,
                         "w_image_c": 1,
                         "total_images": 1,
-                        "total_images_curr_month": 1,
-                        "total_images_last_month": 1,
+                        "total_images_curr_month": {"$sum":  ["$e_image_c_curr_month", "$w_image_c_curr_month"]},
+                        "total_images_last_month": {"$sum":  ["$e_image_c_last_month", "$w_image_c_last_month"]},
                         "city_number_curr_month": 1,
                         "city_number_last_month": 1,
                         "school_number_curr_month": 1,
