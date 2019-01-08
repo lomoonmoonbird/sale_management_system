@@ -95,12 +95,12 @@ class AreaList(BaseHandler, DataExcludeMixin):
             channels_map[channel['old_id']] = channel['parent_id']
 
         exclude_channels = await self.exclude_channel(request.app['mysql'])
-        old_ids = []
+
         if include_channel:
             old_ids = include_channel
         else:
             old_ids = list(set(old_ids).difference(set(exclude_channels)))
-
+        print(old_ids)
         items = await self._list(request, old_ids)
 
         items = await self.compute_area_list_for_page(request, areas, areas_map, channels_map, items)
