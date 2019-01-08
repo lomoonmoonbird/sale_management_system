@@ -51,15 +51,36 @@ class AreaList(BaseHandler, DataExcludeMixin):
         per_page = 10
         total_count = 0
         exclude_area_objectid = [ObjectId(id) for id in request['data_permission']['exclude_area']]
-        areas = request.app['mongodb'][self.db][self.instance_coll].find({"_id": {"$nin": exclude_area_objectid},
-                                                                          "parent_id": request['user_info']['global_id'],
-                                                                          "role": Roles.AREA.value,
-                                                                          "status": 1}).skip(page*per_page).limit(per_page)
-        areas = await areas.to_list(100000)
-        total_count = await request.app['mongodb'][self.db][self.instance_coll].count_documents({"_id": {"$nin": request['data_permission']['exclude_area']},
-                                                                                                 "parent_id": request['user_info']['global_id'],
-                                                                          "role": Roles.AREA.value,
-                                                                          "status": 1})
+        include_area = request['data_permission']['include_area']
+        include_area_objectid = [ObjectId(id) for id in request['data_permission']['include_area']]
+        include_channel = request['data_permission']['include_channel']
+        exclude_channel = request['data_permission']['exclude_channel']
+        areas = []
+        if include_area_objectid:
+            areas = request.app['mongodb'][self.db][self.instance_coll].find({"_id": {"$in": include_area_objectid},
+                                                                              "parent_id": request['user_info'][
+                                                                                  'global_id'],
+                                                                              "role": Roles.AREA.value,
+                                                                              "status": 1}).skip(page * per_page).limit(
+                per_page)
+            areas = await areas.to_list(100000)
+            total_count = await request.app['mongodb'][self.db][self.instance_coll].count_documents(
+                {"_id": {"$in": include_area_objectid},
+                 "parent_id": request['user_info']['global_id'],
+                 "role": Roles.AREA.value,
+                 "status": 1})
+        else:
+            areas = request.app['mongodb'][self.db][self.instance_coll].find({"_id": {"$nin": exclude_area_objectid},
+                                                                              "parent_id": request['user_info']['global_id'],
+                                                                              "role": Roles.AREA.value,
+                                                                              "status": 1}).skip(page*per_page).limit(per_page)
+            areas = await areas.to_list(100000)
+            total_count = await request.app['mongodb'][self.db][self.instance_coll].count_documents(
+                {"_id": {"$nin": exclude_area_objectid},
+                 "parent_id": request['user_info']['global_id'],
+                 "role": Roles.AREA.value,
+                 "status": 1})
+
         areas_ids = [str(item['_id']) for item in areas]
         channels = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": {"$in": areas_ids},
                                                                              "role": Roles.CHANNEL.value, "status": 1})
@@ -74,7 +95,11 @@ class AreaList(BaseHandler, DataExcludeMixin):
             channels_map[channel['old_id']] = channel['parent_id']
 
         exclude_channels = await self.exclude_channel(request.app['mysql'])
-        old_ids = list(set(old_ids).difference(set(exclude_channels)))
+        old_ids = []
+        if include_channel:
+            old_ids = include_channel
+        else:
+            old_ids = list(set(old_ids).difference(set(exclude_channels)))
 
         items = await self._list(request, old_ids)
 
