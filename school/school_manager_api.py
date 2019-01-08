@@ -61,6 +61,7 @@ class SchoolManage(BaseHandler, DataExcludeMixin):
         total_sql = ''
         total_school_count = 0
         flag = 0
+        condition_schools = []
         request_stage = int(request_param.get('stage')) if request_param.get('stage') else -1
         exclude_channel = await self.exclude_channel(request.app['mysql'])
         exclude_channel = request['data_permission']['exclude_channel'] + exclude_channel
@@ -199,7 +200,9 @@ class SchoolManage(BaseHandler, DataExcludeMixin):
                     await cur.execute(grade_sql)
                     grades = await cur.fetchall()
 
-
+        condition_schools_map = {}
+        for c_s in condition_schools:
+            condition_schools_map[c_s['school_id']] = c_s
 
         stage_grade = request.app['mongodb'][self.db][self.grade_coll].find({"school_id": {"$in": school_ids}})
         stage_grade = await stage_grade.to_list(10000)
@@ -234,6 +237,7 @@ class SchoolManage(BaseHandler, DataExcludeMixin):
             grade_item_map[str(g_i['_id']['school_id']) + "@" + g_i['_id']['grade']] = g_i
 
         data = []
+        print(json.dumps(condition_schools,indent=4,cls=CustomEncoder))
         for index, school in enumerate(schools):
 
             default = {
@@ -262,7 +266,10 @@ class SchoolManage(BaseHandler, DataExcludeMixin):
                     school['grade_info'].append(g_info)
                     stage.append(stage_grade_union_map2.get(school_grade, {}).get("stage", StageEnum.Register.value))
             school['stage'] = StageEnum.Register.value if not stage else min(stage)
-
+            if flag == 3:
+                if condition_schools_map.get(school['id'], {}).get("stage", StageEnum.Register.value) != school['stage']:
+                    await request.app['mongodb'][self.db][self.school_coll].update_one({"school_id": school['id']},
+                                                                                       {"$set": {"stage": school['stage']}})
             data.append(school)
         return self.reply_ok({"school_list": data,
                               "extra": {"total":total_school_count,
