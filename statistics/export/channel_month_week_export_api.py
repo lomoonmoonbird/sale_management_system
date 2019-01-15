@@ -18,7 +18,7 @@ import aiohttp
 import ujson
 from utils import get_json, get_params, validate_permission
 from basehandler import BaseHandler
-from exceptions import InternalError, UserExistError, CreateUserError, DELETEERROR, RequestError
+from exceptions import InternalError, UserExistError, CreateUserError, DELETEERROR, RequestError, DataPermissionError
 from menu.menu import Menu
 from motor.core import Collection
 from enum import Enum
@@ -67,9 +67,12 @@ class ChannelExportReport(BaseHandler, ExportBase, DataExcludeMixin):
         """
         request_param = await get_params(request)
         exclude_schools_u = request['data_permission']['exclude_school']
+        include_channel = request['data_permission']['include_channel']
         channel_id = request_param.get("channel_id", "")
         channel_old_id = -1
         channel_info = {}
+        if request['user_info']['instance_role_id'] not in [Roles.GLOBAL.value, Roles.AREA.value, Roles.CHANNEL.value]:
+            raise DataPermissionError("you have no right to access data")
         if request['user_info']['instance_role_id'] == Roles.CHANNEL.value:
             channel_id = request['user_info']['channel_id']
             channel_info = await request.app['mongodb'][self.db][self.instance_coll].find_one({"_id": ObjectId(channel_id),
@@ -84,6 +87,19 @@ class ChannelExportReport(BaseHandler, ExportBase, DataExcludeMixin):
         if not channel_info:
             raise RequestError("channel doesn't exist")
         channel_old_id = channel_info.get("old_id", "")
+        if request['user_info']['instance_role_id'] == Roles.GLOBAL.value:
+            if include_channel:
+                if channel_old_id not in include_channel:
+                    raise DataPermissionError("you have no right to access data")
+        elif request['user_info']['instance_role_id'] == Roles.AREA.value:
+            which_area = await request.app['mongodb'][self.db][self.instance_coll].find_one({"old_id": channel_old_id,
+                                                                                             'role': Roles.CHANNEL.value,
+                                                                                             'status': 1})
+            if not which_area or request['user_info']['area_id'] != which_area.get("parent_id", ""):
+                raise DataPermissionError("you have no right to access data")
+        elif request['user_info']['instance_role_id'] == Roles.CHANNEL.value:
+            if channel_id != request['user_info']['channel_id']:
+                raise DataPermissionError("you have no right to access data")
         # schools = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": channel_id,
         #                                                                     "role": Roles.SCHOOL.value,"status": 1})
         # schools = await schools.to_list(10000)
@@ -138,8 +154,11 @@ class ChannelExportReport(BaseHandler, ExportBase, DataExcludeMixin):
         request_param = await get_params(request)
         exclude_schools_u = request['data_permission']['exclude_school']
         channel_id = request_param.get("channel_id", "")
+        include_channel = request['data_permission']['include_channel']
         channel_old_id = -1
         channel_info = {}
+        if request['user_info']['instance_role_id'] not in [Roles.GLOBAL.value, Roles.AREA.value, Roles.CHANNEL.value]:
+            raise DataPermissionError("you have no right to access data")
         if request['user_info']['instance_role_id'] == Roles.CHANNEL.value:
             channel_id = request['user_info']['channel_id']
             channel_info = await request.app['mongodb'][self.db][self.instance_coll].find_one({"_id": ObjectId(channel_id),
@@ -157,7 +176,19 @@ class ChannelExportReport(BaseHandler, ExportBase, DataExcludeMixin):
             raise RequestError("channel doesn't exist")
         channel_old_id = channel_info.get("old_id", "")
 
-
+        if request['user_info']['instance_role_id'] == Roles.GLOBAL.value:
+            if include_channel:
+                if channel_old_id not in include_channel:
+                    raise DataPermissionError("you have no right to access data")
+        elif request['user_info']['instance_role_id'] == Roles.AREA.value:
+            which_area = await request.app['mongodb'][self.db][self.instance_coll].find_one({"old_id": channel_old_id,
+                                                                                             'role': Roles.CHANNEL.value,
+                                                                                             'status': 1})
+            if not which_area or request['user_info']['area_id'] != which_area.get("parent_id", ""):
+                raise DataPermissionError("you have no right to access data")
+        elif request['user_info']['instance_role_id'] == Roles.CHANNEL.value:
+            if channel_id != request['user_info']['channel_id']:
+                raise DataPermissionError("you have no right to access data")
         # schools = request.app['mongodb'][self.db][self.instance_coll].find({"parent_id": channel_id,
         #                                                                     "role": Roles.SCHOOL.value,"status": 1})
         # schools = await schools.to_list(10000)

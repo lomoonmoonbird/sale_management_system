@@ -18,7 +18,7 @@ import aiohttp
 import ujson
 from utils import get_json, get_params, validate_permission
 from basehandler import BaseHandler
-from exceptions import InternalError, UserExistError, CreateUserError, DELETEERROR, RequestError
+from exceptions import InternalError, UserExistError, CreateUserError, DELETEERROR, RequestError, DataPermissionError
 from menu.menu import Menu
 from motor.core import Collection
 from enum import Enum
@@ -66,6 +66,18 @@ class AreaExportReport(BaseHandler, ExportBase, DataExcludeMixin):
         """
         request_param = await get_params(request)
         area_id = request_param.get('area_id', "")
+        include_area = request['data_permission']['include_area']
+        if request['user_info']['instance_role_id'] not in [Roles.GLOBAL.value, Roles.AREA.value]:
+            raise DataPermissionError("you have no right to access data")
+        if request['user_info']['instance_role_id'] == Roles.GLOBAL.value:
+            if include_area:
+                if area_id not in include_area:
+                    raise DataPermissionError("you have no right to access data")
+        elif request['user_info']['instance_role_id'] == Roles.AREA.value:
+            if request['user_info']['area_id'] != area_id:
+                raise DataPermissionError("you have no right to access data")
+
+
         exclude_channels_u = request['data_permission']['exclude_channel']
         if request['user_info']['instance_role_id'] == Roles.AREA.value:
             area_id = request['user_info']['area_id']
@@ -146,6 +158,16 @@ class AreaExportReport(BaseHandler, ExportBase, DataExcludeMixin):
         """
         request_param = await get_params(request)
         area_id = request_param.get('area_id', "")
+        include_area = request['data_permission']['include_area']
+        if request['user_info']['instance_role_id'] not in [Roles.GLOBAL.value, Roles.AREA.value]:
+            raise DataPermissionError("you have no right to access data")
+        if request['user_info']['instance_role_id'] == Roles.GLOBAL.value:
+            if include_area:
+                if area_id not in include_area:
+                    raise DataPermissionError("you have no right to access data")
+        elif request['user_info']['instance_role_id'] == Roles.AREA.value:
+            if request['user_info']['area_id'] != area_id:
+                raise DataPermissionError("you have no right to access data")
         exclude_channels_u = request['data_permission']['exclude_channel']
         if request['user_info']['instance_role_id'] == Roles.AREA.value:
             area_id = request['user_info']['area_id']

@@ -67,11 +67,20 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
         exclude_areas = request['data_permission']['exclude_area']
         exclude_channels_u = request['data_permission']['exclude_channel']
         exclude_area_objectid = [ObjectId(id) for id in exclude_areas]
+        include_area = request['data_permission']['include_area']
+        include_area_objectid = [ObjectId(id) for id in include_area]
+        include_channel = request['data_permission']['include_channel']
         instance_coll = request.app['mongodb'][self.db][self.instance_coll]
         user_coll = request.app['mongodb'][self.db][self.user_coll]
-        areas = instance_coll.find({"_id": {"$nin": exclude_area_objectid},
-                                    "role": Roles.AREA.value,
-                                    "status": 1})
+        areas = []
+        if not include_area_objectid:
+            areas = instance_coll.find({"_id": {"$nin": exclude_area_objectid},
+                                        "role": Roles.AREA.value,
+                                        "status": 1})
+        else:
+            areas = instance_coll.find({"_id": {"$in": include_area_objectid},
+                                        "role": Roles.AREA.value,
+                                        "status": 1})
         areas = await areas.to_list(100000)
         area_ids = [str(item['_id']) for item in areas]
         stat_areas_channel = await self._get_areas_channels(request, areas)
@@ -101,9 +110,11 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
         for user in area_users:
             user['area_info'] = area_map.get(user['area_id'], {})
         old_ids = [item['old_id'] for item in channels]
-
-        exclude_channels = await self.exclude_channel(request.app['mysql'])
-        old_ids = list(set(old_ids).difference(set(exclude_channels+exclude_channels_u)))
+        if not include_channel:
+            exclude_channels = await self.exclude_channel(request.app['mysql'])
+            old_ids = list(set(old_ids).difference(set(exclude_channels+exclude_channels_u)))
+        else:
+            old_ids = include_channel
         sheet = b''
         if old_ids:
             sql = "select id, name from sigma_account_us_user where available = 1 and id in (%s) " % \
@@ -141,11 +152,20 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
         exclude_areas = request['data_permission']['exclude_area']
         exclude_channels_u = request['data_permission']['exclude_channel']
         exclude_area_objectid = [ObjectId(id) for id in exclude_areas]
+        include_area = request['data_permission']['include_area']
+        include_area_objectid = [ObjectId(id) for id in include_area]
+        include_channel = request['data_permission']['include_channel']
         instance_coll = request.app['mongodb'][self.db][self.instance_coll]
         user_coll = request.app['mongodb'][self.db][self.user_coll]
-        areas = instance_coll.find({"_id": {"$nin": exclude_area_objectid},
-                                    "role": Roles.AREA.value,
-                                    "status": 1})
+        areas = []
+        if not include_area_objectid:
+            areas = instance_coll.find({"_id": {"$nin": exclude_area_objectid},
+                                        "role": Roles.AREA.value,
+                                        "status": 1})
+        else:
+            areas = instance_coll.find({"_id": {"$in": include_area_objectid},
+                                        "role": Roles.AREA.value,
+                                        "status": 1})
         areas = await areas.to_list(100000)
         area_ids = [str(item['_id']) for item in areas]
         stat_areas_channel = await self._get_areas_channels(request, areas)
@@ -176,8 +196,11 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
             user['area_info'] = area_map.get(user['area_id'], {})
         old_ids = [item['old_id'] for item in channels]
 
-        exclude_channels = await self.exclude_channel(request.app['mysql'])
-        old_ids = list(set(old_ids).difference(set(exclude_channels+exclude_channels_u)))
+        if not include_channel:
+            exclude_channels = await self.exclude_channel(request.app['mysql'])
+            old_ids = list(set(old_ids).difference(set(exclude_channels+exclude_channels_u)))
+        else:
+            old_ids = include_channel
         sheet = b''
         if old_ids:
             sql = "select id, name from sigma_account_us_user where available = 1 and id in (%s) " % \
@@ -705,34 +728,34 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                 title_row1[3].value = "新增学校"
                 title_row1[4].value = "新增教师"
                 title_row1[5].value = "新增学生"
-                title_row1[6].value = "考试总数"
-                title_row1[7].value = "新增考试"
-                title_row1[8].value = "单词总数"
-                title_row1[9].value = "新增单词"
-                title_row1[10].value = "阅读总数"
-                title_row1[11].value = "新增阅读"
-                title_row1[12].value = "绑定总数"
+                title_row1[7].value = "考试总数"
+                title_row1[6].value = "新增考试"
+                title_row1[9].value = "单词总数"
+                title_row1[8].value = "新增单词"
+                title_row1[11].value = "阅读总数"
+                title_row1[10].value = "新增阅读"
+                title_row1[14].value = "绑定总数"
                 title_row1[13].value = "绑定率"
-                title_row1[14].value = "新增绑定"
+                title_row1[12].value = "新增绑定"
                 title_row1[15].value = "付费总数"
                 title_row1[16].value = "新增付费"
                 if report_type == 'week':
                     title_row2[3].value = "上周/本周"
                     title_row2[4].value = "上周/本周"
                     title_row2[5].value = "上周/本周"
-                    title_row2[7].value = "上周/本周"
-                    title_row2[9].value = "上周/本周"
-                    title_row2[11].value = "上周/本周"
-                    title_row2[14].value = "上周/本周"
+                    title_row2[6].value = "上周/本周"
+                    title_row2[8].value = "上周/本周"
+                    title_row2[10].value = "上周/本周"
+                    title_row2[12].value = "上周/本周"
                     title_row2[16].value = "上周/本周"
                 else:
                     title_row2[3].value = "上月/本月"
                     title_row2[4].value = "上月/本月"
                     title_row2[5].value = "上月/本月"
-                    title_row2[7].value = "上月/本月"
-                    title_row2[9].value = "上月/本月"
-                    title_row2[11].value = "上月/本月"
-                    title_row2[14].value = "上月/本月"
+                    title_row2[6].value = "上月/本月"
+                    title_row2[8].value = "上月/本月"
+                    title_row2[10].value = "上月/本月"
+                    title_row2[12].value = "上月/本月"
                     title_row2[16].value = "上月/本月"
 
                 index = 0
@@ -767,44 +790,44 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                     summary_channel_map[5].append(row[5].value)
 
                     #考试
-                    row[6].value = channel_stat.get("channel_stat", {}).get("valid_exercise_count", 0)
-                    row[7].value = str(
+                    row[7].value = channel_stat.get("channel_stat", {}).get("valid_exercise_count", 0)
+                    row[6].value = str(
                         channel_stat.get("channel_stat", {}).get("valid_exercise_count_last_month", 0)) + "/" + str(
                         channel_stat.get("channel_stat", {}).get("valid_exercise_count_curr_month", 0))
 
-                    summary_channel_map[6].append(row[6].value)
                     summary_channel_map[7].append(row[7].value)
+                    summary_channel_map[6].append(row[6].value)
 
                     #单词
-                    row[8].value = channel_stat.get("channel_stat", {}).get("valid_word_count", 0)
-                    row[9].value = str(
+                    row[9].value = channel_stat.get("channel_stat", {}).get("valid_word_count", 0)
+                    row[8].value = str(
                         channel_stat.get("channel_stat", {}).get("valid_word_count_last_month", 0)) + "/" + str(
                         channel_stat.get("channel_stat", {}).get("valid_word_count_curr_month", 0))
 
-                    summary_channel_map[8].append(row[8].value)
                     summary_channel_map[9].append(row[9].value)
+                    summary_channel_map[8].append(row[8].value)
 
                     #阅读
-                    row[10].value = channel_stat.get("channel_stat", {}).get("valid_reading_count", 0)
-                    row[11].value = str(
+                    row[11].value = channel_stat.get("channel_stat", {}).get("valid_reading_count", 0)
+                    row[10].value = str(
                         channel_stat.get("channel_stat", {}).get("valid_reading_count_last_month", 0)) + "/" + str(
                         channel_stat.get("channel_stat", {}).get("valid_reading_count_curr_month", 0))
-                    summary_channel_map[10].append(row[10].value)
                     summary_channel_map[11].append(row[11].value)
+                    summary_channel_map[10].append(row[10].value)
 
                     #绑定
                     avg = channel_stat.get("channel_stat", {}).get("total_unique_guardian_number", 0) / \
                           channel_stat.get("channel_stat", {}).get("total_student_number", 0) \
                         if channel_stat.get("channel_stat", {}).get("total_student_number", 0) > 0 else 0
-                    row[12].value = channel_stat.get("channel_stat", {}).get("total_unique_guardian_number", 0)
+                    row[14].value = channel_stat.get("channel_stat", {}).get("total_unique_guardian_number", 0)
                     row[13].value = self.percentage(avg)
-                    row[14].value = str(
+                    row[12].value = str(
                         channel_stat.get("channel_stat", {}).get("guardian_unique_number_last_month", 0)) + "/" + str(
                         channel_stat.get("channel_stat", {}).get("guardian_unique_number_curr_month", 0))
-                    summary_channel_map[12].append(row[12].value)
+                    summary_channel_map[14].append(row[14].value)
                     summary_channel_map[13].append(str(channel_stat.get("channel_stat", {}).get("total_unique_guardian_number", 0))
                                                    + "/" + str(channel_stat.get("channel_stat", {}).get("total_student_number", 0)))
-                    summary_channel_map[14].append(row[14].value)
+                    summary_channel_map[12].append(row[12].value)
 
 
                     #付费
@@ -841,9 +864,9 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                         cell.value = "总计"
                         continue
                     cell.alignment = self._alignment()
-                    if index in (2, 6, 8, 10, 12, 15):  #不带/ 总和
+                    if index in (2, 7, 9, 11, 14, 15):  #不带/ 总和
                         cell.value = self.rounding(sum((summary_channel_map.get(index, [0]))))
-                    elif index in (3, 4, 5, 7, 9, 11, 14, 16): #带/
+                    elif index in (3, 4, 5, 6, 8, 10, 12, 16): #带/
                         cell.value = str(
                             sum([float(item.split('/')[0]) for item in summary_channel_map.get(index, "0/0")])) + "/" + str(
                             sum([float(item.split('/')[1]) for item in summary_channel_map.get(index, "0/0")]))
@@ -871,9 +894,9 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                         cell.value = "环比新增率"
                         continue
                     cell.alignment = self._alignment()
-                    if index in (2, 6, 8, 10, 13, 15):  #不带/last_summary
+                    if index in (2, 7, 9, 11, 13, 15):  #不带/last_summary
                         cell.value = "/"
-                    elif index in (3, 4, 5, 7, 9, 11, 14, 16): #带/
+                    elif index in (3, 4, 5, 6, 8, 10, 12, 16): #带/
                         last_summary = sum([float(item.split('/')[0]) for item in summary_channel_map.get(index, ["0/0"])])
                         curr_summary = sum([float(item.split('/')[1]) for item in summary_channel_map.get(index, ["0/0"])])
                         cell.value = self.percentage((curr_summary-last_summary) / last_summary if last_summary else 0)
