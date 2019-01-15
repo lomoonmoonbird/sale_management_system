@@ -737,8 +737,8 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                 title_row1[14].value = "绑定总数"
                 title_row1[13].value = "绑定率"
                 title_row1[12].value = "新增绑定"
-                title_row1[15].value = "付费总数"
-                title_row1[16].value = "新增付费"
+                title_row1[16].value = "付费总数"
+                title_row1[15].value = "新增付费"
                 if report_type == 'week':
                     title_row2[3].value = "上周/本周"
                     title_row2[4].value = "上周/本周"
@@ -747,7 +747,7 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                     title_row2[8].value = "上周/本周"
                     title_row2[10].value = "上周/本周"
                     title_row2[12].value = "上周/本周"
-                    title_row2[16].value = "上周/本周"
+                    title_row2[15].value = "上周/本周"
                 else:
                     title_row2[3].value = "上月/本月"
                     title_row2[4].value = "上月/本月"
@@ -756,7 +756,7 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                     title_row2[8].value = "上月/本月"
                     title_row2[10].value = "上月/本月"
                     title_row2[12].value = "上月/本月"
-                    title_row2[16].value = "上月/本月"
+                    title_row2[15].value = "上月/本月"
 
                 index = 0
                 for channel_stat in data:
@@ -831,12 +831,12 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
 
 
                     #付费
-                    row[15].value = channel_stat.get("channel_stat", {}).get("total_pay_amount", 0)
-                    row[16].value = str(
+                    row[16].value = channel_stat.get("channel_stat", {}).get("total_pay_amount", 0)
+                    row[15].value = str(
                         channel_stat.get("channel_stat", {}).get("pay_amount_last_month", 0)) + "/" + str(
                         channel_stat.get("channel_stat", {}).get("pay_amount_curr_month", 0))
-                    summary_channel_map[15].append(row[15].value)
                     summary_channel_map[16].append(row[16].value)
+                    summary_channel_map[15].append(row[15].value)
 
                     for one in row:
                         # if "大区1" in str(one.value):
@@ -864,9 +864,9 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                         cell.value = "总计"
                         continue
                     cell.alignment = self._alignment()
-                    if index in (2, 7, 9, 11, 14, 15):  #不带/ 总和
+                    if index in (2, 7, 9, 11, 14, 16):  #不带/ 总和
                         cell.value = self.rounding(sum((summary_channel_map.get(index, [0]))))
-                    elif index in (3, 4, 5, 6, 8, 10, 12, 16): #带/
+                    elif index in (3, 4, 5, 6, 8, 10, 12, 15): #带/
                         cell.value = str(
                             sum([float(item.split('/')[0]) for item in summary_channel_map.get(index, "0/0")])) + "/" + str(
                             sum([float(item.split('/')[1]) for item in summary_channel_map.get(index, "0/0")]))
@@ -894,9 +894,9 @@ class GlobalExportReport(BaseHandler, ExportBase, DataExcludeMixin):
                         cell.value = "环比新增率"
                         continue
                     cell.alignment = self._alignment()
-                    if index in (2, 7, 9, 11, 13, 15):  #不带/last_summary
+                    if index in (2, 7, 9, 11, 13, 16):  #不带/last_summary
                         cell.value = "/"
-                    elif index in (3, 4, 5, 6, 8, 10, 12, 16): #带/
+                    elif index in (3, 4, 5, 6, 8, 10, 12, 15): #带/
                         last_summary = sum([float(item.split('/')[0]) for item in summary_channel_map.get(index, ["0/0"])])
                         curr_summary = sum([float(item.split('/')[1]) for item in summary_channel_map.get(index, ["0/0"])])
                         cell.value = self.percentage((curr_summary-last_summary) / last_summary if last_summary else 0)
