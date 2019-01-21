@@ -100,7 +100,8 @@ ob_reading = Table('sigma_graded_reading_student_history', metadata,
                 )
 
 #wechat 微信绑定关系
-ob_wechat = Table('sigma_account_ob_wechat', metadata, 
+ob_wechat = Table('sigma_account_ob_wechat', metadata,
+                Column('id', Integer, primary_key=True), #阅读主键id
                 Column('unionid', String(32), unique=True), #TODO 含义
                 Column('openid', Integer, index=True, nullable=True), #微信openid
                 Column('role_id', default=2, nullable=False), #角色分类

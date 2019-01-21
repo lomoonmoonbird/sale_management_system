@@ -36,7 +36,7 @@ class TestThemis(unittest.TestCase):
                 themis_role_user = {
                     "appKey": permissionAppKey,
                     "appSecret": permissionAppSecret,
-                    "userId": [3006621],
+                    "userId": [3003039],
                     "roleId": [32]
                 }
 
@@ -46,7 +46,7 @@ class TestThemis(unittest.TestCase):
                 async with client.post(THEMIS_SYSTEM_OPEN_URL + "/userRole/bulkCreate" ,
                                        data=ujson.dumps(themis_role_user),
                                        headers={"Content-Type":"application/json",
-                                                "Cookie": "UBUS=Moj5w6MUXcHC8Vb7u6FCVRjTSh90hkfT7ZeOz1Kpx_zGN6F520Hbv-tMsoCDvf3z"}) as res:
+                                                "Cookie": "UBUS=wFyt88Maaz39TSOMfpSSNMYFqjNTi2WgpCCV2Zr7NgA1vgaUE8ANvd9MuZqJWm7V"}) as res:
                     print (res.status)
                     print(await res.text())
 
