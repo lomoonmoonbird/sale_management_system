@@ -143,19 +143,22 @@ connection = pymysql.connect(host="127.0.0.1",
 # area = mongo.instance.find_one({"name": "华南大区", "status": 1})
 
 
-aa  = mongo.data_permission.find_one({"user_id": "3006621"})
+# aa  = mongo.data_permission.find_one({"user_id": "3006621"})
+#
+# ccc = aa.get("include_channel", [])
+#
+# ddd = []
+# for c in ccc:
+#     try:
+#         int(c)
+#         ddd.append(int(c))
+#     except:
+#         continue
+# ddd += [1021498 ,1021572, 1022123]
+# mongo.data_permission.update({"user_id": "3006621"}, {"$set": {"include_channel": ddd}})
 
-ccc = aa.get("include_channel", [])
-
-ddd = []
-for c in ccc:
-    try:
-        int(c)
-        ddd.append(int(c))
-    except:
-        continue
-
-mongo.data_permission.update({"user_id": "3006621"}, {"$set": {"include_channel": ddd}})
+aa = mongo.data_permission.find_one({"user_id": "3006621"})
+print ([item for item in aa['include_channel']])
 server_mongo.stop()
 server.stop()
 # cursor.close()
