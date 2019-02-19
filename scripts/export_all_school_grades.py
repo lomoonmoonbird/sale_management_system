@@ -186,30 +186,58 @@ sheet_name = "all_school_grade"
 wb.create_sheet(title=sheet_name)
 ws = wb[sheet_name]
 
-ws.append(['渠道名', '学校', '负责人', '年级', '开通时间', '测试图像|2018-09-01--2019-01-15', '单词图像|2018-09-01--2019-01-15',
-           '测试使用次数|2018-12-01--2018-12-31', '阅读使用次数|2018-12-01--2018-12-31',
-           '词汇使用次数|2018-12-01--2018-12-31', '总和|2018-12-01--2018-12-31', '上学期付费金额|2018-09-01--2019-01-15'])
+ws.append(['渠道名', '学校', '负责人', '开通时间', '测试图像|2018-09-01--2019-01-15', '单词图像|2018-09-01--2019-01-15',
+           '测试平均使用次数|2018-12-01--2018-12-31', '阅读平均使用次数|2018-12-01--2018-12-31',
+           '词汇平均使用次数|2018-12-01--2018-12-31', '总和|2018-12-01--2018-12-31', '上学期付费金额|2018-09-01--2019-01-15'])
 
 
 for school_id, s_g in schoo_include_group_map.items():
+    school_grade_e_image_c = 0
+    school_grade_w_image_c = 0
+    school_valid_exercise_number = 0
+    school_valid_word_number = 0
+    school_valid_reading_number = 0
+    school_grade_number = 0
+    school_pay_amount = 0
     for sg in s_g:
-        ws.append([
-            channel_map.get(schools_map[school_id].get("owner_id", ""), {}).get("name"),
-            schools_map[school_id].get("full_name", ""),
-            schools_map[school_id].get("president", ""),
-            sg['grade'],
-            sg['time_create'],
-            stat_map.get(str(school_id) + "@" + sg['grade'], default).get("e_image_c"),
-            stat_map.get(str(school_id) + "@" + sg['grade'], default).get("w_image_c"),
-            stat_map.get(str(school_id) + "@" + sg['grade'], default).get("valid_exercise_count"),
-            stat_map.get(str(school_id) + "@" + sg['grade'], default).get("valid_reading_count"),
-            stat_map.get(str(school_id) + "@" + sg['grade'], default).get("valid_word_count"),
-            stat_map.get(str(school_id) + "@" + sg['grade'], default).get("valid_exercise_count")+
-            stat_map.get(str(school_id) + "@" + sg['grade'], default).get("valid_reading_count")+
-            stat_map.get(str(school_id) + "@" + sg['grade'], default).get("valid_word_count"),
-            stat_map.get(str(school_id) + "@" + sg['grade'], default).get("pay_amount"),
-        ])
+        school_grade_e_image_c += stat_map.get(str(school_id) + "@" + sg['grade'], default).get("e_image_c")
+        school_grade_w_image_c += stat_map.get(str(school_id) + "@" + sg['grade'], default).get("w_image_c")
+        school_valid_exercise_number += stat_map.get(str(school_id) + "@" + sg['grade'], default).get("valid_exercise_count")
+        school_valid_word_number += stat_map.get(str(school_id) + "@" + sg['grade'], default).get("valid_word_count")
+        school_valid_reading_number += stat_map.get(str(school_id) + "@" + sg['grade'], default).get("valid_reading_count")
+        school_grade_number += 1
+        school_pay_amount += stat_map.get(str(school_id) + "@" + sg['grade'], default).get("pay_amount")
+        # ws.append([
+        #     channel_map.get(schools_map[school_id].get("owner_id", ""), {}).get("name"),
+        #     schools_map[school_id].get("full_name", ""),
+        #     schools_map[school_id].get("president", ""),
+        #     sg['grade'],
+        #     sg['time_create'],
+        #     stat_map.get(str(school_id) + "@" + sg['grade'], default).get("e_image_c"),
+        #     stat_map.get(str(school_id) + "@" + sg['grade'], default).get("w_image_c"),
+        #     stat_map.get(str(school_id) + "@" + sg['grade'], default).get("valid_exercise_count"),
+        #     stat_map.get(str(school_id) + "@" + sg['grade'], default).get("valid_reading_count"),
+        #     stat_map.get(str(school_id) + "@" + sg['grade'], default).get("valid_word_count"),
+        #     stat_map.get(str(school_id) + "@" + sg['grade'], default).get("valid_exercise_count")+
+        #     stat_map.get(str(school_id) + "@" + sg['grade'], default).get("valid_reading_count")+
+        #     stat_map.get(str(school_id) + "@" + sg['grade'], default).get("valid_word_count"),
+        #     stat_map.get(str(school_id) + "@" + sg['grade'], default).get("pay_amount"),
+        # ])
 
+    ws.append([
+        channel_map.get(schools_map[school_id].get("owner_id", ""), {}).get("name"),
+        schools_map[school_id].get("full_name", ""),
+        schools_map[school_id].get("president", ""),
+        schools_map.get(school_id, {}).get('time_create', ''),
+        school_grade_e_image_c,
+        school_grade_w_image_c,
+        school_valid_exercise_number/school_grade_number if school_grade_number else 0,
+        school_valid_reading_number/school_grade_number if school_grade_number else 0,
+        school_valid_word_number/school_grade_number if school_grade_number else 0,
+        (school_valid_exercise_number+school_valid_word_number+school_valid_reading_number)/school_grade_number if school_grade_number else 0,
+
+        school_pay_amount
+    ])
 
 
 
